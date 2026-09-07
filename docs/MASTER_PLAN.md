@@ -93,9 +93,10 @@ certificate — on a phone, in dark mode, with a keyboard.
 
 ## 7. Current status
 
-Phases 0 (audit), 1 (architecture) and **2 (foundation)** are complete.
-`api/` and `web/` exist and are green; no LMS domain features yet.
-Phase 3 (authentication, roles, permissions) is next — see `ROADMAP.md`.
+Phases 0 (audit), 1 (architecture), 2 (foundation) and **3 (identity)** are complete.
+Authentication, the permission registry, course-scoped roles, profiles and the
+instructor approval lifecycle are shipped and tested.
+Phase 4 (course management) is next — see `ROADMAP.md`.
 
 ## 8. Decisions taken
 

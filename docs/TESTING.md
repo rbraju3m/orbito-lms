@@ -37,6 +37,20 @@ break in production.
 
 `RefreshDatabase` is applied to the whole `Feature` suite in `Pest.php`.
 
+### The harness models a fresh container per request
+
+`Tests\TestCase::call()` calls `$this->app['auth']->forgetGuards()` before every
+HTTP call.
+
+This matters more than it looks. A real deployment boots a fresh container per
+request, but the test process reuses one — so Illuminate's `RequestGuard` keeps
+the user it resolved on an *earlier* request. Without forgetting the guards, a
+test that revokes a token and then asserts the token no longer works **passes for
+the wrong reason**: the guard answers from cache and never re-checks the token.
+
+The acting-as user is re-applied after the flush, because that is deliberate test
+intent rather than leaked state.
+
 ### Custom expectations
 
 ```php
@@ -126,7 +140,7 @@ install browsers on 20.04; this is a host constraint, not a configuration bug.
 | Phase | Flow |
 |---|---|
 | 2 | shell renders · navigation · light/dark toggle · unknown route |
-| 3 | register → verify → login → logout · password reset |
+| 3 | register → verify → login → logout · password reset ✅ |
 | 4 | create a course → publish it |
 | 5 | build curriculum by drag and drop → reorder persists |
 | 6 | enrol → play a lesson → progress updates → resume |

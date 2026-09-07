@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -20,9 +21,27 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->configureFactories();
         $this->configureModels();
         $this->configurePasswords();
         $this->configureRateLimiting();
+    }
+
+    /**
+     * Domain models live outside App\Models, so Laravel's default factory
+     * convention does not find them. Map
+     *   App\Domain\<Context>\Models\Foo  ->  Database\Factories\<Context>\FooFactory
+     * once here rather than adding newFactory() to every model.
+     */
+    private function configureFactories(): void
+    {
+        Factory::guessFactoryNamesUsing(function (string $model): string {
+            if (preg_match('/^App\\\\Domain\\\\(?<context>[^\\\\]+)\\\\Models\\\\(?<model>.+)$/', $model, $m) === 1) {
+                return "Database\\Factories\\{$m['context']}\\{$m['model']}Factory";
+            }
+
+            return 'Database\\Factories\\'.class_basename($model).'Factory';
+        });
     }
 
     /**

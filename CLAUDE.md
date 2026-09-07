@@ -199,11 +199,32 @@ Settled decisions (do not relitigate without being asked):
 **Laravel 13** · **single tenant per deployment** · **Stripe + PayPal for MVP** ·
 Mantine 9 · TanStack Query 5 · MySQL 8 · Redis via predis · Pest · Vitest · Playwright.
 
-## 9. Current phase
+## 9. Authorization — how to use what Phase 3 built
 
-**Phases 0–2 complete.** Audit, architecture, and the foundation
-(`api/` + `web/`, API envelope, error handling, queues, cache, theme, tests, CI).
+Never write `if ($user->hasRole('admin'))`. Ask what they may *do*:
 
-**Phase 3 is next: authentication, roles, permissions, profiles.**
-Do not build course, curriculum, quiz or commerce features before Phase 3 lands —
-policies are the substrate everything else authorizes against. See `docs/ROADMAP.md`.
+```php
+$user->hasPermission('course.publish.own', $course);   // scope-aware
+Gate::authorize('publish', $course);                   // in a controller
+```
+
+- Permissions are declared in `config/permissions.php` and synced with
+  `php artisan permissions:sync`. Adding a capability means adding a key there
+  and granting it to roles — not writing a new check.
+- `role_assignments` carries an optional scope. A course-scoped role (Course
+  Manager, Reviewer, TA) only applies to the resource it was granted on.
+- Policies are the only place authorization decisions live. `Gate::before`
+  grants Super Admin everything; that is the one blanket bypass in the system.
+- `GET /auth/me` returns the caller's permission keys so the SPA can hide UI.
+  That is a convenience. Every endpoint still authorizes independently, and
+  every endpoint needs a test for its 403 path.
+
+**When you add a model in Phase 4+**: register it in the morph map in
+`AuthServiceProvider` if it can be a role scope, and add its policy there too.
+
+## 10. Current phase
+
+**Phases 0–3 complete.** Audit, architecture, foundation, and identity.
+
+**Phase 4 is next: categories, tags, courses, co-instructors, publishing,
+media foundation, and the plan-limit usage counters.** See `docs/ROADMAP.md`.

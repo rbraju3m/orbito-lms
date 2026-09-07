@@ -1,0 +1,158 @@
+import {
+  AppShell,
+  Avatar,
+  Burger,
+  Group,
+  Menu,
+  NavLink as MantineNavLink,
+  ScrollArea,
+  Stack,
+  Text,
+  UnstyledButton,
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import {
+  IconBook,
+  IconChalkboard,
+  IconLayoutDashboard,
+  IconLogout,
+  IconSettings,
+  IconShieldLock,
+  IconUser,
+  IconUsers,
+} from '@tabler/icons-react';
+import { NavLink, Outlet, useNavigate } from 'react-router';
+
+import { useLogout } from '@/features/auth/api/queries';
+import { useSession } from '@/features/auth/hooks/useSession';
+import { ThemeToggle } from '@/shared/ui';
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof IconBook;
+  /** Shown only when the caller holds one of these permissions. */
+  anyOf?: string[];
+  end?: boolean;
+}
+
+const NAV: NavItem[] = [
+  { to: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard, end: true },
+  { to: '/dashboard/courses', label: 'My learning', icon: IconBook },
+  {
+    to: '/studio',
+    label: 'Studio',
+    icon: IconChalkboard,
+    anyOf: ['course.create', 'course.update.own'],
+  },
+  {
+    to: '/admin',
+    label: 'Administration',
+    icon: IconShieldLock,
+    anyOf: ['user.view', 'settings.view'],
+  },
+  { to: '/admin/instructors', label: 'Instructors', icon: IconUsers, anyOf: ['instructor.view'] },
+];
+
+/**
+ * The signed-in shell. Navigation is filtered by permission so a user only
+ * sees areas they can actually use — a UI convenience on top of server-side
+ * authorization, never a substitute for it.
+ */
+export function AppLayout() {
+  const [opened, { toggle, close }] = useDisclosure(false);
+  const { session, canAny } = useSession();
+  const { mutateAsync: signOut } = useLogout();
+  const navigate = useNavigate();
+
+  const items = NAV.filter((item) => !item.anyOf || canAny(item.anyOf));
+
+  const handleSignOut = async () => {
+    await signOut();
+    void navigate('/login', { replace: true });
+  };
+
+  return (
+    <AppShell
+      header={{ height: 56 }}
+      navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+      padding="md"
+    >
+      <AppShell.Header>
+        <Group h="100%" px="md" justify="space-between">
+          <Group gap="sm">
+            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
+            <Text fw={700} size="lg">
+              Orbito
+            </Text>
+          </Group>
+
+          <Group gap="sm">
+            <ThemeToggle />
+
+            <Menu position="bottom-end" width={220} withinPortal>
+              <Menu.Target>
+                <UnstyledButton aria-label="Account menu">
+                  <Group gap="xs">
+                    <Avatar radius="xl" size="sm" name={session?.user.name} color="orbito" />
+                    <Text size="sm" visibleFrom="sm">
+                      {session?.user.name}
+                    </Text>
+                  </Group>
+                </UnstyledButton>
+              </Menu.Target>
+
+              <Menu.Dropdown>
+                <Menu.Label>{session?.user.email}</Menu.Label>
+                <Menu.Item
+                  component={NavLink}
+                  to="/account/profile"
+                  leftSection={<IconUser size={16} />}
+                >
+                  Profile
+                </Menu.Item>
+                <Menu.Item
+                  component={NavLink}
+                  to="/account/security"
+                  leftSection={<IconSettings size={16} />}
+                >
+                  Security
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item
+                  color="danger"
+                  leftSection={<IconLogout size={16} />}
+                  onClick={() => void handleSignOut()}
+                >
+                  Sign out
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
+        </Group>
+      </AppShell.Header>
+
+      <AppShell.Navbar p="sm">
+        <ScrollArea>
+          <Stack gap={2}>
+            {items.map(({ to, label, icon: Icon, end }) => (
+              <MantineNavLink
+                key={to}
+                component={NavLink}
+                to={to}
+                end={end ?? false}
+                label={label}
+                leftSection={<Icon size={18} stroke={1.5} />}
+                onClick={close}
+              />
+            ))}
+          </Stack>
+        </ScrollArea>
+      </AppShell.Navbar>
+
+      <AppShell.Main>
+        <Outlet />
+      </AppShell.Main>
+    </AppShell>
+  );
+}

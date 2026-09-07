@@ -47,6 +47,14 @@ return [
     ],
 
     /*
+    | Marketplace economics. Basis points (1/100th of a percent) so the split is
+    | exact integer arithmetic — 3000 bp = 30% to the platform.
+    */
+    'commission' => [
+        'default_rate_bp' => (int) env('ORBITO_COMMISSION_BP', 3000),
+    ],
+
+    /*
     | Tenancy. Single tenant per deployment for 1.0 — see ARCHITECTURE_PROPOSAL
     | risk R4. This flag exists so the assumption is visible in code, not implicit.
     */

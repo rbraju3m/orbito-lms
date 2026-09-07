@@ -29,8 +29,13 @@ export class ApiError extends Error {
     this.requestId = params.requestId;
   }
 
+  /**
+   * Keys on the CODE, not the status. The API returns 422 for genuine field
+   * validation *and* for domain rejections like `invalid_credentials`; only
+   * the former carries field-level `details`.
+   */
   get isValidation(): boolean {
-    return this.status === 422;
+    return this.code === 'validation_failed';
   }
 
   get isUnauthenticated(): boolean {

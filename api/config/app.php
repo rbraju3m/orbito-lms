@@ -57,6 +57,13 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | Base URL of the SPA. Used for links in emails (verification, password
+    | reset) — the API renders no HTML so it cannot own those landing pages.
+    | May be a comma-separated list; the first entry is canonical.
+    */
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

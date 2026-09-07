@@ -154,12 +154,47 @@ production build is ~196 KB gzipped, inside the 250 KB budget.
 Deferred from this phase: Docker/Sail (the host already provides MySQL + Redis
 natively, so it would have added a moving part without removing one).
 
-### Phase 3 — Authentication & Users
-Register, login, logout, verification, reset · Sanctum cookie + token · permission
-registry + seeder + `permissions:sync` · roles including course-scoped · policies base ·
-profiles · instructor application and approval · `GET /auth/me` with permissions ·
-auth UI, guards, and the account area.
-**Exit:** all four role families can log in and see only what they may.
+### Phase 3 — Authentication & Users ✅ complete
+
+Delivered:
+- **Permission registry** — 97 permissions in 16 groups, 8 roles, declared in
+  `config/permissions.php` and reconciled by `php artisan permissions:sync`.
+  Sync is additive: it never silently deletes a capability a role still uses.
+- **Course-scoped roles (ADR-07)** — `role_assignments(user_id, role_id, scope_type,
+  scope_id, expires_at)`. A Teaching Assistant on course 42 answers *true* for
+  course 42 and *false* everywhere else. Assignments can expire.
+- **Policies** — `UserPolicy`, `RolePolicy`, `InstructorProfilePolicy`, with the
+  single `Gate::before` Super Admin bypass. No code branches on a role name.
+- **Auth** — register, login, logout, email verification, password reset, change
+  password. Sanctum cookie for the SPA; bearer tokens for every other client.
+- **Instructor lifecycle** — apply → pending → approve/reject/block. Approval is
+  the *only* thing that grants the Instructor role.
+- **`GET /auth/me`** returns the caller with their resolved permission keys.
+- **Frontend** — auth pages, route guards, app shell with permission-filtered
+  navigation, profile, security, instructor application, admin review screen.
+
+Security properties that are tested, not just intended:
+- Login answers identically for a wrong password and an unknown address.
+- Password reset answers identically for known and unknown addresses.
+- A verification signature valid for one user cannot verify another.
+- Password reset and password change revoke every issued API token.
+- Suspending a user revokes their tokens.
+- The last Super Admin cannot be demoted.
+- A scoped role assignment whose target does not exist is rejected, never
+  silently downgraded to a global grant.
+
+**Exit met.** Verified against the running API:
+
+| Role | Permissions | `/admin/instructors` | `/admin/users` |
+|---|---|---|---|
+| Super Admin | 97 | 200 | 200 |
+| Admin | 79 | 200 | 200 |
+| Staff | 23 | 200 | 200 |
+| Instructor | 40 | 403 | 403 |
+| Student | 10 | 403 | 403 |
+| Pending applicant | 10 | 403 | 403 (`course.create` = false) |
+
+119 backend tests, 23 frontend tests, PHPStan level 6 and `tsc` clean.
 
 ### Phase 4 — Course Management
 Categories, tags · course CRUD · draft→review→published→archived state machine ·

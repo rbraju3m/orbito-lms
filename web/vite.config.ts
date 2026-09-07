@@ -24,6 +24,11 @@ export default defineConfig({
       output: {
         // Keep the framework out of the app chunk so a code change does not
         // invalidate the vendor cache on every deploy.
+        // Only name the chunks that are genuinely in the entry graph. Vite
+        // emits a modulepreload for every MANUAL chunk, so naming a dependency
+        // that only lazy routes use would drag it into the first paint —
+        // exactly what the code splitting is there to avoid. Everything else is
+        // left to the bundler, which places dynamic-only deps in dynamic chunks.
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
           if (/[\\/]node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/.test(id)) {
@@ -31,7 +36,7 @@ export default defineConfig({
           }
           if (id.includes('node_modules/@mantine')) return 'mantine';
           if (id.includes('node_modules/@tanstack')) return 'query';
-          return 'vendor';
+          return undefined;
         },
       },
     },

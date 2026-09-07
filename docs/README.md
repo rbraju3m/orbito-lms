@@ -1,7 +1,8 @@
 # Orbito LMS — Documentation
 
-**Status:** Phases 0 (audit), 1 (architecture) and 2 (foundation) complete.
-`api/` and `web/` are scaffolded and green. Phase 3 (auth, roles, permissions) is next.
+**Status:** Phases 0–3 complete. Audit, architecture, foundation, and identity
+(auth, roles, permissions, profiles, instructor approval). Phase 4 — course
+management — is next.
 
 Start here → [`MASTER_PLAN.md`](MASTER_PLAN.md)
 
