@@ -3,8 +3,8 @@
 Companion documents: `DATABASE.md`, `API.md`, `ROLES_PERMISSIONS.md`,
 `FRONTEND_ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `ROADMAP.md`.
 
-> **The name is now half wrong.** Phases 0–8 are built, so most of this is a
-> record rather than a proposal. Each ADR below carries its delivery status;
+> **The name is now half wrong.** Phases 0–9 are built, plus a multi-tenancy
+> retrofit, so most of this is a record rather than a proposal. Each ADR below carries its delivery status;
 > where the shipped code differs from the original decision, the difference is
 > stated rather than quietly edited away.
 
@@ -283,6 +283,48 @@ that made Tutor's codebase what it is.
 
 ---
 
+---
+
+### ADR-13 — One database per academy
+
+**Decision.** Multi-tenancy is **schema-per-tenant** (`stancl/tenancy`), and
+the tenant for a request is resolved from the **authenticated user's**
+`tenant_id`. Users, plans, subscriptions and usage counters are central;
+everything else — including roles and role assignments — lives in the
+academy's own schema.
+
+**Why not a `tenant_id` column.** Row-level tenancy makes isolation a property
+of every query: one missing scope leaks another academy's data, and the only
+defence is discipline plus review. Schema-per-tenant makes isolation
+**structural** — the data is not on the connection, so a forgotten filter
+returns nothing rather than someone else's rows. That trade buys correctness
+at the cost of migrations running N times and cross-boundary joins being
+impossible.
+
+**Why identification by user, not by domain.** This follows the Orbito
+product, and it is the decision with the widest blast radius, because it
+removes the anonymous surface entirely: with no user there is no academy, so
+the catalogue, course pages, previews and the player all became members-only.
+`is_preview` now means "try before you *enrol*", not "try before you sign up".
+A public marketing storefront, if one is ever wanted, needs subdomain
+identification and is a real change — not a config flag.
+
+**What it costs, concretely.**
+
+- No FK can span schemas. `user_id` in an academy's tables is an unenforced
+  reference, and the cascade that used to clean up after a deleted account is
+  now `PurgeUserFromTenant`.
+- `whereHas` and `orderBy(subquery)` cannot cross the boundary; ids are
+  resolved on one side and passed to the other.
+- Anything scheduled runs centrally and must walk the academies.
+- A route with no authenticated user cannot resolve one, so the signed media
+  download carries the tenant inside its signed payload. Phase 10 webhooks
+  need the same.
+
+**Consequence for Phase 10.** Platform billing (academies paying us) and
+course sales (learners paying an academy) are now two different systems on
+two different connections. They must not share tables.
+
 ## 5. Cross-cutting concerns
 
 Marked **✅ in place** or **planned** as of Phase 8.
@@ -331,7 +373,7 @@ and leaderboard snapshots join them with their phases.
 in every error envelope so a user can quote it. `/api/v1/health` reports
 database, cache and queue. Sentry and Pulse are planned (P19).
 
-**Testing.** ✅ Pest against MySQL, 489 backend tests at Phase 8. Every endpoint
+**Testing.** ✅ Pest against MySQL, 642 backend tests. Every endpoint
 gets three minimum: happy, forbidden, invalid. Domain logic (grading, progress
 math, submission rules, access resolution) gets unit tests with tables of cases.
 Larastan is at level 6; raising it to 8 is still the intention by Phase 10.
@@ -396,7 +438,7 @@ serves traffic; all migrations must be backward-compatible for one release.
 | ~~R1~~ | Laravel version | **CLOSED (Phase 2).** Building on **Laravel 13.30.1**, PHP 8.4. |
 | R2 | Course versioning (edit a published course safely) | Excluded from MVP. Mitigation held: `course_items` are soft-deleted rows, so a snapshot model can be added without reshaping progress. Sharper now that assessment is built — editing a live quiz cannot change a score in flight, because an attempt freezes its question order and point total at start. Revisit before Phase 10. |
 | R3 | Video hosting cost/complexity | **Default applied (P6), and the mitigation came out weaker than planned.** Self-hosted upload + YouTube/Vimeo ship today, but `VideoProvider` landed as an **enum**, not an interface: the player branches on it to build an embed URL. Adding Bunny/Mux therefore means a new case plus a URL builder, not a config change. Cheap to fix, and worth doing before P16 rather than after. |
-| ~~R4~~ | Multi-tenancy | **CLOSED (Phase 2).** **Single tenant per deployment.** Asserted in `config/orbito.php` as `multi_tenant => false`. Plan-limit counters still land in Phase 4; tenant isolation is out of scope for 1.0. |
+| ~~R4~~ | Multi-tenancy | **REOPENED AND CLOSED THE OTHER WAY (post-Phase 9).** **One database per academy**, via `stancl/tenancy`, matching the Orbito product. This risk warned a tenant key "cannot be added cheaply after P4" — true of a `tenant_id` COLUMN, which would have meant 44 tables, global scopes and a leak audit of every query. Schema-per-tenant cost none of that: the domain migrations moved wholesale to `migrations/tenant/`, and the models, Actions and Policies were untouched. **The estimate was wrong because it assumed the wrong mechanism.** See ADR-13. |
 | R5 | Regional gateways (bKash/Nagad/SSLCommerz) | **Deferred.** MVP ships **Stripe + PayPal** (decided Phase 2). Regional gateways become a post-MVP `PaymentGateway` implementation; start merchant-account procurement whenever that is scheduled. |
 | R6 | Real-time (live class chat, presence) | Not in scope for 1.0. Laravel Reverb is the intended path; keep it out of the MVP. |
 | R7 | Search | MySQL fulltext for MVP; Meilisearch/Scout behind a `CourseSearch` interface if catalogue growth demands it. |

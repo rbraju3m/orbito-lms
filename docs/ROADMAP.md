@@ -2,16 +2,17 @@
 
 ## Where this stands
 
-**Phases 0–8 are complete.** Audit, architecture, foundation, identity, catalog,
-curriculum, the learning experience, quizzes, assignments. **Phase 9 —
-enrollment and access — is next.**
+**Phases 0–9 are complete**, and the system was then **retrofitted to
+multi-tenancy** — a reversal of the single-tenant decision recorded as risk R4.
+**Phase 9's frontend is next**, followed by Phase 10.
 
 | | |
 |---|---|
-| Backend | 489 Pest tests / 1,823 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 116 Vitest tests · `tsc` clean · oxlint clean |
+| Backend | 642 Pest tests / 2,204 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 116 Vitest tests · `tsc` clean · oxlint clean — **predates Phase 9 and tenancy** |
 | Budget | first-paint JS 240.5 KB gzipped, against 250 KB |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
+| Suite runtime | ~430s, up from ~118s — provisioning tests build real schemas |
 
 Each completed phase below carries what it delivered, the bugs it found, and a
 transcript of the exit criterion verified against a running API. Those
@@ -155,6 +156,9 @@ Arrows mean "must exist first". Anything on the same row can be built in paralle
 `FRONTEND_ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `ROADMAP.md`, `CLAUDE.md`.
 
 Approved 2026-09-07: Laravel 13, single-tenant, Stripe + PayPal.
+**The tenancy half was reversed after Phase 9** — see Phase T and ADR-13. The
+record is left standing rather than rewritten: the decision was made, held for
+seven phases, and then changed.
 
 ### Phase 2 — Foundation ✅ complete
 
@@ -512,14 +516,56 @@ queue again    2 waiting
 progress       assignment=completed self_markable=False course=100%
 ```
 
-489 backend tests, 116 frontend tests, PHPStan level 6 and `tsc` clean.
+489 backend tests, 116 frontend tests, PHPStan level 6 and `tsc` clean *(at
+Phase 8; 642 backend tests today)*.
 First-paint JS 240.5 KB gzipped, against a 250 KB budget.
 
-### Phase 9 — Enrollment & Access
+### Phase 9 — Enrollment & Access ✅ backend complete
 `CourseAccess` service · manual and bulk enrollment · expiry, suspension, revocation ·
 drip (date / days / sequential) · prerequisites · seat limits · course completion in both
 modes · reset and retake.
-**Exit:** one service answers every access question; drip and expiry are enforced server-side.
+**Exit met:** one service answers every access question; drip and expiry are enforced
+server-side.
+
+**Four defects it surfaced**, all pre-existing:
+- The progress WRITE path resolved access at course level while the read path
+  used `forItem`, so a learner could complete a lesson drip had not released.
+- The seat-limit count sat outside the transaction it then opened — two
+  concurrent requests could both take the last seat.
+- `RecalculateCourseProgress` auto-completed in both modes while its docblock
+  claimed strict only. The code was right; `completion_mode` governs finishing
+  *early*, not whether 100% counts.
+- `CourseAccess` memoised authorization decisions, and Laravel memoises the
+  controller on the `Route` object — so the cache outlived the request.
+  Invisible under php-fpm, live under Octane.
+
+**Frontend not started.** Build it against the tenant-aware API; the SPA needs
+a members-only catalogue and a 402 state regardless.
+
+### Phase T — Multi-tenancy retrofit ✅ complete (T1–T6)
+One MySQL schema per academy (`stancl/tenancy`), users central, tenancy
+resolved from the authenticated user. Platform admin surface, plans and
+subscriptions. See ADR-13.
+
+**R4 said a tenant key "cannot be added cheaply after P4". That was wrong
+because it assumed the wrong mechanism** — a `tenant_id` column would have
+meant 44 tables, global scopes and a leak audit of every query;
+schema-per-tenant moved the migrations wholesale and left the models, Actions
+and Policies alone.
+
+**What it cost instead** was seven bugs that were all one question — which
+connection is this running on? — wearing different clothes: relations
+inheriting a pinned parent's connection, `whereHas` compiling across schemas,
+validation rules resolving against the wrong default, Sanctum's token model
+following the tenant, `UsageCounters` never writing `tenant_id` (every academy
+would have shared one set of counters), all five scheduled commands running
+centrally with no academy open, and a connection purge discarding an open
+transaction.
+
+**The decision with the widest blast radius** was identification-by-user,
+which removes the anonymous surface: the catalogue, course pages, previews and
+the player are members-only. A public storefront would need subdomain
+identification and is a real change, not a flag.
 
 ### Phase 10 — Commerce
 Products + prices + currencies · cart · checkout with server-side repricing · orders ·

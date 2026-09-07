@@ -6,15 +6,74 @@ All tables get `id BIGINT UNSIGNED AUTO_INCREMENT`, `created_at`, `updated_at`.
 Public-facing identifiers use a separate `uuid CHAR(36)` or `ulid` where an id must not
 be guessable (certificates, orders, media).
 
-> **Status: proposal.** No migrations exist. Nothing here is final until Phase 1 is
-> approved. Column lists are indicative of shape and intent, not exhaustive.
+> **Status: partly built.** Phases 2–9 are migrated; later sections remain a
+> proposal. Column lists are indicative of shape and intent, not exhaustive —
+> the migrations are authoritative.
+
+---
+
+## 0. The central / tenant boundary (ADR-13)
+
+**There is no single database.** One central schema holds the platform; each
+academy gets its own schema, `orbito_lms_tenant_<uuid>`, containing every
+table in sections 2–12 below.
+
+| | Tables |
+|---|---|
+| **Central** (`database/migrations/`) | `tenants`, `users`, `sessions`, `password_reset_tokens`, `personal_access_tokens`, `user_social_links`, `plans`, `subscriptions`, `usage_counters`, `cache*`, `jobs*` |
+| **Per academy** (`database/migrations/tenant/`) | everything else — including `roles`, `permissions`, `permission_role`, `role_assignments` and `instructor_profiles` |
+
+Three consequences that decide how you write a query:
+
+1. **No foreign key can span the boundary.** Every `user_id`, `owner_id`,
+   `graded_by` and `reviewed_by` inside an academy is an *unenforced* column.
+   The cascade a deleted account used to trigger is now
+   `PurgeUserFromTenant`.
+2. **No single statement can join across it.** `whereHas`, `has` and
+   `orderBy(subquery)` all compile to one query. Resolve ids on one side,
+   then `whereIn` on the other.
+3. **Roles are per-academy.** `role_assignments.scope_id` points at courses,
+   and a course id only means something inside one schema. Being an instructor
+   at one academy says nothing anywhere else.
+
+```sql
+-- CENTRAL
+tenants(id VARCHAR PK, slug UNIQUE, name, status ENUM(pending,active,suspended,rejected),
+      is_active BOOL, logo_path, support_email, approved_at, approved_by,
+      data JSON)                        -- stancl virtual columns
+      INDEX (status, created_at), INDEX (is_active)
+
+plans(id, slug UNIQUE, name, description,
+      price_minor BIGINT, currency CHAR(3), billing_period,
+      trial_days SMALLINT, grace_days SMALLINT,
+      limits JSON, features JSON,       -- limits: {"max_courses": 50, ...}; null = uncapped
+      is_active BOOL, position)
+
+subscriptions(id, tenant_id UNIQUE, plan_id,
+      status ENUM(trialing,active,past_due,canceled,expired),
+      trial_ends_at, current_period_starts_at, current_period_ends_at, canceled_at,
+      grace_days SMALLINT)              -- COPIED from the plan, not read through it
+      INDEX (status, current_period_ends_at)   -- the nightly sweeper
+```
+
+`subscriptions.grace_days` is copied deliberately: changing a plan's grace
+period must not retroactively re-open academies that already lapsed.
+
+`usage_counters` gained a leading `tenant_id`, NOT NULL with an `''` sentinel
+for platform-wide rows — the same reason `owner_id` uses `0`. MySQL treats
+NULLs as distinct in a unique index, so a nullable column there would let
+those rows duplicate silently.
 
 ---
 
 ## 1. Identity
 
 ```sql
-users(id, uuid, name, email UNIQUE, email_verified_at, password, phone,
+-- CENTRAL. `tenant_id` is the academy this account belongs to; NULL only for
+-- a platform operator (`is_super_admin`). Email is unique PLATFORM-wide, so
+-- one person teaching at two academies needs two accounts — the cost of
+-- central users, and what makes tenancy-from-user unambiguous.
+users(id, uuid, tenant_id NULL, is_super_admin BOOL, name, email UNIQUE, email_verified_at, password, phone,
       avatar_media_id, cover_media_id, headline, bio, timezone DEFAULT 'UTC',
       locale DEFAULT 'en', status ENUM(active,pending,suspended,deleted),
       last_login_at, last_seen_at, remember_token, deleted_at)
@@ -22,12 +81,16 @@ users(id, uuid, name, email UNIQUE, email_verified_at, password, phone,
 
 user_social_links(id, user_id, platform, url)                       UNIQUE(user_id, platform)
 
+-- PER ACADEMY. Being an approved instructor is a fact about a person AT ONE
+-- ACADEMY, granted and revoked by that academy's admins.
 instructor_profiles(id, user_id UNIQUE, status ENUM(pending,approved,blocked),
       approved_at, approved_by, application_source, rejection_reason,
       commission_rate_bp INT NULL,        -- basis points; NULL = use platform default
       payout_currency CHAR(3), rating_avg DECIMAL(3,2) DEFAULT 0, rating_count INT DEFAULT 0,
       student_count INT DEFAULT 0, course_count INT DEFAULT 0)
 
+-- PER ACADEMY, all four. `role_assignments.scope_id` points at courses, which
+-- only exist inside one schema; `user_id` crosses the boundary unenforced.
 roles(id, key UNIQUE, name, description, is_system BOOL, scope_kind ENUM(global,course))
 permissions(id, key UNIQUE, group, description)
 permission_role(role_id, permission_id)                             PRIMARY KEY(role_id, permission_id)
@@ -91,7 +154,10 @@ course_settings(course_id PK, enable_qa BOOL, enable_reviews BOOL, enable_notes 
       retake_allowed BOOL, reset_progress_allowed BOOL,
       video_completion_threshold TINYINT DEFAULT 90)
 
-course_prerequisites(course_id, prerequisite_course_id)             PRIMARY KEY(course_id, prerequisite_course_id)
+course_prerequisites(course_id, prerequisite_course_id, position)   PRIMARY KEY(course_id, prerequisite_course_id)
+      INDEX (prerequisite_course_id)    -- "what does finishing this unlock?"
+      -- BUILT (P9). Gates ENROLMENT only: adding a prerequisite to a live
+      -- course must never evict the people already inside it.
 ```
 
 **Note on `course_details`/`course_settings`:** split from `courses` so the hot list query

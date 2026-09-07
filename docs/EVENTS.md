@@ -28,6 +28,13 @@ Twenty events across seven contexts.
 | `RoleAssigned` | `RoleAssignment $assignment` | a role is granted, globally or scoped to a resource |
 | `RoleRevoked` | `User $user`, `string $roleKey`, `?string $scopeType`, `?int $scopeId` | a role is taken away |
 
+**One caveat about events fired inside a command running under
+`Tenant::run()`:** the dispatcher reports no listeners at the moment of
+dispatch and has them again immediately after — same object. Neither
+`Event::fake()` nor a live listener observes them, so `EnrollmentExpired` from
+the sweeper is verified by its state change rather than by assertion. Worth
+resolving before Phase 10, where webhooks will fire events in tenant context.
+
 `RoleRevoked` carries scalars rather than the model, because by the time it
 fires the row is gone.
 
@@ -59,6 +66,12 @@ grain would mean three subscriptions that must never disagree.
 | Event | Payload | Fired when |
 |---|---|---|
 | `CourseEnrolled` | `Enrollment $enrollment` | somebody gains access to a course |
+| `EnrollmentSuspended` | `Enrollment $enrollment`, `?string $reason` | access closed, reversibly |
+| `EnrollmentReinstated` | `Enrollment $enrollment` | back to Active — or Completed, if they had finished |
+| `EnrollmentRevoked` | `Enrollment $enrollment` | cancelled; the row and its progress are kept |
+| `EnrollmentExpired` | `Enrollment $enrollment` | the sweeper caught up with a lapsed date |
+| `EnrollmentExtended` | `Enrollment $enrollment` | `expires_at` moved |
+| `TenantProvisioned` | `Tenant $tenant`, `User $owner` | an academy and its schema now exist (Platform) |
 
 ### Progress
 
@@ -148,13 +161,13 @@ vocabulary for the same fact.
 
 | Event | Context | Phase |
 |---|---|---|
-| `EnrollmentExpired`, `EnrollmentSuspended`, `EnrollmentRevoked` | Enrollment | P9 |
+| ~~`EnrollmentExpired`, `EnrollmentSuspended`, `EnrollmentRevoked`~~ | Enrollment | **shipped P9**, with `EnrollmentReinstated` and `EnrollmentExtended` |
 | `OrderPlaced`, `PaymentCaptured`, `RefundIssued` | Commerce | P10 |
 | `CertificateIssued`, `CertificateRevoked` | Certification | P11 |
 | `ReviewPublished`, `QuestionAsked`, `QuestionAnswered` | Engagement | P12 |
 | `BadgeAwarded`, `StreakExtended` | Gamification | P14 |
 | `SessionScheduled`, `AttendanceRecorded` | Live | P15 |
-| `RoleAssignmentExpired` | Identity | P9, with the expiry sweeper |
+| `RoleAssignmentExpired` | Identity | still open — the enrolment sweeper shipped in P9 without it |
 
 Outbound webhooks (ADR-12) subscribe to this catalogue rather than to anything
 new: a webhook is one more listener, which is the whole reason extension does

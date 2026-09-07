@@ -7,6 +7,11 @@ Legend
 - **Orbito**: the phase it lands in. `M` = **MVP** (Phases 2–11).
 - Phases are defined in `ROADMAP.md`.
 
+**Multi-tenancy (ADR-13)** is not in this matrix because neither reference
+product has it: Tutor is a WordPress plugin and Klasio is closed managed-SaaS.
+Orbito runs one database per academy, which is a platform capability rather
+than an LMS feature — see `ROADMAP.md` Phase T.
+
 ---
 
 ## A. Identity & Access
@@ -57,9 +62,9 @@ backlog — the "view as student" toggle was not built).
 | B13 | Course-level attachments / resources | Core | Yes | **P4 · M** | |
 | B14 | Completion mode: flexible vs strict | Core | — | **P4 · M** | Keep — good idea |
 | B15 | "Coming soon" state | Core | — | P4 | |
-| B16 | Course prerequisites | Pro | — | P9 | |
-| B17 | Max students / seat limit | Pro | — | P9 | |
-| B18 | Enrollment expiry period | Pro | Yes | P9 | |
+| B16 | Course prerequisites | Pro | — | **P9 ✅** | Gates enrolment, never ongoing access; cycles rejected |
+| B17 | Max students / seat limit | Pro | — | **P9 ✅** | Counted under a row lock; manual grants respect it too |
+| B18 | Enrollment expiry period | Pro | Yes | **P9 ✅** | Evaluated live, so access never waits on the sweeper |
 | B19 | Course SEO metadata | — | Yes | P16 | |
 | B20 | Course versioning / draft-over-published | — | — | Post-1.0 | Flagged risk; see `ARCHITECTURE_PROPOSAL.md` |
 | B21 | Course duplication | Pro | — | P5 | |
@@ -70,7 +75,7 @@ Action, `ChangeCourseStatus`, and `PublishChecklist` is both rendered by the UI
 and enforced on publish so the two cannot drift.
 
 **Still open:** B15 (`coming_soon_at` is in the schema but nothing reads it) ·
-B16–B18 (P9) · B19 (P16) · **B21 course duplication, which the matrix put in P5
+B16–B18 ✅ (P9) · B19 (P16) · **B21 course duplication, which the matrix put in P5
 and which was not built** — section and item duplication were (C10) · B20
 post-1.0.
 
@@ -90,7 +95,7 @@ post-1.0.
 | C10 | Duplicate section / item | Pro | — | P5 | |
 | C11 | Collapse / expand, autosave | Core | Yes | **P5 · M** | |
 | C12 | Preview flag on an item | Core | Yes | **P5 · M** | |
-| C13 | Drip content (by date / by days / after previous) | Pro | Yes (free) | P9 | Server-enforced |
+| C13 | Drip content (by date / by days / after previous) | Pro | Yes (free) | **P9 ✅** | Server-enforced on both read and write paths |
 | C14 | Content bank (reusable items across courses) | Pro | — | P16 | |
 | C15 | Curriculum validation before publish | Partial | — | **P5 · M** | e.g. no empty sections |
 
@@ -98,7 +103,7 @@ post-1.0.
 and P8 respectively — the spine accepted both without changing shape, which
 was the point of ADR-01.
 
-**Still open:** C6 (P15) · C13 drip (P9) · C14 (P16).
+**Still open:** C6 (P15) · C14 (P16). C13 drip shipped in P9.
 
 ## D. Lessons & Media
 
@@ -201,7 +206,7 @@ submission re-opens the assignment and does not consume an attempt.
 | G2 | Paid enrollment after verified payment | Core | Yes | **P10 · M** | Never on client signal |
 | G3 | Manual enrollment (single) | Pro | Yes | **P9 · M** | |
 | G4 | Bulk enrollment / CSV | Pro | Yes | P9 | |
-| G5 | Enrollment expiry | Pro | Yes | P9 | |
+| G5 | Enrollment expiry | Pro | Yes | **P9 ✅** | Suspend / reinstate / extend / revoke |
 | G6 | Suspension / revoke | Partial | Yes | **P9 · M** | |
 | G7 | Access via subscription | Pro | Yes | P16 | |
 | G8 | Access via bundle | Pro | Yes | P16 | |

@@ -1,8 +1,13 @@
 # Orbito LMS — Documentation
 
-**Status:** Phases 0–8 complete. Audit, architecture, foundation, identity,
-course management, curriculum builder, the learning experience, the quiz
-engine, and assignments. Phase 9 — enrollment and access — is next.
+**Status:** Phases 0–9 complete, plus a **multi-tenancy retrofit**. Audit,
+architecture, foundation, identity, course management, curriculum builder, the
+learning experience, the quiz engine, assignments, and enrolment & access —
+then one database per academy (ADR-13). Phase 9's frontend is next.
+
+> **If you read one thing before writing code, read `CLAUDE.md` §16.**
+> Tenancy changes how every query and every model behaves, and the mistakes it
+> produces do not look like tenancy mistakes.
 
 Start here → [`MASTER_PLAN.md`](MASTER_PLAN.md)
 Picking the work back up → [`ROADMAP.md`](ROADMAP.md), which opens with exactly
@@ -17,14 +22,14 @@ is worth less than one that says "this came out differently, and here is why".
 
 | Document | How much of it is built |
 |---|---|
-| `ROADMAP.md` | Phases 0–8 carry delivery notes and verified transcripts |
-| `ARCHITECTURE_PROPOSAL.md` | every ADR carries a delivery status; ADR-09 is partly done and says so |
-| `API.md` | endpoints are marked **live** or **planned** |
-| `DATABASE.md` | assessment and assignment tables match the migrations; later contexts are still design |
+| `ROADMAP.md` | Phases 0–9 and Phase T carry delivery notes and verified transcripts |
+| `ARCHITECTURE_PROPOSAL.md` | every ADR carries a delivery status; ADR-13 records the tenancy reversal, and risk R4 says why its own estimate was wrong |
+| `API.md` | endpoints are marked **live** or **planned**; §2a explains why nothing is public any more |
+| `DATABASE.md` | §0 is the central/tenant boundary and is authoritative; contexts through Phase 9 match the migrations; later ones are still design |
 | `FEATURE_MATRIX.md` | each shipped section carries a "shipped / still open" note |
 | `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅ |
 | `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is mostly still a wish list, and says so |
-| `EVENTS.md` | current — 20 events, and it says which have no listener yet |
+| `EVENTS.md` | current, and it flags one event that cannot currently be asserted in a test |
 | `TESTING.md` | current, including the Playwright gap |
 | `TUTOR_AUDIT.md`, `KLASIO_REFERENCE.md`, `PRODUCT_VISION.md` | research and intent; unchanged by implementation |
 

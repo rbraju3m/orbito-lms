@@ -93,21 +93,24 @@ certificate — on a phone, in dark mode, with a keyboard.
 
 ## 7. Current status
 
-Phases 0–8 are complete. An instructor can build and publish a course, write
+Phases 0–9 are complete, plus a multi-tenancy retrofit. An instructor can build and publish a course, write
 quizzes across ten question types, set assignments, and work through one queue
 of everything waiting to be marked; a student can find the course, enrol, learn
 through a real player with video resume and notes, take a timed quiz, hand in
 written and uploaded work, read their feedback and hand in again — with
 progress **stored** (ADR-02), access answered by a **single service** (ADR-03),
 and correct answers that never leave the server during an attempt (ADR-06).
-Phase 9 (enrollment and access) is next — see `ROADMAP.md`.
+**Phase 9 then shipped** — drip, prerequisites, seat limits, the enrolment
+lifecycle and the studio roster — and the system was **retrofitted to one
+database per academy** (ADR-13), which made the catalogue members-only.
+Phase 9's frontend is next; see `ROADMAP.md`.
 
 ## 8. Decisions taken
 
 | # | Question | Decision | Status |
 |---|---|---|---|
 | 1 | Laravel 12 or 13? | **Laravel 13** (13.30.1 installed) | ✅ settled |
-| 2 | Single-tenant or multi-tenant? | **Single tenant per deployment.** Recorded in code as `config('orbito.multi_tenant') === false` so the assumption is visible, not implicit. Risk R4 is closed. | ✅ settled |
+| 2 | Single-tenant or multi-tenant? | ~~Single tenant per deployment.~~ **REVERSED after Phase 9: one database per academy**, via `stancl/tenancy`, matching the Orbito product. `config('orbito.multi_tenant')` is now `true`. R4 warned this could not be added cheaply after P4 — that was true of a `tenant_id` column and wrong about schema-per-tenant, which moved the migrations wholesale. See ADR-13. | ✅ settled the other way |
 | 3 | MVP payment gateways | **Stripe + PayPal** in Phase 10. Regional gateways (SSLCommerz / bKash / Nagad) deferred to a later phase. | ✅ settled |
 | 4 | Base currency and launch locales | **Base BDT, USD enabled**; locales **en + bn**. Set in `api/.env` (`ORBITO_BASE_CURRENCY`, `ORBITO_SUPPORTED_LOCALES`). Nothing prices anything yet, so this is still costless to change — but it stops being so the moment Phase 10 writes an order. | ⚠️ default still unconfirmed; **last cheap moment is before Phase 10** |
 | 5 | Video hosting | **Self-hosted upload + YouTube/Vimeo**, shipped in Phase 6. The planned `VideoProvider` *interface* came out as an **enum** the player branches on, so adding Bunny/Mux is a new case plus a URL builder rather than a config change (risk R3). | ✅ settled; the seam is weaker than planned |

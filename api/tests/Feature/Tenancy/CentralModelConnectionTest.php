@@ -25,6 +25,8 @@ const CENTRAL_TABLES = [
     'users',
     'user_social_links',
     'usage_counters',
+    'plans',
+    'subscriptions',
     'sessions',
     'password_reset_tokens',
     'personal_access_tokens',

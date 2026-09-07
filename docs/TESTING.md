@@ -3,7 +3,8 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
-**Where it stands at Phase 8:** 489 backend tests / 1,823 assertions, 116
+**Where it stands after Phase 9 + the tenancy retrofit:** 642 backend tests /
+2,204 assertions, 116
 frontend tests, PHPStan level 6 clean, `tsc` clean. Playwright specs exist for
 phases 2 and 3 only — see §4.
 
@@ -39,7 +40,41 @@ configured in `phpunit.xml`. SQLite would hide collation, JSON column, foreign
 key and index behaviour we depend on — and those are exactly the things that
 break in production.
 
-`RefreshDatabase` is applied to the whole `Feature` suite in `Pest.php`.
+`RefreshDatabase` is composed **inside `Tests\TestCase`**, not applied in
+`Pest.php`. That is deliberate and load-bearing: the class wraps
+`beginDatabaseTransaction()` to open the academy first, and a trait applied to
+a Pest test class lands on the *subclass*, where it silently beats an inherited
+override. The alias in `TestCase` keeps the original reachable.
+
+### Every test runs inside an academy
+
+One tenant schema is provisioned per **process**, not per test — 36 tables
+migrated once rather than ~640 times — and both connections are transacted, so
+a test's writes to the academy roll back exactly as its central writes do. The
+schema name is deterministic, so a crashed run leaves one predictable database
+that the next run drops.
+
+Two things to know before writing a test that touches tenancy:
+
+- **`tenancy()->initialize()` purges the connection**, discarding its open
+  transaction along with every uncommitted fixture. A test that switches
+  academies must opt out with `Tests\Concerns\SwitchesTenants`, which drops
+  the transaction and truncates + reseeds afterwards instead.
+- **The harness hides an entire class of bug.** It leaves an academy open for
+  the whole test, so a scheduled command that only works because tenancy
+  happened to be initialised passes here and fails nightly in production.
+  `ScheduledCommandTest` calls `tenancy()->end()` first, on purpose, and is the
+  only place that condition is reproduced.
+
+Provisioning tests build real schemas, which is why the suite went from ~118s
+to ~430s. If that becomes painful, provision one academy per *file* rather than
+per test before reaching for mocks.
+
+### Laravel 13 moved a hook
+
+`afterRefreshingDatabase()` now runs on **every** test and **after** the
+transaction opens, so it is no longer the once-per-process hook it reads as.
+`migrateDatabases()` is the one guarded by `RefreshDatabaseState::$migrated`.
 
 ### The harness models a fresh container per request
 

@@ -203,7 +203,7 @@ docs/   Architecture and planning. Update the relevant file with every feature.
 ```
 
 Settled decisions (do not relitigate without being asked):
-**Laravel 13** · **single tenant per deployment** · **Stripe + PayPal for MVP** ·
+**Laravel 13** · **multi-tenant: one database per academy** · **Stripe + PayPal for MVP** ·
 Mantine 9 · TanStack Query 5 · MySQL 8 · Redis via predis · Pest · Vitest · Playwright.
 
 ## 9. Authorization — how to use what Phase 3 built
@@ -343,14 +343,124 @@ Gate::authorize('publish', $course);                   // in a controller
   in the numeric id, so `MediaResource` returns `ref` beside the UUID — the
   same convention as `CourseItemResource` and `QuestionResource`.
 
-## 15. Current phase
+## 15. Patterns established in Phase 9 — reuse these
 
-**Phases 0–8 complete.** Audit, architecture, foundation, identity, catalog,
-curriculum, learning, assessment, assignments.
+- **Drip is asked of `CourseAccess`, not of a second gate.** `DripSchedule`
+  answers "is this released yet?"; ADR-03 still owns "may they consume this?".
+- **A rule with a batch path and a single path must be tested for agreement.**
+  The player evaluates drip for a whole curriculum; the item endpoint
+  evaluates one. An item the outline shows as open must not 423 when opened —
+  `DripAccessTest` asserts exactly that, and it has already caught a real
+  divergence over unpublished blockers.
+- **Gates on the read path must be repeated on the WRITE path.** The progress
+  endpoints resolved access at course level while the player resolved it per
+  item, so a learner could complete a lesson drip had not released. Any new
+  `forItem` check needs the matching write-side check.
+- **Count and insert in ONE transaction.** The seat-limit count sat outside
+  the transaction it then opened; two concurrent requests both took the last
+  seat. It now counts behind `lockForUpdate()` on the settings row.
+- **Never cache an authorization decision beyond one request.** Laravel
+  memoises the controller on the `Route` object, so a per-instance memo
+  outlives the request. `CourseAccess` had one; a second request could be
+  served a `granted` decision made before the enrollment expired.
+- **A prerequisite gates ENTRY, not continued presence.** Adding one to a live
+  course must not evict the people already inside it.
+- **Reset clears what was DECLARED, never what was EARNED.**
+  `ItemType::isSelfMarkable()` is the line: wiping a passed quiz can leave an
+  item permanently uncompletable once attempts are spent.
+- **Union in SQL; resolve cross-boundary ids in PHP.** See §16 — the same
+  instinct that merges two paginated queries in PHP also writes a `whereHas`
+  across two databases.
+- **`error.meta` carries what the caller can DO about a failure** — a date to
+  wait for, the item that blocks this one, the courses still outstanding. A
+  423 that cannot say how to get in is a dead end.
 
-**Phase 9 is next: enrollment and access** — manual and bulk enrollment,
-expiry, suspension and revocation, drip (date / days / sequential),
-prerequisites, seat limits, course completion in both modes, reset and retake.
-`CourseAccess` (ADR-03) is the one place a new access source is added; adding a
-second enrollment check anywhere is the failure this phase must avoid. See
-`docs/ROADMAP.md`.
+---
+
+## 16. Multi-tenancy — read this before touching a model or a query
+
+One MySQL schema per academy, via `stancl/tenancy`. Isolation is
+**structural**: a query that forgets a filter still cannot reach another
+academy, because that data is not on the connection.
+
+**The boundary.** Central: `tenants`, `users`, `sessions`,
+`password_reset_tokens`, `personal_access_tokens`, `user_social_links`,
+`plans`, `subscriptions`, `usage_counters`. Everything else — including
+`roles`, `permissions` and `role_assignments` — is per-academy.
+
+**Tenancy resolves from the authenticated user** (`tenant` middleware, always
+after `auth:sanctum`). Consequences you cannot design around:
+
+- There is **no anonymous surface**. The catalogue, course pages, previews and
+  the player are members-only. `is_preview` means "try before you *enrol*".
+- A route with no user cannot resolve an academy. The signed media download
+  carries the tenant inside the signed payload (`tenant.signed`); Phase 10
+  webhooks must do the same.
+- Never enable `makeTenancyMiddlewareHighestPriority()`. It would run the
+  tenant middleware before `auth:sanctum`, which has no user to read.
+
+**Every bug this has produced was the same question — which connection is this
+running on?** They do not look alike:
+
+- Eloquent copies a **pinned parent's** connection onto an unpinned child, so
+  `$user->courses()` looked centrally. A tenant model a central model points
+  at needs `LivesInTenantSchema`.
+- `whereHas`, `has` and `orderBy(subquery)` compile to ONE statement. Across
+  the boundary they cannot work. Resolve ids on one side, then `whereIn`.
+- Validation rules name a table, not a connection: central tables must be
+  written `unique:mysql.users,email`.
+- A central model that is not pinned (`protected $connection = 'mysql'`)
+  follows the academy's connection the moment tenancy initialises.
+  `CentralModelConnectionTest` enforces this — extend `CENTRAL_TABLES` when
+  you add one.
+- `tenancy()->initialize()` **purges** the connection, discarding any open
+  transaction. It short-circuits when the tenant is already active, which is
+  why `RunsForEveryTenant` restores the caller's context instead of ending.
+
+**Anything scheduled runs centrally with no academy open**, so it must walk
+them (`RunsForEveryTenant`). Tests cannot catch this on their own — the
+harness leaves a tenant open during `$this->artisan()`, which is what
+`ScheduledCommandTest` exists to defeat.
+
+**Testing.** One schema per *process*; both connections transacted. A test
+that switches tenants must opt out with `SwitchesTenants`, or its own
+fixtures vanish when the connection is purged.
+
+**Platform vs academy.** `users.is_super_admin` is the platform operator, who
+belongs to no academy. `RoleKey::SuperAdmin` is a role granting everything
+**within one academy**. Similar names, unrelated powers.
+
+**`subscription` gates writes only.** A lapsed academy reads and exports
+everything; 402, never 403. The platform admin surface sits outside the gate
+so the action that fixes a lapse survives it.
+
+---
+
+## 17. Current phase
+
+**Phases 0–9 complete**, plus a **multi-tenancy retrofit** (T1–T6) that
+reversed the single-tenant decision. 642 tests / 2204 assertions.
+
+Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
+the enrollment lifecycle, the studio roster, completion and retake.
+
+The retrofit delivered database-per-tenant, the platform admin surface, plans
+and subscriptions. **Read §16 before writing any query.**
+
+**Next, in this order:**
+
+1. **Phase 9's frontend** (drip UI, the students table, prerequisites picker)
+   — and the SPA changes tenancy forces: a members-only catalogue, and a 402
+   state for a lapsed academy.
+2. **Phase 10 — Commerce.** Note the collision the retrofit created: platform
+   billing (academies paying us, already half-built in `Platform`) is a
+   different thing from course sales (learners paying an academy). Do not let
+   them share tables.
+
+**Known debt, deliberately left:**
+
+- Plan **limits** are stored and counted but never enforced. Phase 16.
+- The roster cannot sort by learner name — a central column against tenant
+  rows. The fix is denormalising the name onto `enrollments`.
+- The suite takes ~430s, up from ~118s, because provisioning tests build real
+  schemas. Provision one academy per file rather than per test when it hurts.

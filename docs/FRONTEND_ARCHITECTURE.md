@@ -7,8 +7,18 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 > Mantine requires `postcss`, `postcss-preset-mantine`, `postcss-simple-vars`,
 > `@mantine/core/styles.css`, a `<MantineProvider>`, and `<ColorSchemeScript>`.
 >
-> **State at Phase 8.** The route map and directory layout below are the target.
-> What exists today is marked; unmarked entries are not built. `@mantine/dates`
+> **State at Phase 8 — the SPA has not moved since.** The route map and
+> directory layout below are the target. What exists today is marked; unmarked
+> entries are not built.
+>
+> **Two things now make it out of date rather than merely incomplete.**
+> Phase 9's backend shipped without its UI (drip fields, the students roster,
+> the prerequisites picker). And the multi-tenancy retrofit changed the
+> contract the SPA is written against: the catalogue, course pages, previews
+> and the player are **members-only**, so an anonymous visitor gets 401 rather
+> than a storefront — and any write can now return **402** when the academy's
+> subscription has lapsed, which no screen currently handles. Build both
+> against the tenant-aware API rather than retrofitting later. `@mantine/dates`
 > is deliberately *not* installed — the one date field so far uses a native
 > `datetime-local` input converted at the edge by `shared/lib/datetime.ts`,
 > which costs nothing against the 250 KB first-paint budget.

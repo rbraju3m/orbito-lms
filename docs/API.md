@@ -54,10 +54,20 @@ The web SPA, the future mobile app, and third-party integrators use the **same**
     "details": [
       { "field": "curriculum", "code": "empty_section", "message": "Section \"Intro\" has no items." }
     ],
-    "request_id": "01JB8Q…"
+    "request_id": "01JB8Q…",
+
+    "meta": {
+      "unlocks_at": "2026-03-12T09:00:00Z"
+    }
   }
 }
 ```
+
+`error.meta` is **optional and omitted when empty**. It carries what the caller
+can *do* about the failure, never decoration: `unlocks_at` and
+`blocked_by_title` on a drip lock, `prerequisites` on a refused enrolment,
+`cover_ended_at` on a lapsed subscription. A 423 that cannot say how to get in
+is a dead end.
 
 | Status | When |
 |---|---|
@@ -67,12 +77,34 @@ The web SPA, the future mobile app, and third-party integrators use the **same**
 | 404 | Not found **or** not visible to this user (never leak existence) |
 | 409 | State conflict (`attempt_already_submitted`, `already_enrolled`) |
 | 422 | Validation failure — `details[]` is field-keyed |
-| 423 | Locked (drip not yet unlocked, prerequisite unmet) |
+| 402 | The academy's subscription has lapsed — WRITES only, reads are never gated |
+| 423 | Locked (drip not yet unlocked, access expired, not yet started) |
 | 429 | Rate limited (`Retry-After` header) |
 | 500 | Unhandled — `request_id` correlates to logs |
 
 `error.code` is a **stable machine string**. The frontend switches on `code`, never on
 `message`. Messages are localised; codes are not.
+
+---
+
+## 2a. Tenancy — read this before reading any endpoint
+
+**Every route below except auth and `/admin/*` runs inside ONE academy**,
+resolved from the authenticated user (ADR-13). Two consequences change the
+contract:
+
+- **There is no anonymous surface.** `GET /courses`, `GET /courses/{slug}`,
+  `GET /categories`, the player bootstrap and preview lessons all require
+  authentication. A signed-out caller gets **401**, not a public storefront.
+  `is_preview` means "try before you *enrol*".
+- **A 402 gates writes.** `GET`/`HEAD`/`OPTIONS` always pass; everything else
+  returns `subscription_lapsed` when the academy's subscription has expired or
+  been cancelled. Reading and exporting never stop. `POST /auth/logout` is
+  exempt — nobody should be trapped in a lapsed academy.
+
+The one route with no authenticated user is the signed media download, which
+carries its academy inside the signed payload. Phase 10 webhooks will do the
+same.
 
 ---
 
@@ -116,9 +148,11 @@ about its final shape — see `ROADMAP.md` for when each lands.
 
 ### Catalog
 ```
-# live — public
-GET    /courses                      public catalogue; filters below
-GET    /courses/{slug}               public detail, incl. preview-aware curriculum
+# live — MEMBERS-ONLY (see §2a; these were public before tenancy)
+GET    /courses                      the academy's catalogue; filters below
+GET    /courses/{slug}               detail, incl. preview-aware curriculum,
+                                     prerequisites with per-course is_met,
+                                     and seats_remaining (null = uncapped)
 GET    /categories · GET /categories/{category}
 GET    /tags
 
@@ -185,11 +219,26 @@ DELETE /learn/items/{item}/complete         un-complete (flexible mode)
 POST   /learn/items/{item}/watch            {position_seconds}  throttled to 1/15s
 GET    /learn/items/{item}/notes · POST · DELETE /learn/notes/{note}
 POST   /learn/courses/{course}/complete
-POST   /learn/courses/{course}/reset-progress
+POST   /learn/courses/{course}/reset-progress   reset, or RETAKE if they finished
 
 # planned
 GET    /learn/courses/{course}/resources
 ```
+
+Every route here requires authentication (§2a). The bootstrap and item
+endpoints once served anonymous visitors a preview; they cannot now, because
+an anonymous request belongs to no academy.
+
+Each curriculum item carries `is_locked`, `unlocks_at` and `blocked_by`. A
+**locked item is still listed** — hiding it would make the course look shorter
+than it is and turn "10 lessons" on the sales page into a lie. Opening one
+returns 423 with `error.meta` naming the date or the blocking item.
+
+`reset-progress` is reset *or* retake depending on whether the learner had
+finished, gated by `reset_progress_allowed` / `retake_allowed` respectively.
+It clears only `isSelfMarkable()` items: a passed quiz and a graded assignment
+are earned facts, and wiping them can leave an item permanently uncompletable
+once attempts are spent.
 
 Prev/next arrive **inside** the item payload (`previous_id`, `next_id`) rather than
 from their own endpoint: the player needs them on every item anyway, and a second
@@ -286,15 +335,44 @@ POST   /studio/items/{item}/quiz/questions/import-from-bank
 POST   /learn/quiz-attempts/{uuid}/abandon
 ```
 
-### Enrollment & Commerce — planned (P9, P10)
-Only `POST /courses/{course}/enroll` exists today; it is listed under Learning above.
+### Enrollment & access — live (P9)
+```
+GET    /studio/courses/{course}/students        roster: ?status= ?search= ?per_page=
+POST   /studio/courses/{course}/enrollments     grant one seat {user_id|email, starts_at?, expires_at?}
+POST   /studio/courses/{course}/enrollments/bulk  {emails: [...]}  ≤200, throttled
+PATCH  /studio/enrollments/{enrollment}         {action: suspend|reinstate|extend|revoke}
+PUT    /studio/courses/{course}/prerequisites   {course_ids: []}   whole set, never a delta
+       drip fields on PATCH /studio/items/{item}
+```
+
+Bulk enrolment is **synchronous and bounded**, returning a verdict per row
+(`enrolled` / `skipped` / `not_found`) rather than a job id: the useful answer
+is which three addresses were typos, immediately. A queued CSV import belongs
+with the rest of the import tooling.
+
+`GET /enrollments` was dropped — `GET /learn/courses` already is that list.
+
+**Sorting the roster by learner name is deliberately unavailable.** The name is
+a central column and the rows are per-academy, so ordering by it cannot be one
+query. Search works, scoped to the academy.
+
+### Platform administration — live
+```
+GET    /admin/tenants                           ?status= ?search=
+POST   /admin/tenants                           provision {slug, name, owner_*, plan?}
+GET    /admin/tenants/{tenant}
+PATCH  /admin/tenants/{tenant}                  {action: approve|reject|suspend|reactivate}
+PUT    /admin/tenants/{tenant}/plan             {plan, period_ends_at?}  — also RENEWS
+```
+
+Central-DB only, behind `super_admin`, and deliberately **outside** both the
+`tenant` and `subscription` middleware: a suspended or lapsed academy is
+exactly the one an operator needs to reach, and renewing is the action that
+unblocks it.
+
+### Commerce — planned (P10)
 
 ```
-GET    /enrollments                             mine
-GET    /studio/courses/{id}/students
-POST   /studio/courses/{id}/enrollments         manual enroll {user_id|email}
-POST   /studio/courses/{id}/enrollments/bulk    CSV → queued job + job status URL
-PATCH  /studio/enrollments/{id}                 suspend / extend / cancel
 
 GET    /cart · POST /cart/items · DELETE /cart/items/{id}
 POST   /cart/coupon · DELETE /cart/coupon
