@@ -55,6 +55,14 @@ return [
     ],
 
     /*
+    | Media. Private files are delivered by a signed URL that lives only long
+    | enough to start the download (ADR-09).
+    */
+    'media' => [
+        'signed_url_ttl_minutes' => (int) env('MEDIA_SIGNED_URL_TTL', 15),
+    ],
+
+    /*
     | Tenancy. Single tenant per deployment for 1.0 — see ARCHITECTURE_PROPOSAL
     | risk R4. This flag exists so the assumption is visible in code, not implicit.
     */

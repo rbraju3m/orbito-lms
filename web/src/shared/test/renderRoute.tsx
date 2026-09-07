@@ -30,7 +30,10 @@ export function renderWithRouter(
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <MantineProvider theme={theme} defaultColorScheme="light">
+        {/* env="test" disables Mantine's transitions. Without it, portalled
+            content (menus, dropdowns) is still animating when an assertion
+            runs, producing failures that look like missing elements. */}
+        <MantineProvider theme={theme} defaultColorScheme="light" env="test">
           {children}
         </MantineProvider>
       </QueryClientProvider>

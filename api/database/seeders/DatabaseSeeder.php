@@ -14,6 +14,7 @@ final class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RolePermissionSeeder::class);
+        $this->call(CatalogSeeder::class);
 
         if (! app()->environment('local', 'testing')) {
             return;
@@ -37,6 +38,10 @@ final class DatabaseSeeder extends Seeder
             'applied_at' => now(),
             'application_source' => 'instructor_registration',
         ]);
+
+        // Demo rows are written directly rather than through the Actions that
+        // normally fire the counter events, so bring the counters to truth.
+        $this->call(UsageCounterSeeder::class);
     }
 
     private function demoUser(string $name, string $email, RoleKey $role): User

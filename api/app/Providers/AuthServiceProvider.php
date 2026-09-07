@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Catalog\Models\Course;
+use App\Domain\Catalog\Models\CourseCategory;
+use App\Domain\Catalog\Policies\CourseCategoryPolicy;
+use App\Domain\Catalog\Policies\CoursePolicy;
 use App\Domain\Identity\Models\InstructorProfile;
 use App\Domain\Identity\Models\Role;
 use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Policies\InstructorProfilePolicy;
 use App\Domain\Identity\Policies\RolePolicy;
 use App\Domain\Identity\Policies\UserPolicy;
+use App\Domain\Media\Models\Media;
+use App\Domain\Media\Policies\MediaPolicy;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -21,6 +27,9 @@ final class AuthServiceProvider extends ServiceProvider
         User::class => UserPolicy::class,
         Role::class => RolePolicy::class,
         InstructorProfile::class => InstructorProfilePolicy::class,
+        Course::class => CoursePolicy::class,
+        CourseCategory::class => CourseCategoryPolicy::class,
+        Media::class => MediaPolicy::class,
     ];
 
     public function boot(): void
@@ -41,7 +50,8 @@ final class AuthServiceProvider extends ServiceProvider
     {
         Relation::enforceMorphMap([
             'user' => User::class,
-            // 'course' => Course::class,  ← Phase 4
+            'course' => Course::class,
+            'media' => Media::class,
         ]);
     }
 

@@ -6,6 +6,7 @@ import { ThemeToggle } from '@/shared/ui';
 
 const NAV = [
   { to: '/', label: 'Home', end: true },
+  { to: '/courses', label: 'Courses', end: false },
   { to: '/system', label: 'System', end: false },
 ];
 

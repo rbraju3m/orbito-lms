@@ -1,10 +1,13 @@
 import { Card, Container, List, Stack, Text, Title } from '@mantine/core';
 
+import { useNavigate } from 'react-router';
+
 import { useSession } from '@/features/auth/hooks/useSession';
 import { EmptyState, PageHeader } from '@/shared/ui';
 
 export function StudioHomeRoute() {
   const { session } = useSession();
+  const navigate = useNavigate();
 
   return (
     <Container size="lg" py="lg">
@@ -15,8 +18,9 @@ export function StudioHomeRoute() {
           <Stack gap="xs">
             <Title order={4}>Your courses</Title>
             <EmptyState
-              title="No courses yet"
-              description="Course creation lands in Phase 4, and the curriculum builder in Phase 5."
+              title="Manage your courses"
+              description="Create, edit and publish from the courses screen."
+              action={{ label: 'Go to courses', onClick: () => navigate('/studio/courses') }}
             />
           </Stack>
         </Card>

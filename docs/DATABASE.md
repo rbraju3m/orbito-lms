@@ -541,7 +541,12 @@ locales(code CHAR(5) PK, name, native_name, direction ENUM(ltr,rtl), is_active, 
    actually touched.
 5. Soft deletes only where restore is a real product requirement (courses, items,
    sections, users). Everywhere else, hard delete.
-6. No EAV. If a field is worth storing it is worth a column or a schema-validated JSON
+6. **Never make a column nullable if it participates in a UNIQUE index you rely
+   on.** MySQL treats NULLs as *distinct*, so `UNIQUE(owner_type, owner_id, metric)`
+   with a nullable `owner_id` silently permits unlimited duplicate rows. Use a
+   sentinel (`usage_counters.owner_id = 0` for platform-wide) instead. The same
+   trap applies to `role_assignments`, which guards it in the model.
+7. No EAV. If a field is worth storing it is worth a column or a schema-validated JSON
    document. `postmeta` is exactly what we are escaping.
 
 ## 15. Migration discipline

@@ -40,6 +40,19 @@ return [
             'report' => false,
         ],
 
+        /*
+        | Everything a learner must have enrolled or paid for. Served ONLY
+        | through a short-lived signed URL, never from a permanent public path
+        | (ADR-09). In production this points at S3/R2 with public access off.
+        */
+        'private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

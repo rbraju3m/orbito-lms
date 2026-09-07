@@ -93,10 +93,11 @@ certificate — on a phone, in dark mode, with a keyboard.
 
 ## 7. Current status
 
-Phases 0 (audit), 1 (architecture), 2 (foundation) and **3 (identity)** are complete.
-Authentication, the permission registry, course-scoped roles, profiles and the
-instructor approval lifecycle are shipped and tested.
-Phase 4 (course management) is next — see `ROADMAP.md`.
+Phases 0–4 are complete: audit, architecture, foundation, identity and
+**course management**. An instructor can register, be approved, create a course,
+price it as free, publish it against a server-enforced checklist, and have it
+appear in the public catalogue.
+Phase 5 (the curriculum builder) is next — see `ROADMAP.md`.
 
 ## 8. Decisions taken
 

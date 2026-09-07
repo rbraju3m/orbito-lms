@@ -110,6 +110,63 @@ trait HasRoles
         return isset($this->effectivePermissions($scope)[$permission]);
     }
 
+    /**
+     * Permissions held ONLY through a role scoped to this exact resource,
+     * ignoring global roles entirely.
+     *
+     * This answers a different question from hasPermission(): not "may they do
+     * this here?" (global ∪ scoped) but "do they have a seat on THIS resource?".
+     * Using the union for the second question grants every instructor rights on
+     * every course, which is exactly the hole this method exists to close.
+     *
+     * @return array<string, true>
+     */
+    public function scopedPermissions(Model $scope): array
+    {
+        $scopeType = $scope->getMorphClass();
+        $scopeId = (int) $scope->getKey();
+        $permissions = [];
+
+        foreach ($this->activeRoleAssignments() as $assignment) {
+            if ($assignment->isGlobal()
+                || $assignment->scope_type !== $scopeType
+                || (int) $assignment->scope_id !== $scopeId) {
+                continue;
+            }
+
+            $role = $assignment->role;
+
+            if ($role === null) {
+                continue;
+            }
+
+            foreach ($role->permissions as $permission) {
+                $permissions[$permission->key] = true;
+            }
+        }
+
+        return $permissions;
+    }
+
+    public function hasScopedPermission(string $permission, Model $scope): bool
+    {
+        return isset($this->scopedPermissions($scope)[$permission]);
+    }
+
+    /** @param  list<string>  $permissions */
+    public function hasAnyScopedPermission(array $permissions, Model $scope): bool
+    {
+        $held = $this->scopedPermissions($scope);
+
+        foreach ($permissions as $permission) {
+            if (isset($held[$permission])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @param  list<string>  $permissions */
     public function hasAnyPermission(array $permissions, ?Model $scope = null): bool
     {

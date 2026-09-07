@@ -92,6 +92,13 @@ web/src/
 └── **/*.test.tsx     colocated with the code under test
 ```
 
+jsdom lacks `document.fonts` and `visualViewport`; both are polyfilled in
+`setup.ts` because Mantine's autosize Textarea and floating-ui need them, and
+without them a whole component tree throws. Test renders also pass
+`env="test"` to `MantineProvider`, which disables transitions — otherwise
+portalled menus are still animating when an assertion runs and failures look
+like missing elements.
+
 **Unhandled requests fail the test** (`onUnhandledRequest: 'error'`). A mock that
 drifts from the API contract is the failure mode this whole layer exists to catch.
 
@@ -141,7 +148,7 @@ install browsers on 20.04; this is a host constraint, not a configuration bug.
 |---|---|
 | 2 | shell renders · navigation · light/dark toggle · unknown route |
 | 3 | register → verify → login → logout · password reset ✅ |
-| 4 | create a course → publish it |
+| 4 | create a course → publish it ✅ |
 | 5 | build curriculum by drag and drop → reorder persists |
 | 6 | enrol → play a lesson → progress updates → resume |
 | 7 | take a quiz → submit → see the result |

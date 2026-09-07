@@ -32,11 +32,17 @@ class BaseCollection extends ResourceCollection
     }
 
     /**
-     * @return array<string, mixed>
+     * Returns a plain list, NOT ['data' => ...].
+     *
+     * Laravel adds the `data` wrapper at response level. Adding it here too
+     * double-wraps any collection nested inside another resource, so
+     * `category.children` arrives as `{data: [...]}` instead of `[...]`.
+     *
+     * @return list<mixed>
      */
     public function toArray(Request $request): array
     {
-        return ['data' => $this->collection->all()];
+        return $this->collection->all();
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Identity\Models;
 
+use App\Domain\Catalog\Models\Course;
 use App\Domain\Identity\Concerns\HasRoles;
 use App\Domain\Identity\Enums\UserStatus;
 use App\Domain\Identity\Notifications\ResetPasswordNotification;
@@ -81,6 +82,17 @@ final class User extends Authenticatable implements MustVerifyEmail
     public function socialLinks(): HasMany
     {
         return $this->hasMany(UserSocialLink::class);
+    }
+
+    /**
+     * Courses this user owns. Co-instructed courses come through
+     * course_instructors, not this relation.
+     *
+     * @return HasMany<Course, $this>
+     */
+    public function courses(): HasMany
+    {
+        return $this->hasMany(Course::class, 'owner_id');
     }
 
     public function isActive(): bool

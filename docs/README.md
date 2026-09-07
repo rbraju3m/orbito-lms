@@ -1,8 +1,8 @@
 # Orbito LMS — Documentation
 
-**Status:** Phases 0–3 complete. Audit, architecture, foundation, and identity
-(auth, roles, permissions, profiles, instructor approval). Phase 4 — course
-management — is next.
+**Status:** Phases 0–4 complete. Audit, architecture, foundation, identity, and
+course management (catalog, lifecycle, media, usage counters). Phase 5 — the
+curriculum builder — is next.
 
 Start here → [`MASTER_PLAN.md`](MASTER_PLAN.md)
 

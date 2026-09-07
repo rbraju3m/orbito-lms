@@ -23,6 +23,19 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomeRoute /> },
       {
+        path: 'courses',
+        lazy: async () => ({
+          Component: (await import('@/features/catalog/routes/CatalogRoute')).CatalogRoute,
+        }),
+      },
+      {
+        path: 'courses/:slug',
+        lazy: async () => ({
+          Component: (await import('@/features/catalog/routes/CourseDetailRoute'))
+            .CourseDetailRoute,
+        }),
+      },
+      {
         path: 'system',
         lazy: async () => ({
           Component: (await import('@/features/system/routes/SystemStatusRoute')).SystemStatusRoute,

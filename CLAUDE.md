@@ -213,6 +213,11 @@ Gate::authorize('publish', $course);                   // in a controller
   and granting it to roles — not writing a new check.
 - `role_assignments` carries an optional scope. A course-scoped role (Course
   Manager, Reviewer, TA) only applies to the resource it was granted on.
+- **`hasPermission($key, $scope)` returns global ∪ scoped.** To ask the narrower
+  question — "do they hold a seat on THIS resource?" — use
+  `hasScopedPermission()` / `hasAnyScopedPermission()`, which ignore global
+  roles. Getting this wrong made every instructor staff on every course; the
+  regression tests are in `CourseScopedAccessTest`.
 - Policies are the only place authorization decisions live. `Gate::before`
   grants Super Admin everything; that is the one blanket bypass in the system.
 - `GET /auth/me` returns the caller's permission keys so the SPA can hide UI.
@@ -222,9 +227,25 @@ Gate::authorize('publish', $course);                   // in a controller
 **When you add a model in Phase 4+**: register it in the morph map in
 `AuthServiceProvider` if it can be a role scope, and add its policy there too.
 
-## 10. Current phase
+## 10. Patterns established in Phase 4 — reuse these
 
-**Phases 0–3 complete.** Audit, architecture, foundation, and identity.
+- **Lifecycle changes go through one Action.** `ChangeCourseStatus` owns the
+  legal transitions and the timestamps. Do not set a status column directly.
+- **A "can I do X yet?" rule belongs in a checklist class**, not scattered
+  through a controller. `PublishChecklist` is both rendered by the UI and
+  enforced on publish, so the two cannot drift.
+- **Denormalise counters, maintain them by event, reconcile them nightly.**
+  `courses.rating_avg`, `usage_counters`, `course_tags.usage_count`. Never
+  compute an aggregate on a read path that renders a list.
+- **Media rules live on `MediaCollection`** — disk, MIME allowlist, size cap.
+  Never trust a client-declared MIME type or filename.
+- **An id that merely `exists` is not authorized.** Referencing another user's
+  media by id is rejected in the Form Request, not just validated for existence.
 
-**Phase 4 is next: categories, tags, courses, co-instructors, publishing,
-media foundation, and the plan-limit usage counters.** See `docs/ROADMAP.md`.
+## 11. Current phase
+
+**Phases 0–4 complete.** Audit, architecture, foundation, identity, catalog.
+
+**Phase 5 is next: the curriculum builder** — sections, the single ordered
+`course_items` spine (ADR-01), lessons, drag-and-drop reordering, autosave, and
+the curriculum rules joining the publish checklist. See `docs/ROADMAP.md`.

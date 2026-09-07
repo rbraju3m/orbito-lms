@@ -16,6 +16,7 @@ import {
   IconChalkboard,
   IconLayoutDashboard,
   IconLogout,
+  IconSearch,
   IconSettings,
   IconShieldLock,
   IconUser,
@@ -39,8 +40,9 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard, end: true },
   { to: '/dashboard/courses', label: 'My learning', icon: IconBook },
+  { to: '/courses', label: 'Browse courses', icon: IconSearch },
   {
-    to: '/studio',
+    to: '/studio/courses',
     label: 'Studio',
     icon: IconChalkboard,
     anyOf: ['course.create', 'course.update.own'],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Media\Support\MediaUrlGenerator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,10 @@ final class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(
+            MediaUrlGenerator::class,
+            fn () => new MediaUrlGenerator((int) config('orbito.media.signed_url_ttl_minutes', 15)),
+        );
     }
 
     public function boot(): void

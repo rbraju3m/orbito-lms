@@ -196,12 +196,46 @@ Security properties that are tested, not just intended:
 
 119 backend tests, 23 frontend tests, PHPStan level 6 and `tsc` clean.
 
-### Phase 4 — Course Management
-Categories, tags · course CRUD · draft→review→published→archived state machine ·
-co-instructors · settings and details tables · media foundation (upload URL, private
-disk, signed URLs) · catalogue endpoints with filters · Studio course list + basics tab +
-creation wizard step 1 · **usage counters**.
-**Exit:** an instructor can create and publish a course with no curriculum.
+### Phase 4 — Course Management ✅ complete
+
+Delivered:
+- **Course lifecycle as an explicit state machine** — draft → in_review →
+  published → archived, with legal transitions on the enum and every move going
+  through one `ChangeCourseStatus` action. Archiving is reversible; deletion is
+  a soft delete because enrollments, orders and certificates will hang off the row.
+- **Publish checklist** (`PublishChecklist`) — one definition of "ready to
+  publish", rendered by the Studio UI *and* enforced on publish, so what the
+  instructor sees can never disagree with what the server accepts. A refusal
+  returns the failed checks as `details[]`.
+- **Catalog** — categories (hierarchical, seeded taxonomy), tags with maintained
+  usage counts, courses, co-instructors, split `course_details` / `course_settings`.
+- **Denormalised course columns** (`rating_avg`, `enrollment_count`, `item_count`)
+  so a course card never needs the JOIN + AVG the audited product does on every read.
+- **Media foundation** — public and private disks, MIME sniffed from the file's
+  own bytes, generated filenames, per-collection size and type rules, and
+  short-lived signed URLs for private content (ADR-09).
+- **Usage counters** — `usage_counters` maintained by event listeners per owner
+  and platform-wide, with `usage:reconcile` to detect and correct drift. Billing
+  is Phase 16, but "how many students did this instructor have" cannot be
+  backfilled, so the counting starts now.
+- **Course-scoped roles now have a real target.** `course` is in the morph map,
+  which closes ADR-07's loop: a Course Manager, Reviewer or TA is granted on one
+  course and has no rights on any other.
+
+Two authorization findings, both now regression-tested:
+- `hasPermission($key, $scope)` returns global ∪ scoped. Using it to ask "does
+  this user have a seat here?" made **every instructor staff on every course**.
+  Fixed with `hasScopedPermission()` / `hasAnyScopedPermission()`, which ignore
+  global roles entirely.
+- A course author granted the reviewer role on their own course could approve
+  their own submission. Now explicitly denied.
+
+**Exit met.** Verified against the running API: an instructor creates a course,
+is refused publication with the exact checklist reasons, adds a description,
+publishes, and the course appears in the anonymous catalogue — while a student
+PATCHing it gets 403 and the usage counters read 1 total / 1 published.
+
+218 backend tests, 38 frontend tests, PHPStan level 6 and `tsc` clean.
 
 ### Phase 5 — Curriculum Builder
 Sections · `course_items` · lessons · the reorder endpoint · duplicate · preview flags ·
