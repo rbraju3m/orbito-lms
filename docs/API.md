@@ -370,7 +370,21 @@ Central-DB only, behind `super_admin`, and deliberately **outside** both the
 exactly the one an operator needs to reach, and renewing is the action that
 unblocks it.
 
-### Commerce — planned (P10)
+### Commerce — planned (P10), domain layer part-built
+
+**No commerce endpoint exists yet.** The domain layer is written but has no
+controllers or routes; see `ROADMAP.md` Phase 10.
+
+Two things about the eventual shape are already settled. The webhook carries
+its academy in the path — `/webhooks/payments/{gateway}/{tenant}` — because a
+webhook has no authenticated user to resolve a tenant from, the same problem
+the signed media download solved (§2a). The tenant there is untrusted until the
+signature verifies against **that academy's** secret, which is what makes it
+safe to route on.
+
+And there is deliberately **no client-callable "confirm payment" endpoint**.
+A redirect back from a provider proves nothing, so the API offers no way to
+say it happened; access is granted only by a verified webhook (ADR-05).
 
 ```
 

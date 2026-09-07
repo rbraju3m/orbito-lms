@@ -103,9 +103,9 @@ and correct answers that never leave the server during an attempt (ADR-06).
 **Phase 9 then shipped** — drip, prerequisites, seat limits, the enrolment
 lifecycle and the studio roster — and the system was **retrofitted to one
 database per academy** (ADR-13), which made the catalogue members-only.
-Both halves of Phase 9 are now built. **Phase 10 (commerce) is next** — and
-the retrofit split it in two: platform billing and course sales are different
-systems on different connections. See `ROADMAP.md`.
+Both halves of Phase 9 are now built. **Phase 10 (commerce) was started and
+paused part-way** — the domain layer exists, nothing has been tested, and no
+HTTP surface was built. See `ROADMAP.md` Phase 10.
 
 ## 8. Decisions taken
 
@@ -115,4 +115,6 @@ systems on different connections. See `ROADMAP.md`.
 | 2 | Single-tenant or multi-tenant? | ~~Single tenant per deployment.~~ **REVERSED after Phase 9: one database per academy**, via `stancl/tenancy`, matching the Orbito product. `config('orbito.multi_tenant')` is now `true`. R4 warned this could not be added cheaply after P4 — that was true of a `tenant_id` column and wrong about schema-per-tenant, which moved the migrations wholesale. See ADR-13. | ✅ settled the other way |
 | 3 | MVP payment gateways | **Stripe + PayPal** in Phase 10. Regional gateways (SSLCommerz / bKash / Nagad) deferred to a later phase. | ✅ settled |
 | 4 | Base currency and launch locales | **Base BDT, USD enabled**; locales **en + bn**. Set in `api/.env` (`ORBITO_BASE_CURRENCY`, `ORBITO_SUPPORTED_LOCALES`). Nothing prices anything yet, so this is still costless to change — but it stops being so the moment Phase 10 writes an order. | ⚠️ default still unconfirmed; **last cheap moment is before Phase 10** |
+| 6 | Who is the merchant for a course sale? | **The academy.** It connects its own gateway credentials, encrypted per tenant; the platform never touches learner money and takes on no money-transmitter exposure. Supersedes `DATABASE.md` §6, which assumed one merchant — `instructor_earnings`/`payouts` become an academy's internal ledger. | ✅ settled (P10) |
+| 7 | Does platform billing get real payments in P10? | **No.** `AssignPlan` stays the operator's manual lever; Stripe Billing is a separate integration from one-off checkout. | ✅ settled (P10) |
 | 5 | Video hosting | **Self-hosted upload + YouTube/Vimeo**, shipped in Phase 6. The planned `VideoProvider` *interface* came out as an **enum** the player branches on, so adding Bunny/Mux is a new case plus a URL builder rather than a config change (risk R3). | ✅ settled; the seam is weaker than planned |

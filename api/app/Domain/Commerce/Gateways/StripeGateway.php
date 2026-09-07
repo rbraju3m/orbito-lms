@@ -1,0 +1,162 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Commerce\Gateways;
+
+use App\Domain\Commerce\Data\GatewayHandoff;
+use App\Domain\Commerce\Data\WebhookEvent;
+use App\Domain\Commerce\Exceptions\GatewayUnavailable;
+use App\Domain\Commerce\Exceptions\WebhookRejected;
+use App\Domain\Commerce\Models\Order;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+
+/**
+ * Stripe, against the REST API directly rather than the SDK.
+ *
+ * Two reasons. The credentials belong to the ACADEMY (ADR-13), so every call
+ * has to carry a per-request key rather than a globally configured client —
+ * which is the one thing the SDK's singleton shape makes awkward. And this
+ * uses three endpoints; a dependency that pulls in the whole API surface to
+ * reach three of them is not worth the upgrade treadmill.
+ *
+ * NOT VERIFIED AGAINST A REAL SANDBOX. Written to the documented API, and the
+ * signature check below is Stripe's documented scheme, but no request here has
+ * ever reached Stripe. Treat the first live run as the test.
+ */
+final class StripeGateway implements PaymentGateway
+{
+    private const API = 'https://api.stripe.com/v1';
+
+    /** Stripe rejects a signature older than this, and so do we. */
+    private const TOLERANCE_SECONDS = 300;
+
+    public function handoff(Order $order, GatewayAccount $account): GatewayHandoff
+    {
+        $secretKey = $account->credential('secret_key');
+
+        if ($secretKey === '') {
+            throw GatewayUnavailable::notConfigured('stripe');
+        }
+
+        $response = Http::withToken($secretKey)
+            ->asForm()
+            ->post(self::API.'/payment_intents', [
+                // Stripe speaks minor units too, so there is no conversion
+                // here — which is the point of storing them that way (ADR-04).
+                'amount' => $order->total_minor,
+                'currency' => strtolower($order->currency),
+                // Our own id travels with the charge, so a webhook can be tied
+                // back to an order even if our side lost the external id.
+                'metadata[order_uuid]' => $order->uuid,
+                'automatic_payment_methods[enabled]' => 'true',
+            ]);
+
+        if ($response->failed()) {
+            throw GatewayUnavailable::requestFailed(
+                'stripe',
+                (string) $response->json('error.message', 'Unknown error'),
+            );
+        }
+
+        return new GatewayHandoff(
+            externalId: (string) $response->json('id'),
+            // Stripe Elements takes a client secret, not a redirect.
+            clientSecret: (string) $response->json('client_secret'),
+        );
+    }
+
+    public function verifyWebhook(Request $request, GatewayAccount $account): WebhookEvent
+    {
+        $raw = $request->getContent();
+        $header = (string) $request->header('Stripe-Signature', '');
+
+        [$timestamp, $signatures] = $this->parseSignatureHeader($header);
+
+        if ($timestamp === null || $signatures === []) {
+            throw WebhookRejected::badSignature();
+        }
+
+        /*
+         * The timestamp check is not decoration. Without it a signature stays
+         * valid forever, and an attacker who captures one delivery can replay
+         * it whenever they like — the idempotency key stops a duplicate, but
+         * not a first delivery held back and used later.
+         */
+        if (abs(time() - $timestamp) > self::TOLERANCE_SECONDS) {
+            throw WebhookRejected::badSignature();
+        }
+
+        $expected = hash_hmac('sha256', $timestamp.'.'.$raw, $account->webhookSecret);
+
+        $matched = false;
+        foreach ($signatures as $signature) {
+            if (hash_equals($expected, $signature)) {
+                $matched = true;
+            }
+        }
+
+        if (! $matched) {
+            throw WebhookRejected::badSignature();
+        }
+
+        /** @var array<string, mixed> $payload */
+        $payload = json_decode($raw, true) ?: [];
+        $object = $payload['data']['object'] ?? [];
+
+        $id = $payload['id'] ?? null;
+        $type = $payload['type'] ?? null;
+
+        if (! is_string($id) || ! is_string($type)) {
+            throw WebhookRejected::malformed();
+        }
+
+        return new WebhookEvent(
+            id: $id,
+            type: $type,
+            externalPaymentId: is_array($object) && isset($object['id']) && is_string($object['id'])
+                ? $object['id']
+                : null,
+            amountMinor: is_array($object) && isset($object['amount']) && is_numeric($object['amount'])
+                ? (int) $object['amount']
+                : null,
+            currency: is_array($object) && isset($object['currency']) && is_string($object['currency'])
+                ? strtoupper($object['currency'])
+                : null,
+            payload: $payload,
+        );
+    }
+
+    /**
+     * `t=1614556800,v1=abc...,v1=def...`
+     *
+     * More than one v1 is normal during a secret rotation, which is why this
+     * returns a list and the caller checks them all rather than the first.
+     *
+     * @return array{0: int|null, 1: list<string>}
+     */
+    private function parseSignatureHeader(string $header): array
+    {
+        $timestamp = null;
+        $signatures = [];
+
+        foreach (explode(',', $header) as $part) {
+            $pair = explode('=', trim($part), 2);
+
+            if (count($pair) !== 2) {
+                continue;
+            }
+
+            [$key, $value] = $pair;
+
+            if ($key === 't' && is_numeric($value)) {
+                $timestamp = (int) $value;
+            } elseif ($key === 'v1') {
+                $signatures[] = $value;
+            }
+        }
+
+        return [$timestamp, $signatures];
+    }
+}

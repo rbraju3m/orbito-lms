@@ -349,6 +349,30 @@ lesson_notes(id, user_id, course_item_id, course_id, body TEXT,
 
 ## 6. Commerce
 
+> **Partly superseded, and partly built.** This section was written before
+> multi-tenancy, when the platform and the academy were one entity.
+>
+> **The academy is now the merchant of record** (ROADMAP Phase 10): it connects
+> its own gateway credentials and the platform never touches learner money. So
+> `instructor_earnings` and `payouts` below describe a platform obligation that
+> no longer exists — they become an academy's INTERNAL ledger for paying its
+> own instructors, and were deliberately not built.
+>
+> **What IS built** lives in `database/migrations/tenant/…_create_commerce_tables`
+> — all tenant-side: `payment_gateway_accounts` (NEW, not below: the per-academy
+> credentials this section had no concept of), `products`, `product_prices`,
+> `carts`, `cart_items`, `orders`, `order_items`, `payments`, `payment_events`.
+> **That migration has never been run.**
+>
+> Two departures worth knowing: `cart_items` stores **no price** (a figure
+> captured at add-to-cart is exactly the stale price ADR-05 refuses to trust —
+> the order re-reads it), and `orders.number` is random rather than sequential
+> (a gap-free sequence tells every customer the academy's order count, and
+> needs a lock this phase does not otherwise want).
+>
+> Not built: `customers`, `currencies`, `exchange_rates`, coupons, tax,
+> invoices, refunds, earnings, payouts, `idempotency_keys`.
+
 ```sql
 products(id, uuid, purchasable_type, purchasable_id,   -- course | bundle | download | plan | coaching
       slug UNIQUE, title, status ENUM(draft,active,inactive),

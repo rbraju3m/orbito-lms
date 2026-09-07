@@ -203,7 +203,7 @@ submission re-opens the assignment and does not consume an attempt.
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
 | G1 | Free enrollment | Core | Yes | **P9 · M** | |
-| G2 | Paid enrollment after verified payment | Core | Yes | **P10 · M** | Never on client signal |
+| G2 | Paid enrollment after verified payment | Core | Yes | ⚠️ P10 part-built | Path written end to end; never executed |
 | G3 | Manual enrollment (single) | Pro | Yes | **P9 · M** | |
 | G4 | Bulk enrollment / CSV | Pro | Yes | P9 | |
 | G5 | Enrollment expiry | Pro | Yes | **P9 ✅** | Suspend / reinstate / extend / revoke |
@@ -255,23 +255,23 @@ reads yet.
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
-| J1 | Product abstraction (course/bundle/download/plan/coaching) | Partial | Yes | **P10 · M** | One polymorphic `products` |
-| J2 | Cart | Core | Yes | **P10 · M** | |
-| J3 | Checkout | Core | Yes | **P10 · M** | |
+| J1 | Product abstraction (course/bundle/download/plan/coaching) | Partial | Yes | ⚠️ P10 part-built | Model + migration only; untested |
+| J2 | Cart | Core | Yes | ⚠️ P10 part-built | Models only; no endpoints |
+| J3 | Checkout | Core | Yes | ⚠️ P10 part-built | `PlaceOrder` written, untested, unreachable |
 | J4 | Guest checkout | Core | Yes | P10 | |
-| J5 | Orders + order items with price snapshot | Core | Yes | **P10 · M** | |
-| J6 | Payments table + gateway events | Partial | Yes | **P10 · M** | Not a LONGTEXT column |
-| J7 | Server-side payment verification / webhooks | Core | Yes | **P10 · M** | Idempotent, signature-verified |
+| J5 | Orders + order items with price snapshot | Core | Yes | ⚠️ P10 part-built | Snapshots designed in; untested |
+| J6 | Payments table + gateway events | Partial | Yes | ⚠️ P10 part-built | Not a LONGTEXT column; untested |
+| J7 | Server-side payment verification / webhooks | Core | Yes | ⚠️ P10 part-built | `HandleWebhook` written; NO test, NO route |
 | J8 | Refunds (full + partial) | Core | Yes | **P10 · M** | |
 | J9 | Coupons (code + automatic, scoped, limits) | Core | Yes | **P10 · M** | |
 | J10 | Tax rules by country/state | Core | Yes | P10 | |
 | J11 | Invoices (PDF, sequential numbering) | Pro | Yes | P10 | |
 | J12 | Multi-currency | — | — | **P10 · M** (model) | Integer minor units + FX; UI in P16 |
-| J13 | Stripe | Pro | Yes | **P10 · M** | |
+| J13 | Stripe | Pro | Yes | ⚠️ P10 adapter written | Never contacted Stripe; unverified |
 | J14 | PayPal | Core | Yes | **P10 · M** | |
 | J15 | SSLCommerz / bKash / Nagad | — | — | P10 | **Orbito differentiator** |
-| J16 | Instructor earnings + commission split | Core | n/a | P10 | |
-| J17 | Withdrawals + maturity days | Core | n/a | P10 | |
+| J16 | Instructor earnings + commission split | Core | n/a | Reconsider | Academy is the merchant, so this is an academy-internal ledger, not a platform one |
+| J17 | Withdrawals + maturity days | Core | n/a | Reconsider | See J16 — the platform holds no funds to withdraw |
 | J18 | Subscriptions / recurring | Pro | Yes | P16 | |
 | J19 | Memberships | Pro | Yes | P16 | |
 | J20 | Product bundles | Pro | Yes | P16 | |

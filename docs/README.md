@@ -3,7 +3,11 @@
 **Status:** Phases 0–9 complete, plus a **multi-tenancy retrofit**. Audit,
 architecture, foundation, identity, course management, curriculum builder, the
 learning experience, the quiz engine, assignments, and enrolment & access —
-then one database per academy (ADR-13). **Phase 10 — Commerce — is next.**
+then one database per academy (ADR-13).
+
+**Phase 10 (Commerce) is part-built and paused.** Its domain layer exists and
+passes the static checks, but it has no tests, no routes, and an unrun
+migration — see `ROADMAP.md` Phase 10 for exactly what is and is not there.
 
 > **If you read one thing before writing code, read `CLAUDE.md` §16.**
 > Tenancy changes how every query and every model behaves, and the mistakes it

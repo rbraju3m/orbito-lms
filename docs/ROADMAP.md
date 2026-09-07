@@ -4,7 +4,11 @@
 
 **Phases 0–9 are complete**, front and back, and the system was then
 **retrofitted to multi-tenancy** — a reversal of the single-tenant decision
-recorded as risk R4. **Phase 10 — Commerce — is next.**
+recorded as risk R4.
+
+**Phase 10 (Commerce) is IN PROGRESS and was stopped part-way.** The domain
+layer exists and is static-clean; there are **no tests, no HTTP surface, and
+the migration has never been run**. Read the Phase 10 entry before touching it.
 
 | | |
 |---|---|
@@ -574,14 +578,59 @@ which removes the anonymous surface: the catalogue, course pages, previews and
 the player are members-only. A public storefront would need subdomain
 identification and is a real change, not a flag.
 
-### Phase 10 — Commerce
-Products + prices + currencies · cart · checkout with server-side repricing · orders ·
-`PaymentGateway` interface with Stripe and PayPal · webhooks (verified, idempotent) ·
-refunds · coupons · tax · invoices · instructor earnings and payouts · access granted only
-on `PaymentCaptured`. Regional gateways (SSLCommerz/bKash/Nagad) land here if merchant
-accounts are ready.
-**Exit:** a paid enrollment completes through a real sandbox webhook, and a forged
-client-side "success" grants nothing.
+### Phase 10 — Commerce  ⚠️ STARTED, STOPPED PART-WAY
+
+**Scope was deliberately narrowed** to the money path: products, prices, cart,
+checkout with server-side repricing, orders, one gateway, verified idempotent
+webhooks, access on `PaymentCaptured`. Coupons, refunds, tax, invoices, PayPal
+and the multi-currency UI were deferred until that path is proven.
+
+**Three decisions were taken and are load-bearing.**
+
+1. **The academy is the merchant of record.** Each academy connects its own
+   gateway credentials, encrypted per tenant; the platform never touches
+   learner money and takes on no money-transmitter exposure. This CHANGES
+   `DATABASE.md` §6, which was written pre-tenancy and assumed one merchant —
+   so `instructor_earnings` and `payouts` become an academy's INTERNAL ledger,
+   not a platform obligation. They were not built, precisely because building
+   them to the old shape would have been building the wrong thing.
+2. **Platform billing stays manual.** `AssignPlan` remains the operator's
+   lever; Stripe Billing is a separate integration from one-off checkout.
+3. **Commerce lives entirely in the tenant schema**, gateway credentials
+   included, which follows from (1).
+
+**What exists** (`app/Domain/Commerce/`, Pint and PHPStan clean): the migration
+for 9 tenant tables · enums · models · the `PaymentGateway` interface with
+`FakeGateway` and `StripeGateway` · `PaymentGatewayFactory` ·
+`SyncCourseProduct` · `PlaceOrder` · `InitiatePayment` · `HandleWebhook` ·
+`CapturePayment` · `PaymentCaptured` · factories.
+
+**What does NOT exist — assume none of it works:**
+
+- **No tests at all.** Not one line of this has ever executed.
+- **The migration has never been run.** Unverified against MySQL.
+- **No controllers, routes, requests, resources or policies.** Nothing is
+  reachable over HTTP, including the webhook endpoint — so the tenant-in-path
+  routing a webhook needs (`/webhooks/payments/{gateway}/{tenant}`) is designed
+  but not built.
+- **No frontend.**
+- **The Stripe adapter has never contacted Stripe.** Written to the documented
+  API, signature check follows the documented scheme, but no sandbox
+  credentials were available. Treat the first live run as the test.
+
+**The exit criterion is NOT met.** Of its two halves — "a paid enrollment
+completes through a real sandbox webhook" and "a forged client-side success
+grants nothing" — the first is untested and the second is designed for but
+unproven. The design does refuse forged success (there is no client-callable
+confirm; access is granted only inside `HandleWebhook`, after signature
+verification, and only for a payment id we issued) — but a design is not a
+test.
+
+**Resume here.** Run the migration, then write the money-path test against
+`FakeGateway` covering the four cases the whole design rests on: signature
+rejection, replay idempotency, captured-amount mismatch, and a forged success.
+Do not add an HTTP surface until those pass — everything above them assumes
+they hold.
 
 ### Phase 11 — Certificates
 Templates · queued PDF generation · numbering · QR · public verification page · revocation.

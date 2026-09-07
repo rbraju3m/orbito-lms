@@ -448,10 +448,25 @@ the enrollment lifecycle, the studio roster, completion and retake.
 The retrofit delivered database-per-tenant, the platform admin surface, plans
 and subscriptions. **Read §16 before writing any query.**
 
-**Next: Phase 10 — Commerce.** Note the collision the retrofit created:
-platform billing (academies paying us, already half-built in `Platform`) is a
-different thing from course sales (learners paying an academy). They sit on
-different connections and must not share tables.
+**Phase 10 (Commerce) is STARTED and STOPPED PART-WAY.** The domain layer in
+`app/Domain/Commerce/` is written and static-clean, but it has **no tests, no
+HTTP surface, and its migration has never been run**. Nothing in it has ever
+executed. Read `docs/ROADMAP.md` Phase 10 before touching it — it records what
+exists, what does not, and where to resume.
+
+Three decisions there are settled and load-bearing:
+
+- **The academy is the merchant of record** — it connects its own gateway
+  credentials, per tenant, and the platform never touches learner money. This
+  supersedes `DATABASE.md` §6, which assumed a single merchant, and is why
+  `instructor_earnings`/`payouts` were deliberately NOT built.
+- **Platform billing stays manual** (`AssignPlan`); it is a different flow from
+  course checkout and shares nothing but vocabulary.
+- **Commerce is entirely tenant-side**, credentials included.
+
+Resume by running the migration and proving the money path against
+`FakeGateway` — signature rejection, replay idempotency, amount mismatch,
+forged success — BEFORE adding any HTTP surface.
 
 **Known debt, deliberately left:**
 
