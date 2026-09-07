@@ -103,7 +103,9 @@ and correct answers that never leave the server during an attempt (ADR-06).
 **Phase 9 then shipped** — drip, prerequisites, seat limits, the enrolment
 lifecycle and the studio roster — and the system was **retrofitted to one
 database per academy** (ADR-13), which made the catalogue members-only.
-Phase 9's frontend is next; see `ROADMAP.md`.
+Both halves of Phase 9 are now built. **Phase 10 (commerce) is next** — and
+the retrofit split it in two: platform billing and course sales are different
+systems on different connections. See `ROADMAP.md`.
 
 ## 8. Decisions taken
 

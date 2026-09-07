@@ -3,7 +3,7 @@
 **Status:** Phases 0–9 complete, plus a **multi-tenancy retrofit**. Audit,
 architecture, foundation, identity, course management, curriculum builder, the
 learning experience, the quiz engine, assignments, and enrolment & access —
-then one database per academy (ADR-13). Phase 9's frontend is next.
+then one database per academy (ADR-13). **Phase 10 — Commerce — is next.**
 
 > **If you read one thing before writing code, read `CLAUDE.md` §16.**
 > Tenancy changes how every query and every model behaves, and the mistakes it
@@ -27,7 +27,7 @@ is worth less than one that says "this came out differently, and here is why".
 | `API.md` | endpoints are marked **live** or **planned**; §2a explains why nothing is public any more |
 | `DATABASE.md` | §0 is the central/tenant boundary and is authoritative; contexts through Phase 9 match the migrations; later ones are still design |
 | `FEATURE_MATRIX.md` | each shipped section carries a "shipped / still open" note |
-| `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅ |
+| `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅; the header explains what tenancy removed |
 | `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is mostly still a wish list, and says so |
 | `EVENTS.md` | current, and it flags one event that cannot currently be asserted in a test |
 | `TESTING.md` | current, including the Playwright gap |

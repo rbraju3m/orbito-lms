@@ -7,18 +7,17 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 > Mantine requires `postcss`, `postcss-preset-mantine`, `postcss-simple-vars`,
 > `@mantine/core/styles.css`, a `<MantineProvider>`, and `<ColorSchemeScript>`.
 >
-> **State at Phase 8 — the SPA has not moved since.** The route map and
-> directory layout below are the target. What exists today is marked; unmarked
-> entries are not built.
+> **State at Phase 9.** The route map and directory layout below are the
+> target. What exists today is marked; unmarked entries are not built.
 >
-> **Two things now make it out of date rather than merely incomplete.**
-> Phase 9's backend shipped without its UI (drip fields, the students roster,
-> the prerequisites picker). And the multi-tenancy retrofit changed the
-> contract the SPA is written against: the catalogue, course pages, previews
-> and the player are **members-only**, so an anonymous visitor gets 401 rather
-> than a storefront — and any write can now return **402** when the academy's
-> subscription has lapsed, which no screen currently handles. Build both
-> against the tenant-aware API rather than retrofitting later. `@mantine/dates`
+> **Tenancy changed the contract, and the route map with it.** The catalogue,
+> course pages and the player are **members-only** — tenancy resolves from the
+> authenticated user, so an anonymous request belongs to no academy and the API
+> answers 401. `RequireAuth` turns that into a login redirect. There is no
+> anonymous preview route any more: `is_preview` means "try before you
+> *enrol*". Any write can also return **402** when the academy's subscription
+> has lapsed; that is caught once in the `MutationCache` and rendered as an
+> app-wide banner, not per button. `@mantine/dates`
 > is deliberately *not* installed — the one date field so far uses a native
 > `datetime-local` input converted at the edge by `shared/lib/datetime.ts`,
 > which costs nothing against the 250 KB first-paint budget.
@@ -31,6 +30,7 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 |---|---|---|---|
 | **Public** | `/` | anonymous + logged in | marketing header/footer, catalogue |
 | **Learn** | `/learn/*` | enrolled students | distraction-free player shell |
+| **Platform** | — | operators | not a route group: holds the lapsed-subscription banner and store |
 | **Dashboard** | `/dashboard/*` | students | sidebar app shell |
 | **Studio** | `/studio/*` | instructors, course managers, TAs, reviewers | sidebar app shell + course context |
 | **Admin** | `/admin/*` | admins, staff | sidebar app shell |
@@ -46,9 +46,9 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
 
 ```
 /                                  home / marketing                       ✅
-/courses                           catalogue  (filters in the URL, shareable)✅
-/courses/:slug                     course sales page                      ✅
-/courses/:slug/preview/:itemId     free preview item
+/courses                           catalogue  (filters in the URL, shareable)✅ members-only
+/courses/:slug                     course page: prerequisites, seats, enrol ✅ members-only
+/courses/:slug/preview/:itemId     ~~free preview item~~  removed — no anonymous surface
 /instructors/:slug
 /categories/:slug
 /blog · /blog/:slug                                       (P16)
@@ -82,8 +82,10 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
     ├─ basics           title, category, level, language, thumbnail, intro video   ✅
     ├─ curriculum       THE BUILDER                                                ✅
     ├─ settings         completion mode, certificate, Q&A, seats, expiry           ✅
+    ├─ access           drip mode, seat limit, expiry, retake/reset  (sidebar)     ✅
+    ├─ prerequisites    whole-set picker, cycles refused server-side (sidebar)     ✅
     ├─ pricing          price, sale, currency, coupons scope                       P10
-    ├─ students         enrolled list, manual enroll, progress                     P9
+    ├─ students         roster, bulk enrol, suspend/extend/revoke                  ✅
     ├─ reviews · discussions                                                       P12
     └─ analytics                                                                   P13
 

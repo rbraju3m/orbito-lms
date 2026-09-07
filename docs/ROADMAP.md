@@ -2,14 +2,14 @@
 
 ## Where this stands
 
-**Phases 0–9 are complete**, and the system was then **retrofitted to
-multi-tenancy** — a reversal of the single-tenant decision recorded as risk R4.
-**Phase 9's frontend is next**, followed by Phase 10.
+**Phases 0–9 are complete**, front and back, and the system was then
+**retrofitted to multi-tenancy** — a reversal of the single-tenant decision
+recorded as risk R4. **Phase 10 — Commerce — is next.**
 
 | | |
 |---|---|
 | Backend | 642 Pest tests / 2,204 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 116 Vitest tests · `tsc` clean · oxlint clean — **predates Phase 9 and tenancy** |
+| Frontend | 138 Vitest tests · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS 240.5 KB gzipped, against 250 KB |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~430s, up from ~118s — provisioning tests build real schemas |
@@ -539,8 +539,15 @@ server-side.
   controller on the `Route` object — so the cache outlived the request.
   Invisible under php-fpm, live under Octane.
 
-**Frontend not started.** Build it against the tenant-aware API; the SPA needs
-a members-only catalogue and a 402 state regardless.
+**Frontend complete**, built against the tenant-aware API: drip in the outline
+and a reason-specific lock screen, the studio roster with bulk enrol and the
+enrolment lifecycle, per-item drip fields, prerequisites and access settings,
+plus the two states tenancy forces — a members-only catalogue behind
+`RequireAuth`, and an app-wide banner for a lapsed subscription.
+
+One bug worth recording: the roster query used `apiGet`, which unwraps the
+envelope and discards `meta`, so it would have rendered "no students yet" for
+every course in production. The tests caught it before anyone saw it.
 
 ### Phase T — Multi-tenancy retrofit ✅ complete (T1–T6)
 One MySQL schema per academy (`stancl/tenancy`), users central, tenancy

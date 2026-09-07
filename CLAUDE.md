@@ -438,8 +438,9 @@ so the action that fixes a lapse survives it.
 
 ## 17. Current phase
 
-**Phases 0–9 complete**, plus a **multi-tenancy retrofit** (T1–T6) that
-reversed the single-tenant decision. 642 tests / 2204 assertions.
+**Phases 0–9 complete** front and back, plus a **multi-tenancy retrofit**
+(T1–T7) that reversed the single-tenant decision.
+642 backend tests / 2206 assertions · 138 frontend tests.
 
 Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
 the enrollment lifecycle, the studio roster, completion and retake.
@@ -447,20 +448,21 @@ the enrollment lifecycle, the studio roster, completion and retake.
 The retrofit delivered database-per-tenant, the platform admin surface, plans
 and subscriptions. **Read §16 before writing any query.**
 
-**Next, in this order:**
-
-1. **Phase 9's frontend** (drip UI, the students table, prerequisites picker)
-   — and the SPA changes tenancy forces: a members-only catalogue, and a 402
-   state for a lapsed academy.
-2. **Phase 10 — Commerce.** Note the collision the retrofit created: platform
-   billing (academies paying us, already half-built in `Platform`) is a
-   different thing from course sales (learners paying an academy). Do not let
-   them share tables.
+**Next: Phase 10 — Commerce.** Note the collision the retrofit created:
+platform billing (academies paying us, already half-built in `Platform`) is a
+different thing from course sales (learners paying an academy). They sit on
+different connections and must not share tables.
 
 **Known debt, deliberately left:**
 
 - Plan **limits** are stored and counted but never enforced. Phase 16.
 - The roster cannot sort by learner name — a central column against tenant
   rows. The fix is denormalising the name onto `enrollments`.
-- The suite takes ~430s, up from ~118s, because provisioning tests build real
-  schemas. Provision one academy per file rather than per test when it hurts.
+- The suite takes ~370-430s, up from ~118s, because provisioning tests build
+  real schemas. Provision one academy per file rather than per test when it
+  hurts.
+- `ItemEditorDrawer` issues two sequential writes (lesson body, then the item's
+  drip fields). Body first is deliberate — writing is the expensive thing to
+  lose — but a failure between them is a partial save with no test.
+- A test artifact (`storage/tenanttest/…pdf`) is committed in 998ee74 and
+  6423ce9. Ignored now; dropping it needs a rebase.
