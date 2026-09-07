@@ -19,6 +19,7 @@ use App\Domain\Media\Events\MediaUploaded;
 use App\Domain\Platform\Listeners\TrackCourseUsage;
 use App\Domain\Platform\Listeners\TrackInstructorUsage;
 use App\Domain\Platform\Listeners\TrackStorageUsage;
+use App\Domain\Progress\Listeners\RecountEnrollmentTotals;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -62,6 +63,9 @@ final class EventServiceProvider extends ServiceProvider
         // will join this list in Phase 6 to recount every enrollment.
         CurriculumChanged::class => [
             RefreshCourseCurriculumCounters::class,
+            // Adding a lesson changes every enrolled learner's denominator.
+            // Queued: 10,000 students must not make "add lesson" wait.
+            RecountEnrollmentTotals::class,
         ],
     ];
 

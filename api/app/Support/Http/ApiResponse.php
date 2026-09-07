@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Support\Http;
 
+use App\Support\Http\Resources\BaseCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
+use Illuminate\Pagination\AbstractPaginator;
+use Illuminate\Pagination\CursorPaginator;
 
 /**
  * The single place the API's success envelope is built.
@@ -20,6 +23,14 @@ final class ApiResponse
     {
         if ($data instanceof JsonResource) {
             return $data->response()->setStatusCode($status);
+        }
+
+        // A raw paginator serialises to Laravel's own shape — current_page,
+        // first_page_url, links[] — which is NOT the envelope documented in
+        // docs/API.md §2. Wrap it here so no controller can leak it by
+        // forgetting to.
+        if ($data instanceof AbstractPaginator || $data instanceof CursorPaginator) {
+            return (new BaseCollection($data))->response()->setStatusCode($status);
         }
 
         return new JsonResponse(['data' => $data], $status);

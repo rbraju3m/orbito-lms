@@ -86,6 +86,12 @@ final class AppServiceProvider extends ServiceProvider
             (int) config('orbito.rate_limits.analytics')
         )->by('u:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // The player posts a watch position every 15 seconds per item, so a
+        // well-behaved client needs ~4/min. The cap is generous but finite.
+        RateLimiter::for('watch', fn (Request $request) => Limit::perMinute(
+            (int) config('orbito.rate_limits.watch')
+        )->by('u:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(
             (int) config('orbito.rate_limits.webhook')
         )->by('ip:'.$request->ip()));

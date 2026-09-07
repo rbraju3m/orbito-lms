@@ -92,6 +92,12 @@ web/src/
 └── **/*.test.tsx     colocated with the code under test
 ```
 
+`matchMedia` is implemented against a settable viewport (default 1280px), not
+stubbed to `false`. A stub that always answers false forces every responsive
+component into its mobile branch, so a desktop-only element is simply absent and
+the test fails for a reason unrelated to the code. Use `setTestViewportWidth`
+to exercise the mobile layout.
+
 jsdom lacks `document.fonts` and `visualViewport`; both are polyfilled in
 `setup.ts` because Mantine's autosize Textarea and floating-ui need them, and
 without them a whole component tree throws. Test renders also pass
@@ -160,7 +166,7 @@ install browsers on 20.04; this is a host constraint, not a configuration bug.
 | 3 | register → verify → login → logout · password reset ✅ |
 | 4 | create a course → publish it ✅ |
 | 5 | build curriculum by drag and drop → reorder persists ✅ |
-| 6 | enrol → play a lesson → progress updates → resume |
+| 6 | enrol → play a lesson → progress updates → resume ✅ |
 | 7 | take a quiz → submit → see the result |
 | 8 | submit an assignment → grade it → see feedback |
 | 10 | add to cart → checkout → webhook → access granted |

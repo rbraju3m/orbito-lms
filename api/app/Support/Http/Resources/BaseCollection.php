@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Http\Resources;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -24,9 +25,10 @@ class BaseCollection extends ResourceCollection
      */
     public function __construct($resource, ?string $collects = null)
     {
-        if ($collects !== null) {
-            $this->collects = $collects;
-        }
+        // Laravel guesses the item resource from the collection's class name,
+        // which for this base class resolves to an abstract. Default to the
+        // plain JsonResource so a collection of already-shaped arrays works.
+        $this->collects = $collects ?? JsonResource::class;
 
         parent::__construct($resource);
     }

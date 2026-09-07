@@ -8,10 +8,13 @@ use App\Domain\Curriculum\Enums\VideoProvider;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\Lesson;
+use App\Support\Html\RichTextSanitizer;
 use Illuminate\Support\Facades\DB;
 
 final class UpsertLesson
 {
+    public function __construct(private readonly RichTextSanitizer $sanitizer) {}
+
     /**
      * @param  array<string, mixed>  $lessonAttributes
      * @param  array<string, mixed>  $itemAttributes
@@ -19,6 +22,12 @@ final class UpsertLesson
     public function handle(CourseItem $item, array $lessonAttributes, array $itemAttributes = []): CourseItem
     {
         $item->loadMissing(['course', 'itemable']);
+
+        // Sanitise on WRITE, so the stored value is safe everywhere it is
+        // later used — the API, a mobile client, a PDF export.
+        if (array_key_exists('content', $lessonAttributes)) {
+            $lessonAttributes['content'] = $this->sanitizer->clean($lessonAttributes['content']);
+        }
 
         DB::transaction(function () use ($item, $lessonAttributes, $itemAttributes): void {
             /** @var Lesson $lesson */

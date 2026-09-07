@@ -93,11 +93,11 @@ certificate — on a phone, in dark mode, with a keyboard.
 
 ## 7. Current status
 
-Phases 0–5 are complete: audit, architecture, foundation, identity, course
-management and the **curriculum builder**. An instructor can register, be
-approved, build a multi-section course by drag and drop, and publish it against
-a server-enforced checklist into the public catalogue.
-Phase 6 (the learning experience) is next — see `ROADMAP.md`.
+Phases 0–6 are complete. An instructor can build and publish a course; a
+student can find it, enrol, learn through a real player with video resume and
+notes, and complete it — with progress **stored** (ADR-02) and access answered
+by a **single service** (ADR-03).
+Phase 7 (the quiz engine) is next — see `ROADMAP.md`.
 
 ## 8. Decisions taken
 

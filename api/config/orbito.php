@@ -43,6 +43,7 @@ return [
         'api' => (int) env('RATE_LIMIT_API', 120),
         'guest' => (int) env('RATE_LIMIT_GUEST', 60),
         'analytics' => (int) env('RATE_LIMIT_ANALYTICS', 60),
+        'watch' => (int) env('RATE_LIMIT_WATCH', 30),
         'webhook' => (int) env('RATE_LIMIT_WEBHOOK', 300),
     ],
 

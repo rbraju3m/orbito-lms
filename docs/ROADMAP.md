@@ -280,11 +280,63 @@ publish with an empty section-> 422 These sections have no items: "Bibliography"
 
 259 backend tests, 59 frontend tests, PHPStan level 6 and `tsc` clean.
 
-### Phase 6 — Learning Experience
-`enrollments` (free path only) · `item_progress` + `course_progress` · the player shell ·
-video with resume · text/PDF items · notes · resources · prev/next · mark complete ·
-"continue learning" · the progress reconciliation command.
-**Exit:** a student completes a course end to end and the percentage is correct and cheap.
+### Phase 6 — Learning Experience ✅ complete
+
+**ADR-02 delivered — the fix for the audit's worst finding.** The reference
+product writes one `usermeta` row per completed lesson and recomputes a course
+percentage on every read, loading all content and running a query per assignment
+in a loop; rendering "My courses" there is O(courses × items) queries. Here
+progress is **stored** in `course_progress`, maintained by events, and
+"Continue learning" is ONE indexed read.
+
+**ADR-03 delivered — `CourseAccess`.** One service answers "may this user
+consume this content?" for the player, item content, media signing and notes.
+Access sources grow by phase (owner, course staff, platform staff, enrollment,
+preview today; drip in P9, purchase in P10, subscriptions in P16) without a
+second code path ever existing. This is the question the audited product
+answers in many places that disagree.
+
+Also delivered:
+- `enrollments` with status, source, expiry and seat limits. Expiry is evaluated
+  live, not trusted from the status column — access must not depend on a cron
+  having fired.
+- `item_progress` created **lazily** on first view: 10k students × 100 items
+  would otherwise be a million rows nobody has opened.
+- The player: full-bleed shell, curriculum sidebar with progress, prev/next
+  across section boundaries, mark-complete (optimistic, with rollback), notes,
+  and a locked state that explains *why* rather than erroring.
+- Video resume, and a heartbeat throttled to one request per 15s — `timeupdate`
+  fires up to 60×/second. `watch_max_seconds` only grows, so scrubbing back
+  cannot un-earn progress; watching past the course's threshold auto-completes.
+- Flexible vs strict completion, honoured: strict completes itself, flexible
+  waits for the learner.
+- `progress:reconcile`, because drift in a stored aggregate is a bug alert.
+
+**Two real bugs found and fixed while building:**
+- **Rich text was never sanitised.** A compromised instructor account could run
+  script in every learner's browser. Now sanitised on *write* with an allowlist
+  (`symfony/html-sanitizer`), so the stored value is safe everywhere it is used.
+- **The default auth guard was `web`.** The player routes are deliberately open
+  to anonymous visitors for free previews, so they carry no auth middleware —
+  and `$request->user()` therefore ignored bearer tokens on exactly those
+  routes. An enrolled learner arrived looking anonymous and was refused their
+  own content. Default guard is now `sanctum`; session login names `web`.
+
+**Exit met.** Verified against the running API:
+
+```
+before enrol   granted=False reason=not_enrolled;  locked lesson -> 423
+after enrol    0/4 = 0%
+stored HTML    '<p>Content</p>'          (<script> stripped on write)
+watch 290/300s auto-completed 1 item     (90% threshold)
+continue       Modern Bengali Poetry @ 25%, resume point present
+all complete   100%  is_complete=True
+my courses     completed: 1;  continue-learning: 0 entries
+add a lesson   4/4 -> 4/5 = 80%          (denominator moves for every learner)
+reconcile      corrupted 99/5 -> corrected 4/5, then "consistent"
+```
+
+339 backend tests, 71 frontend tests, PHPStan level 6 and `tsc` clean.
 
 ### Phase 7 — Quiz Engine
 Quizzes, questions (10 types), options, question banks, quiz→question pivot · attempt

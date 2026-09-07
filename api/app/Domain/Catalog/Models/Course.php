@@ -11,6 +11,7 @@ use App\Domain\Catalog\Enums\CourseVisibility;
 use App\Domain\Catalog\Enums\PricingModel;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
+use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Models\User;
 use App\Domain\Media\Models\Media;
 use Carbon\CarbonInterface;
@@ -140,6 +141,12 @@ final class Course extends Model
     public function items(): HasMany
     {
         return $this->hasMany(CourseItem::class)->orderBy('position');
+    }
+
+    /** @return HasMany<Enrollment, $this> */
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
     }
 
     /** @return HasOne<CourseDetail, $this> */

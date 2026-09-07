@@ -26,7 +26,7 @@ final class LoginController
         if ($request->filled('device_name')) {
             $token = $user->createToken($request->string('device_name')->value())->plainTextToken;
         } else {
-            Auth::login($user, $request->boolean('remember'));
+            Auth::guard('web')->login($user, $request->boolean('remember'));
             // Rotate the session id on privilege change — the fixation defence.
             $request->session()->regenerate();
         }

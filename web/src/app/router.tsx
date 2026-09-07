@@ -90,6 +90,28 @@ export const router = createBrowserRouter([
   },
 
   {
+    // The player is full-bleed by design: it is not the dashboard shell
+    // (docs/FRONTEND_ARCHITECTURE.md §1). Anonymous visitors reach it too, for
+    // free preview lessons.
+    path: 'learn/:courseId',
+    errorElement: <RouteErrorBoundary />,
+    children: [
+      {
+        index: true,
+        lazy: async () => ({
+          Component: (await import('@/features/learning/routes/PlayerRoute')).PlayerRoute,
+        }),
+      },
+      {
+        path: ':itemId',
+        lazy: async () => ({
+          Component: (await import('@/features/learning/routes/PlayerRoute')).PlayerRoute,
+        }),
+      },
+    ],
+  },
+
+  {
     element: <RequireAuth />,
     errorElement: <RouteErrorBoundary />,
     children: [

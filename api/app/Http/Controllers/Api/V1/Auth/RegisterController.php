@@ -24,7 +24,7 @@ final class RegisterController
         if ($request->filled('device_name')) {
             $token = $user->createToken($request->string('device_name')->value())->plainTextToken;
         } else {
-            Auth::login($user);
+            Auth::guard('web')->login($user);
             $request->session()->regenerate();
         }
 

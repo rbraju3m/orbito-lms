@@ -18,7 +18,16 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
+        /*
+        | Sanctum, not web. This app is API-first, and several routes are
+        | deliberately open to anonymous visitors (free preview lessons, the
+        | player bootstrap). With 'web' as the default, $request->user() on
+        | those routes ignores a bearer token entirely — so an enrolled learner
+        | would arrive looking anonymous and be refused their own content.
+        |
+        | Session login/logout name the 'web' guard explicitly.
+        */
+        'guard' => env('AUTH_GUARD', 'sanctum'),
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 

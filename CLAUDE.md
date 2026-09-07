@@ -258,11 +258,31 @@ Gate::authorize('publish', $course);                   // in a controller
   inside an Action or a controller must be `loadMissing('course')`; inside a
   loop, eager-load the batch instead.
 
-## 12. Current phase
+## 12. Patterns established in Phase 6 — reuse these
 
-**Phases 0–5 complete.** Audit, architecture, foundation, identity, catalog,
-curriculum.
+- **`CourseAccess` is the ONLY answer to "may they consume this?"** (ADR-03).
+  Quiz-start, downloads and every later gate call it. Never write a second
+  enrollment check. Adding an access source means editing that one class.
+- **Never recompute an aggregate on a read path.** Store it, maintain it by
+  event, reconcile it on a schedule, and treat drift as a bug alert.
+- **Create per-learner rows lazily.** `item_progress` appears on first view,
+  not at enrollment.
+- **423 Locked, not 403**, when the caller could legitimately gain access.
+  403 means "you did something wrong"; 423 means "here is how to get in".
+- **Sanitise author HTML on WRITE** (`RichTextSanitizer`), never on render, so
+  the stored value is safe for the API, mobile and exports alike.
+- **The default auth guard is `sanctum`.** Routes that allow anonymous access
+  still resolve a bearer token. Session login/logout name `web` explicitly.
+- **Throttle client heartbeats in a hook, not the component.** `timeupdate`
+  fires up to 60×/second; `useWatchHeartbeat` collapses that to one request
+  per 15s plus a flush on unmount.
 
-**Phase 6 is next: the learning experience** — enrollments, the
-`item_progress` / `course_progress` tables (ADR-02), the lesson player, video
-resume, notes, prev/next and "continue learning". See `docs/ROADMAP.md`.
+## 13. Current phase
+
+**Phases 0–6 complete.** Audit, architecture, foundation, identity, catalog,
+curriculum, learning.
+
+**Phase 7 is next: the complete quiz engine** — questions (10 types), question
+banks, attempts with a server-authoritative deadline, auto-grading, the manual
+grading queue, and feedback modes. Correct answers must never be serialised
+into an in-progress attempt (ADR-06). See `docs/ROADMAP.md`.

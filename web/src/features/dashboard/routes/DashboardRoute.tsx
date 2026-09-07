@@ -16,7 +16,9 @@ import { Link } from 'react-router';
 
 import { resendVerification } from '@/features/auth/api/requests';
 import { useSession } from '@/features/auth/hooks/useSession';
-import { EmptyState, PageHeader } from '@/shared/ui';
+import { PageHeader } from '@/shared/ui';
+
+import { ContinueLearning } from '../components/ContinueLearning';
 
 export function DashboardRoute() {
   const { session, can } = useSession();
@@ -85,10 +87,7 @@ export function DashboardRoute() {
           <Card>
             <Stack gap="xs">
               <Title order={4}>Continue learning</Title>
-              <EmptyState
-                title="No courses yet"
-                description="Courses arrive in Phase 4. Enrolment and the player follow in Phase 6."
-              />
+              <ContinueLearning />
             </Stack>
           </Card>
 

@@ -10,11 +10,15 @@ use App\Domain\Catalog\Enums\CourseLevel;
 use App\Domain\Catalog\Enums\CourseVisibility;
 use App\Domain\Catalog\Enums\PricingModel;
 use App\Domain\Catalog\Models\Course;
+use App\Support\Html\RichTextSanitizer;
 use Illuminate\Support\Facades\DB;
 
 final class UpdateCourse
 {
-    public function __construct(private readonly SyncCourseTags $syncTags) {}
+    public function __construct(
+        private readonly SyncCourseTags $syncTags,
+        private readonly RichTextSanitizer $sanitizer,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $supplied  the keys actually present in the request
@@ -25,7 +29,7 @@ final class UpdateCourse
             $map = [
                 'title' => $data->title,
                 'subtitle' => $data->subtitle,
-                'description' => $data->description,
+                'description' => $this->sanitizer->clean($data->description),
                 'category_id' => $data->categoryId,
                 // Enum-backed columns are converted here rather than relying on
                 // the cast to coerce a raw string.

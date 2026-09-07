@@ -13,6 +13,7 @@ use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Curriculum\Models\Lesson;
 use App\Domain\Curriculum\Models\Resource;
 use App\Domain\Curriculum\Policies\CurriculumPolicy;
+use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Models\InstructorProfile;
 use App\Domain\Identity\Models\Role;
 use App\Domain\Identity\Models\User;
@@ -60,6 +61,7 @@ final class AuthServiceProvider extends ServiceProvider
             'media' => Media::class,
             'course_section' => CourseSection::class,
             'course_item' => CourseItem::class,
+            'enrollment' => Enrollment::class,
             // Itemable aliases: course_items rows must survive these classes
             // moving between namespaces.
             'lesson' => Lesson::class,

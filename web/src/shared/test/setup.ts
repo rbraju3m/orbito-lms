@@ -5,11 +5,43 @@ import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 
 import { server } from './server';
 
-// jsdom implements neither of these, and Mantine uses both.
+/**
+ * jsdom has no matchMedia. A stub that always answers `false` forces every
+ * responsive component into its mobile branch, so a desktop-only element is
+ * simply absent and the test fails for a reason unrelated to the code.
+ *
+ * This evaluates min-width/max-width against a settable viewport, defaulting to
+ * a desktop width. Call `setTestViewportWidth(390)` to test the mobile layout.
+ */
+let viewportWidth = 1280;
+
+export function setTestViewportWidth(width: number): void {
+  viewportWidth = width;
+}
+
+function evaluate(query: string): boolean {
+  const toPx = (value: string, unit: string) =>
+    unit === 'em' || unit === 'rem' ? Number(value) * 16 : Number(value);
+
+  return query
+    .split(' and ')
+    .map((clause) => clause.trim())
+    .every((clause) => {
+      const min = clause.match(/min-width:\s*([\d.]+)(px|em|rem)/);
+      if (min) return viewportWidth >= toPx(min[1]!, min[2]!);
+
+      const max = clause.match(/max-width:\s*([\d.]+)(px|em|rem)/);
+      if (max) return viewportWidth <= toPx(max[1]!, max[2]!);
+
+      // Anything else (prefers-reduced-motion, print) stays false.
+      return false;
+    });
+}
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
-    matches: false,
+    matches: evaluate(query),
     media: query,
     onchange: null,
     addListener: vi.fn(),
@@ -63,5 +95,6 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   cleanup();
+  viewportWidth = 1280;
 });
 afterAll(() => server.close());

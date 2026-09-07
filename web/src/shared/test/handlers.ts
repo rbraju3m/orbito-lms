@@ -150,6 +150,76 @@ export function curriculumFixture() {
   ];
 }
 
+export function playerFixture(overrides: Record<string, unknown> = {}) {
+  const item = (n: number, extra: Record<string, unknown> = {}) => ({
+    id: `item-${n}`,
+    type: 'lesson',
+    type_label: 'Lesson',
+    title: `Lesson ${n}`,
+    position: n - 1,
+    duration_seconds: 300,
+    is_preview: false,
+    is_completable: true,
+    status: 'not_started',
+    watch_position_seconds: 0,
+    ...extra,
+  });
+
+  return {
+    course: {
+      id: 'course-uuid',
+      slug: 'a-course',
+      title: 'Modern Bengali Poetry',
+      completion_mode: 'flexible',
+      item_count: 3,
+      total_duration_seconds: 900,
+    },
+    access: {
+      granted: true,
+      reason: 'granted',
+      source: 'enrollment',
+      is_staff: false,
+      expires_at: null,
+    },
+    progress: {
+      completed_items: 0,
+      total_items: 3,
+      percent: 0,
+      is_complete: false,
+      started_at: null,
+      completed_at: null,
+      last_activity_at: null,
+      last_item_id: null,
+    },
+    curriculum: [
+      { id: 1, title: 'Foundations', position: 0, items: [item(1), item(2)] },
+      { id: 2, title: 'Going deeper', position: 1, items: [item(3)] },
+    ],
+    ...overrides,
+  };
+}
+
+export function itemFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'item-1',
+    type: 'lesson',
+    title: 'Lesson 1',
+    duration_seconds: 300,
+    is_preview: false,
+    content: {
+      body: '<p>Bengali metre is syllable-counted.</p>',
+      format: 'html',
+      video_provider: 'none',
+      video_url: null,
+      video_signed_url: null,
+      video_duration_seconds: 0,
+    },
+    previous_id: null,
+    next_id: 'item-2',
+    ...overrides,
+  };
+}
+
 export function paginated<T>(rows: T[]) {
   return {
     data: rows,
