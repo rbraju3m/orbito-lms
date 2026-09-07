@@ -42,7 +42,31 @@ final class UserFactory extends Factory
             'locale' => 'en',
             'status' => UserStatus::Active,
             'remember_token' => Str::random(10),
+
+            /*
+             * Users are CENTRAL and belong to exactly one academy. Defaulting
+             * to whichever tenant is currently open is what keeps every
+             * existing test working unchanged: they build a user, act as them,
+             * and the tenant middleware resolves the same academy the test is
+             * already inside.
+             */
+            'tenant_id' => tenancy()->initialized ? tenancy()->tenant->getTenantKey() : null,
+            'is_super_admin' => false,
         ];
+    }
+
+    /** A platform operator: no academy, central database only. */
+    public function superAdmin(): static
+    {
+        return $this->state(fn () => [
+            'tenant_id' => null,
+            'is_super_admin' => true,
+        ]);
+    }
+
+    public function forTenant(?string $tenantId): static
+    {
+        return $this->state(fn () => ['tenant_id' => $tenantId]);
     }
 
     public function unverified(): static

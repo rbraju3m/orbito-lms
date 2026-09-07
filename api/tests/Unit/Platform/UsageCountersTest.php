@@ -7,9 +7,6 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Actions\ReconcileUsageCounters;
 use App\Domain\Platform\Enums\UsageMetric;
 use App\Domain\Platform\Support\UsageCounters;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     seedRegistry();
@@ -69,7 +66,7 @@ it('does not create duplicate rows when the same counter is touched repeatedly',
         $this->counters->increment(UsageMetric::MediaFiles, $owner);
     }
 
-    expect(DB::table('usage_counters')->where('metric', 'media_files')->count())->toBe(1)
+    expect(DB::connection('mysql')->table('usage_counters')->where('metric', 'media_files')->count())->toBe(1)
         ->and($this->counters->get(UsageMetric::MediaFiles, $owner))->toBe(5);
 });
 

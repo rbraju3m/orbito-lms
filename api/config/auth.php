@@ -106,6 +106,9 @@ return [
     'passwords' => [
         'users' => [
             'provider' => 'users',
+            // Central: the default connection is the ACADEMY's inside a
+            // request, and password reset is an account-level operation.
+            'connection' => 'mysql',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,

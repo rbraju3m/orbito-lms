@@ -19,7 +19,7 @@ final class CourseInstructorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['required', 'string', 'exists:users,uuid'],
+            'user_id' => ['required', 'string', 'exists:mysql.users,uuid'],
             'role' => [
                 'sometimes',
                 Rule::enum(CourseInstructorRole::class)->except(CourseInstructorRole::Owner),

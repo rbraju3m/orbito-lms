@@ -6,6 +6,8 @@ namespace App\Http\Resources\Catalog;
 
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Support\PublishChecklist;
+use App\Domain\Enrollment\Support\PrerequisiteCheck;
+use App\Domain\Identity\Models\User;
 use App\Support\Http\Resources\BaseResource;
 use Illuminate\Http\Request;
 
@@ -62,6 +64,11 @@ final class CourseResource extends BaseResource
             ),
             'tags' => $this->whenLoaded('tags', fn () => $this->tags->pluck('name')->values()),
 
+            // Enrolment gates, rendered so the button can explain itself. The
+            // same PrerequisiteCheck EnrollInCourse consults, so what the page
+            // says and what the server does cannot drift apart.
+            ...$this->enrolmentGates($viewer),
+
             'detail' => $this->whenLoaded('detail', fn () => [
                 'objectives' => $this->detail->objectives ?? [],
                 'requirements' => $this->detail->requirements ?? [],
@@ -100,6 +107,37 @@ final class CourseResource extends BaseResource
                     $this->status->allowedTransitions(),
                 ),
             ),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function enrolmentGates(?User $viewer): array
+    {
+        // Strict mode forbids implicit lazy loading, and this resource is
+        // rendered from several controllers — load it here rather than relying
+        // on every one of them remembering.
+        $this->resource->loadMissing('prerequisites');
+
+        $unmet = app(PrerequisiteCheck::class)->unmetFor($viewer, $this->resource);
+
+        return [
+            'prerequisites' => $this->prerequisites
+                ->map(fn (Course $prerequisite): array => [
+                    'id' => $prerequisite->uuid,
+                    'ref' => $prerequisite->id,
+                    'slug' => $prerequisite->slug,
+                    'title' => $prerequisite->title,
+                    // Per-course, so the page can tick off the ones they hold
+                    // instead of listing every requirement as outstanding.
+                    'is_met' => ! $unmet->contains('id', $prerequisite->id),
+                ])
+                ->values()
+                ->all(),
+
+            // null means uncapped, which is not the same as 0 left.
+            'seats_remaining' => $this->seatsRemaining(),
         ];
     }
 }

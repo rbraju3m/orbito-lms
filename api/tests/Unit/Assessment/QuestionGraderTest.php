@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 use App\Domain\Assessment\Grading\QuestionGrader;
 use App\Domain\Assessment\Models\Question;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     seedRegistry();

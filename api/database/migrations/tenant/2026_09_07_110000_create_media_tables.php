@@ -13,7 +13,10 @@ return new class extends Migration
         Schema::create('media', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
+            // CENTRAL users table — no FK can span databases, so this is an
+            // unenforced reference. Deleting a user does NOT cascade here;
+            // see PurgeUserFromTenants (T3).
+            $table->unsignedBigInteger('owner_id');
 
             // Course content lands on the private disk and is only ever served
             // through a short-lived signed URL (ADR-09).

@@ -13,13 +13,13 @@ use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Support\PermissionRegistry;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
-pest()->extend(TestCase::class)
-    ->use(RefreshDatabase::class)
-    ->in('Feature');
+// RefreshDatabase is composed inside TestCase, which wraps it for tenancy.
+// Applying it here as well would put the un-wrapped version on the subclass
+// and silently bypass that wrapper.
+pest()->extend(TestCase::class)->in('Feature');
 
 pest()->extend(TestCase::class)->in('Unit');
 

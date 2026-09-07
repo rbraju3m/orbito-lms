@@ -15,7 +15,16 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class UsageCounter extends Model
 {
-    protected $fillable = ['owner_type', 'owner_id', 'metric', 'value', 'reconciled_at'];
+    /*
+     * CENTRAL. Pinned so this model can never be read through a tenant
+     * connection: when tenancy is initialised the default connection is
+     * swapped, and an unpinned central model would silently query a table of
+     * the same name inside the academy's schema — or fail because there is
+     * none. CentralModelConnectionTest enforces this.
+     */
+    protected $connection = 'mysql';
+
+    protected $fillable = ['tenant_id', 'owner_type', 'owner_id', 'metric', 'value', 'reconciled_at'];
 
     /** @return array<string, string> */
     protected function casts(): array

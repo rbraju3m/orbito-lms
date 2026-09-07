@@ -47,7 +47,10 @@ return new class extends Migration
             $table->foreignId('intro_video_media_id')->nullable()->constrained('media')->nullOnDelete();
             $table->string('intro_video_url', 500)->nullable();
 
-            $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
+            // CENTRAL users table — no FK can span databases, so this is an
+            // unenforced reference. Deleting a user does NOT cascade here;
+            // see PurgeUserFromTenants (T3).
+            $table->unsignedBigInteger('owner_id');
             $table->foreignId('category_id')->nullable()->constrained('course_categories')->nullOnDelete();
 
             $table->string('level', 20)->default('all');
@@ -100,7 +103,7 @@ return new class extends Migration
         Schema::create('course_instructors', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id');
             $table->string('role', 20)->default('co_instructor');
             // Basis points; null means "use the platform default".
             $table->unsignedSmallInteger('revenue_share_bp')->nullable();

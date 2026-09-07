@@ -22,6 +22,13 @@ final class UsageCounters
     /** Platform-wide rows use owner_id 0, never NULL — see the migration. */
     private const PLATFORM_ID = 0;
 
+    /**
+     * Rows not attributable to one academy use '' rather than NULL, for the
+     * same reason: this column leads the unique index and MySQL treats NULLs
+     * there as distinct, so a nullable value would let those rows duplicate.
+     */
+    private const NO_TENANT = '';
+
     public function increment(UsageMetric $metric, ?Model $owner = null, int $by = 1): void
     {
         $this->adjust($metric, $owner, $by);
@@ -37,6 +44,7 @@ final class UsageCounters
         [$type, $id] = $this->key($owner);
 
         return (int) UsageCounter::query()
+            ->where('tenant_id', $this->tenant())
             ->where('owner_type', $type)
             ->where('owner_id', $id)
             ->where('metric', $metric->value)
@@ -50,6 +58,7 @@ final class UsageCounters
 
         /** @var array<string, int> */
         return UsageCounter::query()
+            ->where('tenant_id', $this->tenant())
             ->where('owner_type', $type)
             ->where('owner_id', $id)
             ->pluck('value', 'metric')
@@ -62,7 +71,12 @@ final class UsageCounters
         [$type, $id] = $this->key($owner);
 
         UsageCounter::query()->updateOrCreate(
-            ['owner_type' => $type, 'owner_id' => $id, 'metric' => $metric->value],
+            [
+                'tenant_id' => $this->tenant(),
+                'owner_type' => $type,
+                'owner_id' => $id,
+                'metric' => $metric->value,
+            ],
             ['value' => max(0, $value), 'reconciled_at' => now()],
         );
     }
@@ -80,15 +94,15 @@ final class UsageCounters
         // On insert the row starts at max(0, delta); on collision it moves by
         // delta, floored at zero. GREATEST keeps a double-fired decrement from
         // driving a count negative.
-        DB::statement(
+        DB::connection('mysql')->statement(
             <<<'SQL'
-                INSERT INTO usage_counters (owner_type, owner_id, metric, value, created_at, updated_at)
-                VALUES (?, ?, ?, GREATEST(0, ?), ?, ?)
+                INSERT INTO usage_counters (tenant_id, owner_type, owner_id, metric, value, created_at, updated_at)
+                VALUES (?, ?, ?, ?, GREATEST(0, ?), ?, ?)
                 ON DUPLICATE KEY UPDATE
                     value = GREATEST(0, value + ?),
                     updated_at = ?
                 SQL,
-            [$type, $id, $metric->value, $delta, $now, $now, $delta, $now],
+            [$this->tenant(), $type, $id, $metric->value, $delta, $now, $now, $delta, $now],
         );
     }
 
@@ -98,5 +112,19 @@ final class UsageCounters
         return $owner === null
             ? [self::PLATFORM, self::PLATFORM_ID]
             : [$owner->getMorphClass(), (int) $owner->getKey()];
+    }
+
+    /**
+     * Which academy this counter belongs to.
+     *
+     * The table is central, so without this every academy would increment the
+     * SAME rows — one shared "courses published" figure for the whole platform,
+     * and plan limits enforced against everyone else's usage. The raw statement
+     * below also has to name the central connection explicitly, because the
+     * default one is the tenant's whenever this runs inside a request.
+     */
+    private function tenant(): string
+    {
+        return (string) (tenancy()->tenant?->getTenantKey() ?? self::NO_TENANT);
     }
 }

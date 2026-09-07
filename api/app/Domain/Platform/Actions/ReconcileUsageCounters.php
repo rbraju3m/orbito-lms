@@ -69,10 +69,7 @@ final class ReconcileUsageCounters
             ],
         ];
 
-        $owners = User::query()
-            ->where(fn ($q) => $q->has('courses')->orWhereHas('instructorProfile'))
-            ->orWhereIn('id', Media::query()->select('owner_id'))
-            ->get();
+        $owners = User::query()->whereIn('id', $this->ownerIds())->get();
 
         foreach ($owners as $owner) {
             $rows[] = [UsageMetric::CoursesTotal, $owner, Course::where('owner_id', $owner->id)->count()];
@@ -90,5 +87,28 @@ final class ReconcileUsageCounters
         }
 
         return $rows;
+    }
+
+    /**
+     * Every account that owns something inside this academy.
+     *
+     * `users` is central and `courses`, `media` and `instructor_profiles` are
+     * not, so this CANNOT be a `has()` / `whereHas()` — those compile to a
+     * subquery against the tenant schema from a central model's connection,
+     * which fails outright. The ids are collected tenant-side first and the
+     * accounts fetched centrally afterwards: two queries, one boundary, no
+     * join across it.
+     *
+     * @return list<int>
+     */
+    private function ownerIds(): array
+    {
+        $ids = [
+            ...Course::query()->distinct()->pluck('owner_id')->all(),
+            ...Media::query()->distinct()->pluck('owner_id')->all(),
+            ...InstructorProfile::query()->distinct()->pluck('user_id')->all(),
+        ];
+
+        return array_values(array_unique(array_map(static fn (mixed $id): int => (int) $id, $ids)));
     }
 }

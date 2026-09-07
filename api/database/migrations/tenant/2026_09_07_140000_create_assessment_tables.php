@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::create('question_banks', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
+            $table->unsignedBigInteger('owner_id');
             // Null = a personal bank reusable across all of the owner's courses.
             $table->foreignId('course_id')->nullable()->constrained()->nullOnDelete();
             $table->string('title', 180);
@@ -27,7 +27,7 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('bank_id')->nullable()->constrained('question_banks')->cascadeOnDelete();
-            $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
+            $table->unsignedBigInteger('owner_id');
 
             $table->string('type', 30);
             $table->text('title');
@@ -113,7 +113,10 @@ return new class extends Migration
             $table->foreignId('quiz_id')->constrained()->cascadeOnDelete();
             $table->foreignId('course_item_id')->constrained()->cascadeOnDelete();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // CENTRAL users table — no FK can span databases, so this is an
+            // unenforced reference. Deleting a user does NOT cascade here;
+            // see PurgeUserFromTenants (T3).
+            $table->unsignedBigInteger('user_id');
             $table->foreignId('enrollment_id')->constrained()->cascadeOnDelete();
 
             $table->unsignedTinyInteger('attempt_number')->default(1);
@@ -127,7 +130,7 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('graded_at')->nullable();
-            $table->foreignId('graded_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('graded_by')->nullable();
 
             $table->decimal('total_points', 9, 2)->default(0);
             $table->decimal('earned_points', 9, 2)->default(0);
@@ -163,7 +166,7 @@ return new class extends Migration
             // Null = awaiting manual grading.
             $table->boolean('is_correct')->nullable();
             $table->text('feedback')->nullable();
-            $table->foreignId('graded_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('graded_by')->nullable();
             $table->timestamp('graded_at')->nullable();
 
             $table->timestamps();

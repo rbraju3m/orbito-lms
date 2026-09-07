@@ -7,9 +7,6 @@ use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Support\PublishChecklist;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     seedRegistry();

@@ -25,7 +25,7 @@ final class RegisterRequest extends FormRequest
             // slow and as unreliable as the resolver, and rejects legitimate
             // users on a transient failure. Deliverability is proven by the
             // verification email we already require.
-            'email' => ['required', 'string', 'email:rfc', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'string', 'email:rfc', 'max:255', 'unique:mysql.users,email'],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'wants_to_teach' => ['sometimes', 'boolean'],
             'timezone' => ['sometimes', 'string', 'timezone'],

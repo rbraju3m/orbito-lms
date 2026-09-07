@@ -44,7 +44,10 @@ return new class extends Migration
 
         Schema::create('role_assignments', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // CENTRAL users table — no FK can span databases, so this is an
+            // unenforced reference. Deleting a user does NOT cascade here;
+            // see PurgeUserFromTenants (T3).
+            $table->unsignedBigInteger('user_id');
             $table->foreignId('role_id')->constrained()->cascadeOnDelete();
 
             // Polymorphic scope. NULL/NULL is a global assignment; ('course', 42)
@@ -53,7 +56,7 @@ return new class extends Migration
             $table->string('scope_type', 50)->nullable();
             $table->unsignedBigInteger('scope_id')->nullable();
 
-            $table->foreignId('granted_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('granted_by')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
 

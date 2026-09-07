@@ -59,7 +59,10 @@ return new class extends Migration
             // indexed read each, with no join back through the spine.
             $table->foreignId('course_item_id')->constrained('course_items')->cascadeOnDelete();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            // CENTRAL users table — no FK can span databases, so this is an
+            // unenforced reference. Deleting a user does NOT cascade here;
+            // see PurgeUserFromTenants (T3).
+            $table->unsignedBigInteger('user_id');
             $table->foreignId('enrollment_id')->nullable()->constrained()->nullOnDelete();
 
             $table->unsignedTinyInteger('attempt_number')->default(1);
@@ -84,7 +87,7 @@ return new class extends Migration
             $table->boolean('passed')->nullable();
 
             $table->longText('feedback')->nullable();
-            $table->foreignId('graded_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('graded_by')->nullable();
             $table->timestamp('graded_at')->nullable();
 
             $table->timestamps();

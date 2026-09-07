@@ -22,7 +22,10 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // CENTRAL users table — no FK can span databases, so this is an
+            // unenforced reference. Deleting a user does NOT cascade here;
+            // see PurgeUserFromTenants (T3).
+            $table->unsignedBigInteger('user_id');
 
             $table->string('status', 20)->default('active');
             $table->string('source', 20)->default('free');
@@ -54,7 +57,7 @@ return new class extends Migration
         Schema::create('course_progress', function (Blueprint $table): void {
             $table->foreignId('enrollment_id')->primary()->constrained()->cascadeOnDelete();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id');
 
             $table->unsignedInteger('completed_items')->default(0);
             $table->unsignedInteger('total_items')->default(0);
@@ -84,7 +87,7 @@ return new class extends Migration
             $table->foreignId('enrollment_id')->constrained()->cascadeOnDelete();
             $table->foreignId('course_item_id')->constrained()->cascadeOnDelete();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id');
 
             $table->string('status', 20)->default('not_started');
             $table->timestamp('first_seen_at')->nullable();
@@ -106,7 +109,7 @@ return new class extends Migration
 
         Schema::create('lesson_notes', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id');
             $table->foreignId('course_item_id')->constrained()->cascadeOnDelete();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
             $table->text('body');

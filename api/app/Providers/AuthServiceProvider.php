@@ -18,6 +18,7 @@ use App\Domain\Curriculum\Models\Lesson;
 use App\Domain\Curriculum\Models\Resource;
 use App\Domain\Curriculum\Policies\CurriculumPolicy;
 use App\Domain\Enrollment\Models\Enrollment;
+use App\Domain\Enrollment\Policies\EnrollmentPolicy;
 use App\Domain\Identity\Models\InstructorProfile;
 use App\Domain\Identity\Models\Role;
 use App\Domain\Identity\Models\User;
@@ -40,6 +41,7 @@ final class AuthServiceProvider extends ServiceProvider
         Course::class => CoursePolicy::class,
         CourseCategory::class => CourseCategoryPolicy::class,
         Media::class => MediaPolicy::class,
+        Enrollment::class => EnrollmentPolicy::class,
     ];
 
     public function boot(): void
@@ -131,6 +133,26 @@ final class AuthServiceProvider extends ServiceProvider
         Gate::define('view-grading-queue', fn (User $user, Course $course) => app(QuizPolicy::class)
             ->viewAttempts($user, $course)
             || app(AssignmentPolicy::class)->viewSubmissions($user, $course));
+
+        /*
+         * Enrollment management resolves through the parent course, like the
+         * rest of the studio surface. The row-level abilities (update, delete)
+         * are the registered policy on the model instead.
+         */
+        Gate::define(
+            'view-course-roster',
+            fn (User $user, Course $course) => app(EnrollmentPolicy::class)->viewRoster($user, $course),
+        );
+
+        Gate::define(
+            'manage-enrollments',
+            fn (User $user, Course $course) => app(EnrollmentPolicy::class)->manage($user, $course),
+        );
+
+        Gate::define(
+            'bulk-enroll',
+            fn (User $user, Course $course) => app(EnrollmentPolicy::class)->bulk($user, $course),
+        );
 
         Gate::define(
             'reorder-curriculum',

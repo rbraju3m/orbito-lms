@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Curriculum\Models\CourseItem;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 beforeEach(fn () => seedRegistry());
 

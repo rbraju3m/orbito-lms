@@ -12,10 +12,7 @@ use App\Domain\Progress\Actions\TrackItemProgress;
 use App\Domain\Progress\Events\CourseCompleted;
 use App\Domain\Progress\Events\ItemCompleted;
 use App\Domain\Progress\Models\ItemProgress;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     seedRegistry();

@@ -6,6 +6,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * CENTRAL. A person's links belong to the person, not to the academy they
+ * happen to teach at — the same account carries them wherever it is used.
+ *
+ * `instructor_profiles` went the other way, into the tenant schema: being an
+ * approved instructor is a fact about a person AT ONE ACADEMY, granted and
+ * revoked by that academy's admins.
+ */
 return new class extends Migration
 {
     public function up(): void
@@ -19,40 +27,10 @@ return new class extends Migration
 
             $table->unique(['user_id', 'platform']);
         });
-
-        Schema::create('instructor_profiles', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
-
-            $table->string('status', 20)->default('pending');
-            $table->timestamp('applied_at')->nullable();
-            $table->timestamp('reviewed_at')->nullable();
-            $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->text('review_note')->nullable();
-            $table->string('application_source', 50)->nullable();
-            $table->text('application_message')->nullable();
-
-            // Basis points (1/100th of a percent) so the split is exact integer
-            // arithmetic; NULL falls back to the platform default.
-            $table->unsignedSmallInteger('commission_rate_bp')->nullable();
-            $table->char('payout_currency', 3)->nullable();
-
-            // Denormalised counters, event-maintained and reconciled nightly
-            // once Catalog and Enrollment land.
-            $table->decimal('rating_avg', 3, 2)->default(0);
-            $table->unsignedInteger('rating_count')->default(0);
-            $table->unsignedInteger('course_count')->default(0);
-            $table->unsignedInteger('student_count')->default(0);
-
-            $table->timestamps();
-
-            $table->index('status');
-        });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('instructor_profiles');
         Schema::dropIfExists('user_social_links');
     }
 };

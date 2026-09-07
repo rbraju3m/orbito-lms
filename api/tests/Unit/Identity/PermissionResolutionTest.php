@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     seedRegistry();

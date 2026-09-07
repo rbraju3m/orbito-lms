@@ -11,23 +11,36 @@ use App\Http\Controllers\Api\V1\Studio\CourseSettingsController;
 use App\Http\Controllers\Api\V1\Studio\CourseStatusController;
 use Illuminate\Support\Facades\Route;
 
-/* -------- Public catalogue -------- */
-Route::get('courses', [CourseCatalogController::class, 'index'])->name('courses.index');
-Route::get('courses/{slug}', [CourseCatalogController::class, 'show'])->name('courses.show');
-Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
-Route::get('categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
-Route::get('tags', [CategoryController::class, 'tags'])->name('tags.index');
-
 /*
  * Signed download for private media. The signature IS the credential, which is
  * why this sits outside auth:sanctum — a <video> or <img> tag cannot send a
  * bearer token. Access was checked when the URL was minted (ADR-09).
+ *
+ * It therefore has no authenticated user to read a tenant from, so the academy
+ * travels INSIDE the signed payload and `tenant.signed` opens it. The signature
+ * covers that parameter, so it cannot be swapped for another academy's.
  */
 Route::get('media/{media}/download', [MediaController::class, 'download'])
-    ->middleware('signed')
+    ->middleware(['signed', 'tenant.signed'])
     ->name('media.download');
 
-Route::middleware('auth:sanctum')->group(function (): void {
+/*
+ * The catalogue is MEMBERS-ONLY.
+ *
+ * Tenancy is resolved from the authenticated user, so an anonymous request
+ * cannot be attributed to an academy at all — there is no host, path or token
+ * to read one from. Course listings, course pages, categories and tags are
+ * therefore behind auth, and a signed-out visitor gets a login screen rather
+ * than a storefront.
+ */
+Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+
+    /* -------- Catalogue -------- */
+    Route::get('courses', [CourseCatalogController::class, 'index'])->name('courses.index');
+    Route::get('courses/{slug}', [CourseCatalogController::class, 'show'])->name('courses.show');
+    Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
+    Route::get('categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
+    Route::get('tags', [CategoryController::class, 'tags'])->name('tags.index');
 
     /* -------- Media -------- */
     Route::post('media', [MediaController::class, 'store'])->name('media.store');

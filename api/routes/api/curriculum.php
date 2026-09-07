@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\V1\Curriculum\ItemController;
 use App\Http\Controllers\Api\V1\Curriculum\SectionController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:sanctum')->prefix('studio')->name('studio.')->group(function (): void {
+Route::middleware(['auth:sanctum', 'tenant'])->prefix('studio')->name('studio.')->group(function (): void {
     Route::get('courses/{course}/curriculum', [CurriculumController::class, 'show'])
         ->name('curriculum.show');
 

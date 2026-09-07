@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Domain\Assessment\Actions\SubmitQuizAttempt;
 use App\Domain\Assessment\Enums\AttemptStatus;
 use App\Domain\Assessment\Models\QuizAttempt;
+use App\Support\Console\RunsForEveryTenant;
 use Illuminate\Console\Command;
 
 /**
@@ -18,11 +19,29 @@ use Illuminate\Console\Command;
  */
 final class SweepExpiredAttempts extends Command
 {
+    use RunsForEveryTenant;
+
     protected $signature = 'quiz:sweep-expired';
 
     protected $description = 'Resolve quiz attempts whose time limit has passed';
 
     public function handle(SubmitQuizAttempt $submit): int
+    {
+        $swept = 0;
+
+        $failed = $this->forEachTenant(function () use ($submit, &$swept): void {
+            $swept += $this->sweep($submit);
+        });
+
+        $this->components->info(
+            $swept === 0 ? 'No expired attempts.' : "Resolved {$swept} expired attempt(s)."
+        );
+
+        return $failed === 0 ? self::SUCCESS : self::FAILURE;
+    }
+
+    /** Runs inside one academy. */
+    private function sweep(SubmitQuizAttempt $submit): int
     {
         $swept = 0;
 
@@ -36,10 +55,6 @@ final class SweepExpiredAttempts extends Command
                 $swept++;
             });
 
-        $this->components->info(
-            $swept === 0 ? 'No expired attempts.' : "Resolved {$swept} expired attempt(s)."
-        );
-
-        return self::SUCCESS;
+        return $swept;
     }
 }

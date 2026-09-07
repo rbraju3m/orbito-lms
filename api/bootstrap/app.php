@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\InitializeTenancyByAuthenticatedUser;
+use App\Http\Middleware\InitializeTenancyBySignedRoute;
 use App\Support\Exceptions\ApiExceptionRenderer;
 use App\Support\Http\RequestId;
 use Illuminate\Foundation\Application;
@@ -30,6 +32,18 @@ return Application::configure(basePath: dirname(__DIR__))
             // Cookie auth for the first-party SPA; bearer tokens for everyone else.
             EnsureFrontendRequestsAreStateful::class,
             ForceJsonResponse::class,
+        ]);
+
+        /*
+         * `tenant` is applied per route group, never globally, and always
+         * AFTER auth:sanctum — it reads the authenticated user to decide which
+         * academy's schema to open. Auth, the platform admin surface and the
+         * signed media route stay outside it; see routes/api.php.
+         */
+        $middleware->alias([
+            'tenant' => InitializeTenancyByAuthenticatedUser::class,
+            // ONLY behind `signed`. See the class docblock.
+            'tenant.signed' => InitializeTenancyBySignedRoute::class,
         ]);
 
         $middleware->throttleApi('api');

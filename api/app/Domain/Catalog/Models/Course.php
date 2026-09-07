@@ -14,9 +14,11 @@ use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Models\User;
 use App\Domain\Media\Models\Media;
+use App\Support\Database\LivesInTenantSchema;
 use Carbon\CarbonInterface;
 use Database\Factories\Catalog\CourseFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,11 +46,16 @@ use Illuminate\Support\Str;
  * @property CarbonInterface|null $published_at
  * @property CarbonInterface|null $submitted_at
  * @property CarbonInterface|null $archived_at
+ *
+ * A course created before Phase 4 — or by a factory — can be missing its
+ * settings row, so every read of it is nullsafe.
+ * @property CourseSetting|null $setting
+ * @property-read Collection<int, Course> $prerequisites
  */
 final class Course extends Model
 {
     /** @use HasFactory<CourseFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, LivesInTenantSchema, SoftDeletes;
 
     protected $fillable = [
         'title', 'subtitle', 'description', 'category_id', 'level', 'locale',
@@ -141,6 +148,54 @@ final class Course extends Model
     public function items(): HasMany
     {
         return $this->hasMany(CourseItem::class)->orderBy('position');
+    }
+
+    /**
+     * Courses that must be completed before this one may be entered.
+     *
+     * @return BelongsToMany<Course, $this>
+     */
+    public function prerequisites(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            self::class,
+            'course_prerequisites',
+            'course_id',
+            'prerequisite_course_id',
+        )->withPivot('position')->orderBy('course_prerequisites.position');
+    }
+
+    /**
+     * The reverse edge: courses this one opens the door to. Read by the
+     * "what next?" panel, and by the cycle check when prerequisites are set.
+     *
+     * @return BelongsToMany<Course, $this>
+     */
+    public function unlocks(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            self::class,
+            'course_prerequisites',
+            'prerequisite_course_id',
+            'course_id',
+        );
+    }
+
+    /**
+     * Seats left, or null when the course is uncapped. Derived from the same
+     * `active()` scope EnrollInCourse counts with, so the number shown and the
+     * number enforced cannot disagree.
+     */
+    public function seatsRemaining(): ?int
+    {
+        $this->loadMissing('setting');
+        $max = $this->setting?->max_students;
+
+        if ($max === null) {
+            return null;
+        }
+
+        return max(0, $max - $this->enrollments()->active()->count());
     }
 
     /** @return HasMany<Enrollment, $this> */

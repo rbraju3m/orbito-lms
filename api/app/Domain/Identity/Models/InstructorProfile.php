@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Identity\Models;
 
 use App\Domain\Identity\Enums\InstructorStatus;
+use App\Support\Database\LivesInTenantSchema;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,6 +25,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 final class InstructorProfile extends Model
 {
+    use LivesInTenantSchema;
+
     protected $fillable = [
         'user_id', 'status', 'applied_at', 'reviewed_at', 'reviewed_by', 'review_note',
         'application_source', 'application_message', 'commission_rate_bp', 'payout_currency',

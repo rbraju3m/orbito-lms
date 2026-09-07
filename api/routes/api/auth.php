@@ -32,11 +32,21 @@ Route::prefix('auth')->name('auth.')->group(function (): void {
         ->middleware(['signed:relative', 'throttle:auth'])
         ->name('email.verify');
 
+    /*
+     * Central only. Signing out and re-sending a verification email touch
+     * nothing inside an academy — and a learner whose academy has been
+     * suspended must still be able to sign out, which `tenant` would refuse.
+     */
     Route::middleware('auth:sanctum')->group(function (): void {
-        Route::get('me', MeController::class)->name('me');
         Route::post('logout', LogoutController::class)->name('logout');
         Route::post('email/resend', [EmailVerificationController::class, 'resend'])
             ->middleware('throttle:auth')
             ->name('email.resend');
+    });
+
+    // `me` returns the caller's permission keys, which live in the academy's
+    // schema, so this one needs the tenant open.
+    Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+        Route::get('me', MeController::class)->name('me');
     });
 });

@@ -15,6 +15,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 final class UserSocialLink extends Model
 {
+    /*
+     * CENTRAL. Pinned so this model can never be read through a tenant
+     * connection: when tenancy is initialised the default connection is
+     * swapped, and an unpinned central model would silently query a table of
+     * the same name inside the academy's schema — or fail because there is
+     * none. CentralModelConnectionTest enforces this.
+     */
+    protected $connection = 'mysql';
+
     protected $fillable = ['user_id', 'platform', 'url'];
 
     /** The platforms a profile may link to. Anything else is rejected. */

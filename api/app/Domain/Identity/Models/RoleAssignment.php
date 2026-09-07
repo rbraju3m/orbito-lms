@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Identity\Models;
 
+use App\Support\Database\LivesInTenantSchema;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +25,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 final class RoleAssignment extends Model
 {
+    use LivesInTenantSchema;
+
     protected $fillable = ['user_id', 'role_id', 'scope_type', 'scope_id', 'granted_by', 'expires_at'];
 
     /** @return array<string, string> */

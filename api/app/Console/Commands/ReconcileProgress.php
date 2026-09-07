@@ -9,6 +9,7 @@ use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Progress\Actions\RecalculateCourseProgress;
 use App\Domain\Progress\Enums\ItemProgressStatus;
 use App\Domain\Progress\Models\ItemProgress;
+use App\Support\Console\RunsForEveryTenant;
 use Illuminate\Console\Command;
 
 /**
@@ -17,6 +18,8 @@ use Illuminate\Console\Command;
  */
 final class ReconcileProgress extends Command
 {
+    use RunsForEveryTenant;
+
     protected $signature = 'progress:reconcile {--dry-run : Report drift without correcting it}';
 
     protected $description = 'Recompute stored course progress from item progress and report drift';
@@ -24,6 +27,42 @@ final class ReconcileProgress extends Command
     public function handle(RecalculateCourseProgress $recalculate): int
     {
         $dryRun = (bool) $this->option('dry-run');
+        $rows = [];
+
+        // Enrollments and progress live in each academy's schema, so the walk
+        // is per tenant. The per-course totals cache is rebuilt inside each
+        // one: course ids are only unique within a schema, and carrying the
+        // cache across academies would read one academy's denominator for
+        // another's course.
+        $failed = $this->forEachTenant(function ($tenant) use ($recalculate, $dryRun, &$rows): void {
+            foreach ($this->driftFor($recalculate, $dryRun) as $row) {
+                $rows[] = [$tenant->id, ...$row];
+            }
+        });
+
+        if ($rows === []) {
+            $this->components->info('Course progress is consistent.');
+
+            return $failed === 0 ? self::SUCCESS : self::FAILURE;
+        }
+
+        $this->table(['Academy', 'Enrollment', 'Stored', 'Actual'], $rows);
+        $this->components->warn(sprintf(
+            '%d enrollment(s) drifted%s',
+            count($rows),
+            $dryRun ? ' (dry run, nothing changed).' : ' and were corrected.',
+        ));
+
+        return $failed === 0 ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * Drift inside ONE academy.
+     *
+     * @return list<array{0: string, 1: string, 2: string}>
+     */
+    private function driftFor(RecalculateCourseProgress $recalculate, bool $dryRun): array
+    {
         $rows = [];
 
         // Totals are per COURSE, not per enrollment, so compute them once.
@@ -67,19 +106,6 @@ final class ReconcileProgress extends Command
             }
         );
 
-        if ($rows === []) {
-            $this->components->info('Course progress is consistent.');
-
-            return self::SUCCESS;
-        }
-
-        $this->table(['Enrollment', 'Stored', 'Actual'], $rows);
-        $this->components->warn(sprintf(
-            '%d enrollment(s) drifted%s',
-            count($rows),
-            $dryRun ? ' (dry run, nothing changed).' : ' and were corrected.',
-        ));
-
-        return self::SUCCESS;
+        return $rows;
     }
 }

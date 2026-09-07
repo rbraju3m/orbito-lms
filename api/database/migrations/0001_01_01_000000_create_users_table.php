@@ -30,6 +30,19 @@ return new class extends Migration
 
             $table->string('status', 20)->default('active');
 
+            /*
+             * The tenant this account belongs to. NULL means a platform
+             * super-admin, who has no academy and works only on this database.
+             *
+             * One academy per account, deliberately: `email` is unique
+             * platform-wide, so the same person teaching at two academies
+             * needs two accounts. That is the cost of central users, and it is
+             * what makes InitializeTenancyByAuthenticatedUser unambiguous —
+             * one user, one schema, no switcher.
+             */
+            $table->string('tenant_id')->nullable();
+            $table->boolean('is_super_admin')->default(false);
+
             $table->timestamp('last_login_at')->nullable();
             $table->timestamp('last_seen_at')->nullable();
 
@@ -39,6 +52,19 @@ return new class extends Migration
 
             $table->index('status');
             $table->index('last_seen_at');
+            // Every tenant-scoped user lookup starts here.
+            $table->index(['tenant_id', 'status']);
+
+            /*
+             * Both tables are central, so this FK is real — unlike the
+             * user references inside a tenant schema, which nothing enforces.
+             *
+             * CASCADE, not SET NULL: an account exists only inside its academy,
+             * and dropping the academy drops the schema holding everything that
+             * account ever did. Setting it null instead would leave accounts
+             * that authenticate fine and resolve to no tenant at all.
+             */
+            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table): void {
