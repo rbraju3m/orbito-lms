@@ -53,12 +53,14 @@ final class ApiResponse
 
     /**
      * @param  list<array{field?: string, code: string, message: string}>  $details
+     * @param  array<string, mixed>  $meta
      */
     public static function error(
         string $code,
         string $message,
         int $status,
         array $details = [],
+        array $meta = [],
     ): JsonResponse {
         $payload = [
             'error' => [
@@ -68,6 +70,12 @@ final class ApiResponse
                 'request_id' => RequestId::current(),
             ],
         ];
+
+        // Omitted rather than sent empty: `meta` present means "there is
+        // something actionable here", and an empty object says the opposite.
+        if ($meta !== []) {
+            $payload['error']['meta'] = $meta;
+        }
 
         return new JsonResponse($payload, $status);
     }

@@ -33,7 +33,7 @@ final class ApiExceptionRenderer
 
         return match (true) {
             $e instanceof DomainException => ApiResponse::error(
-                $e->errorCode(), $e->getMessage(), $e->status(), $e->details(),
+                $e->errorCode(), $e->getMessage(), $e->status(), $e->details(), $e->meta(),
             ),
 
             $e instanceof ValidationException => ApiResponse::error(

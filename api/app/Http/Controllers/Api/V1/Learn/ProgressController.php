@@ -18,7 +18,6 @@ use App\Http\Resources\Progress\CourseProgressResource;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class ProgressController
 {
@@ -97,14 +96,13 @@ final class ProgressController
         );
     }
 
+    /**
+     * Reset, or retake if they had finished. Which of the two it is — and
+     * which setting gates it — is the action's decision, not the caller's.
+     */
     public function reset(Request $request, Course $course, ResetCourseProgress $action): JsonResponse
     {
         $enrollment = $this->enrollmentForCourse($request, $course);
-        $course->loadMissing('setting');
-
-        if ($course->setting?->reset_progress_allowed === false) {
-            throw new NotFoundHttpException;
-        }
 
         return ApiResponse::ok(
             CourseProgressResource::make($action->handle($enrollment))->resolve($request)
@@ -114,12 +112,23 @@ final class ProgressController
     /**
      * Progress belongs to an enrollment. Course staff can read the player but
      * have nothing to record against, so this refuses rather than inventing one.
+     *
+     * This resolves at ITEM level, not course level. The read path is gated by
+     * `forItem`; if the write path asked only `for($course)`, a learner could
+     * complete — or watch their way through — a lesson drip has not released,
+     * which is the whole gate gone for one missing word.
      */
     private function enrollmentForItem(Request $request, CourseItem $item): Enrollment
     {
         $item->loadMissing('course');
 
-        return $this->enrollmentForCourse($request, $item->course);
+        $decision = $this->access->forItem($request->user(), $item);
+
+        if (! $decision->granted) {
+            throw ContentLocked::from($decision);
+        }
+
+        return $this->assertEnrolled($request, $item->course, $decision);
     }
 
     private function enrollmentForCourse(Request $request, Course $course): Enrollment
@@ -129,6 +138,12 @@ final class ProgressController
         if (! $decision->granted) {
             throw ContentLocked::from($decision);
         }
+
+        return $this->assertEnrolled($request, $course, $decision);
+    }
+
+    private function assertEnrolled(Request $request, Course $course, AccessDecision $decision): Enrollment
+    {
 
         $enrollment = $decision->enrollment
             ?? $this->access->enrollmentFor($request->user(), $course);

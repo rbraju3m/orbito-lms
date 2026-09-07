@@ -37,6 +37,8 @@ use Illuminate\Support\Str;
  * @property bool $is_published
  * @property int $duration_seconds
  * @property CarbonInterface|null $drip_available_at
+ * @property int|null $drip_after_days
+ * @property int|null $drip_after_item_id
  */
 final class CourseItem extends Model
 {
@@ -57,6 +59,8 @@ final class CourseItem extends Model
             'is_preview' => 'boolean',
             'is_published' => 'boolean',
             'drip_available_at' => 'datetime',
+            'drip_after_days' => 'integer',
+            'drip_after_item_id' => 'integer',
         ];
     }
 

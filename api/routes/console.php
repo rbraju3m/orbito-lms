@@ -18,5 +18,6 @@ Artisan::command('inspire', function () {
 | around, and so drift in a stored aggregate is noticed.
 */
 Schedule::command('quiz:sweep-expired')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('enrollment:sweep-expired')->hourly()->withoutOverlapping();
 Schedule::command('progress:reconcile')->dailyAt('03:10')->withoutOverlapping();
 Schedule::command('usage:reconcile')->dailyAt('03:30')->withoutOverlapping();

@@ -18,6 +18,15 @@ abstract class DomainException extends RuntimeException
     /** @var list<array{field?: string, code: string, message: string}> */
     protected array $details = [];
 
+    /**
+     * Optional machine-readable context for a failure the caller can act on —
+     * a date to wait for, the item that blocks this one. Serialised as
+     * `error.meta`; absent when empty. See docs/API.md §2.
+     *
+     * @var array<string, mixed>
+     */
+    protected array $meta = [];
+
     abstract public function errorCode(): string;
 
     public function status(): int
@@ -29,5 +38,11 @@ abstract class DomainException extends RuntimeException
     public function details(): array
     {
         return $this->details;
+    }
+
+    /** @return array<string, mixed> */
+    public function meta(): array
+    {
+        return $this->meta;
     }
 }

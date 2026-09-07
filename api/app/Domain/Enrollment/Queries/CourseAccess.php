@@ -6,6 +6,7 @@ namespace App\Domain\Enrollment\Queries;
 
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Curriculum\Models\CourseItem;
+use App\Domain\Curriculum\Support\DripSchedule;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Models\User;
 
@@ -17,27 +18,38 @@ use App\Domain\Identity\Models\User;
  * in many places and they disagree; there is exactly one implementation here.
  *
  * Access sources grow by phase. Today: owner, course staff, platform staff,
- * enrollment, and preview items. Phase 9 adds drip and prerequisites; Phase 10
- * purchase; Phase 16 subscription, bundle and membership. Nothing else needs to
- * change when they do.
+ * enrollment, preview items and drip. Phase 10 adds purchase; Phase 16
+ * subscription, bundle and membership. Nothing else needs to change when they do.
+ *
+ * Prerequisites are deliberately NOT here. They gate enrolment, not ongoing
+ * access — adding a prerequisite to a live course must not lock out the people
+ * already inside it. See EnrollInCourse.
  *
  * This is a DIFFERENT question from authorization. "May they perform this
  * operation?" is a Policy. See docs/ROLES_PERMISSIONS.md §6.
  */
 final class CourseAccess
 {
-    /**
-     * Per-request memo: the player asks this once per item.
-     *
-     * @var array<string, AccessDecision>
-     */
-    private array $memo = [];
+    public function __construct(private readonly DripSchedule $drip) {}
 
+    /*
+     * There is deliberately NO memo here.
+     *
+     * This class used to cache its answer per (user, course). Laravel
+     * memoises the controller instance on the Route object, and Route objects
+     * outlive a request — so the cache did too, and a second request could be
+     * served a `granted` decision made before the enrollment was suspended or
+     * expired. Under php-fpm each request boots a fresh app and the leak is
+     * invisible; under Octane, and in any test that changes enrollment state
+     * between two calls, it is not.
+     *
+     * The saving was never large: the callers ask once or twice per request,
+     * and `enrollmentFor` is a single lookup on a unique index. An
+     * authorization decision is not worth caching for that.
+     */
     public function for(?User $user, Course $course): AccessDecision
     {
-        $key = ($user->id ?? 0).':'.$course->id;
-
-        return $this->memo[$key] ??= $this->resolve($user, $course);
+        return $this->resolve($user, $course);
     }
 
     /**
@@ -50,7 +62,17 @@ final class CourseAccess
         $decision = $this->for($user, $item->course);
 
         if ($decision->granted) {
-            return $decision;
+            // Staff read the course to author it; drip is a learner schedule,
+            // and an instructor who cannot open week 3 cannot edit week 3.
+            if ($decision->isStaff()) {
+                return $decision;
+            }
+
+            $state = $this->drip->forItem($item, $decision->enrollment);
+
+            return $state->locked
+                ? AccessDecision::deny('drip_locked', $state->unlocksAt, $state->meta(), $decision->enrollment)
+                : $decision;
         }
 
         if ($item->is_preview && $item->is_published && $item->course->status->isLive()) {
@@ -93,7 +115,15 @@ final class CourseAccess
         }
 
         if ($enrollment->hasExpired()) {
-            return AccessDecision::deny('enrollment_expired');
+            return AccessDecision::deny('enrollment_expired', enrollment: $enrollment);
+        }
+
+        if (! $enrollment->hasStarted()) {
+            return AccessDecision::deny(
+                'enrollment_not_started',
+                $enrollment->starts_at,
+                enrollment: $enrollment,
+            );
         }
 
         return match (true) {
@@ -102,7 +132,10 @@ final class CourseAccess
                 $enrollment,
                 $enrollment->expires_at,
             ),
-            default => AccessDecision::deny('enrollment_'.$enrollment->status->value),
+            default => AccessDecision::deny(
+                'enrollment_'.$enrollment->status->value,
+                enrollment: $enrollment,
+            ),
         };
     }
 }

@@ -7,8 +7,6 @@ use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
 
-use function Pest\Laravel\getJson;
-
 beforeEach(function (): void {
     seedRegistry();
     $this->course = courseWithCurriculum(Course::factory()->published()->create(), [2, 2]);
@@ -38,7 +36,7 @@ it('tells an unenrolled visitor why they cannot get in', function (): void {
         ->getJson("/api/v1/learn/courses/{$this->course->uuid}")
         ->assertOk();
 
-    // The outline is public; the content is not.
+    // Any member of the academy sees the outline; the content is not.
     expect($response->json('data.access.granted'))->toBeFalse()
         ->and($response->json('data.access.reason'))->toBe('not_enrolled')
         ->and($response->json('data.curriculum'))->toHaveCount(2);
@@ -46,8 +44,11 @@ it('tells an unenrolled visitor why they cannot get in', function (): void {
 
 it('hides an unpublished course from someone who cannot see it', function (): void {
     $draft = courseWithCurriculum(Course::factory()->create(), [1]);
+    $stranger = User::factory()->withRole(RoleKey::Student)->create();
 
-    getJson("/api/v1/learn/courses/{$draft->uuid}")->assertNotFound();
+    // 404, not 403: not confirming the draft exists is the whole point.
+    $this->actingAs($stranger)
+        ->getJson("/api/v1/learn/courses/{$draft->uuid}")->assertNotFound();
 });
 
 it('omits unpublished items from the learner curriculum', function (): void {
@@ -86,11 +87,25 @@ it('returns 423 rather than 403 when content is locked', function (): void {
     expect($response->json('error.details.0.code'))->toBe('not_enrolled');
 });
 
-it('serves a preview item to an anonymous visitor', function (): void {
+/*
+ * Preview used to mean "try before you SIGN UP". Under multi-tenancy an
+ * anonymous request belongs to no academy, so it now means "try before you
+ * ENROL": a member of the academy who has not enrolled still gets the item.
+ */
+it('serves a preview item to a member who is not enrolled', function (): void {
     $item = $this->course->items()->first();
     $item->update(['is_preview' => true]);
 
-    getJson("/api/v1/learn/items/{$item->uuid}")->assertOk();
+    $stranger = User::factory()->withRole(RoleKey::Student)->create();
+
+    $this->actingAs($stranger)->getJson("/api/v1/learn/items/{$item->uuid}")->assertOk();
+});
+
+it('turns an anonymous caller away entirely', function (): void {
+    $item = $this->course->items()->first();
+    $item->update(['is_preview' => true]);
+
+    $this->getJson("/api/v1/learn/items/{$item->uuid}")->assertStatus(401);
 });
 
 it('refuses an unpublished item outright', function (): void {
@@ -138,10 +153,11 @@ it('bootstraps the player in a bounded number of queries', function (): void {
 });
 
 /*
- * The player routes are deliberately open to anonymous visitors (free previews),
- * so they carry no auth middleware. With the default guard set to `web` a
- * bearer token was ignored on exactly these routes, and an enrolled learner
- * arrived looking anonymous and was refused their own content.
+ * The default guard is `sanctum`, so a bearer token authenticates on every
+ * route rather than only the ones that name a guard. This mattered more when
+ * the player was open to anonymous callers — a token was ignored there and an
+ * enrolled learner arrived looking anonymous — and it still matters now,
+ * because the tenant middleware reads the user the token resolves to.
  */
 it('recognises a bearer token on routes that also allow anonymous access', function (): void {
     $token = $this->postJson('/api/v1/auth/login', [
@@ -159,8 +175,22 @@ it('recognises a bearer token on routes that also allow anonymous access', funct
         ->and($response->json('data.access.reason'))->not->toBe('unauthenticated');
 });
 
-it('still treats a caller with no credentials as anonymous', function (): void {
-    $response = getJson("/api/v1/learn/courses/{$this->course->uuid}")->assertOk();
+/*
+ * The bootstrap is behind auth now, so `unauthenticated` is no longer a reason
+ * the player can ever render — the request does not reach it. A member who has
+ * not enrolled gets the outline with `not_enrolled`, which is the state the
+ * "get access" screen actually exists for.
+ */
+it('gives a signed-in non-member the outline with a not_enrolled reason', function (): void {
+    $stranger = User::factory()->withRole(RoleKey::Student)->create();
 
-    expect($response->json('data.access.reason'))->toBe('unauthenticated');
+    $response = $this->actingAs($stranger)
+        ->getJson("/api/v1/learn/courses/{$this->course->uuid}")->assertOk();
+
+    expect($response->json('data.access.granted'))->toBeFalse()
+        ->and($response->json('data.access.reason'))->toBe('not_enrolled');
+});
+
+it('refuses the bootstrap to an anonymous caller', function (): void {
+    $this->getJson("/api/v1/learn/courses/{$this->course->uuid}")->assertStatus(401);
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Catalog;
 
+use App\Domain\Curriculum\Enums\DripMode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +25,7 @@ final class UpdateCourseSettingsRequest extends FormRequest
             'enable_certificate' => ['sometimes', 'boolean'],
             'max_students' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1000000'],
             'enrollment_expires_days' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:3650'],
-            'drip_mode' => ['sometimes', Rule::in(['none', 'by_date', 'by_days', 'sequential'])],
+            'drip_mode' => ['sometimes', Rule::enum(DripMode::class)],
             'retake_allowed' => ['sometimes', 'boolean'],
             'reset_progress_allowed' => ['sometimes', 'boolean'],
             'video_completion_threshold' => ['sometimes', 'integer', 'min:1', 'max:100'],

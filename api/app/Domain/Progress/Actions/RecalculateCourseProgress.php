@@ -67,8 +67,13 @@ final class RecalculateCourseProgress
     }
 
     /**
-     * A strict course completes itself when everything is done. A flexible one
-     * waits for the learner to say so — that is what the mode means.
+     * Finishing everything completes the course in BOTH modes.
+     *
+     * `completion_mode` governs whether a learner may finish EARLY, not
+     * whether 100% counts: `flexible` adds the learner-initiated
+     * `CompleteCourse`; `strict` withholds it. Refusing to complete a flexible
+     * course whose every item is done would leave the learner staring at a
+     * button to declare something already true.
      */
     private function maybeCompleteCourse(Enrollment $enrollment, CourseProgress $progress): void
     {

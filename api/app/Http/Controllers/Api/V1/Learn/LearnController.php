@@ -61,7 +61,7 @@ final class LearnController
                 ? CourseProgressResource::make($enrollment->progress)->resolve($request)
                 : null,
             'curriculum' => LearnerSectionResource::collection(
-                $query->curriculumWithProgress($course, $enrollment),
+                $query->curriculumWithProgress($course, $enrollment, $decision->isStaff()),
             )->resolve($request),
         ]);
     }

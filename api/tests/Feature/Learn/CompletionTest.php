@@ -111,12 +111,17 @@ it('resets progress when the course allows it', function (): void {
         ->and($response->json('data.is_complete'))->toBeFalse();
 });
 
+/*
+ * 409, not 404: the endpoint exists and the learner may call it — the course
+ * has switched the capability off. Hiding it behind "not found" left the SPA
+ * unable to tell a disabled feature from a broken URL.
+ */
 it('refuses a reset when the course forbids it', function (): void {
     $this->course->setting->update(['reset_progress_allowed' => false]);
 
-    $this->actingAs($this->student)
+    expect($this->actingAs($this->student)
         ->postJson("/api/v1/learn/courses/{$this->course->uuid}/reset-progress")
-        ->assertNotFound();
+        ->assertStatus(409))->toBeApiError('progress_rejected');
 });
 
 describe('notes', function (): void {

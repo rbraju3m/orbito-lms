@@ -19,6 +19,16 @@ final class ProgressRejected extends DomainException
         );
     }
 
+    public static function retakeNotAllowed(): self
+    {
+        return new self('This course cannot be retaken.');
+    }
+
+    public static function resetNotAllowed(): self
+    {
+        return new self('Progress in this course cannot be reset.');
+    }
+
     public function errorCode(): string
     {
         return 'progress_rejected';

@@ -12,8 +12,12 @@ use App\Domain\Progress\Models\CourseProgress;
 use App\Support\Exceptions\DomainException;
 
 /**
- * The learner-initiated completion, for FLEXIBLE courses. A strict course
- * completes itself once everything is done (RecalculateCourseProgress).
+ * The learner-initiated completion — "I am done with this".
+ *
+ * Only flexible courses allow it early. A strict course refuses until every
+ * completable item is finished, at which point RecalculateCourseProgress has
+ * already completed it anyway, so this becomes a no-op that returns the
+ * existing progress rather than an error.
  */
 final class CompleteCourse
 {

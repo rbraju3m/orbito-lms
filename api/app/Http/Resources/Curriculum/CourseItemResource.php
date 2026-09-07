@@ -35,6 +35,12 @@ final class CourseItemResource extends BaseResource
             'duration_seconds' => $this->duration_seconds,
             'updated_at' => $this->updated_at?->toIso8601String(),
 
+            'drip_available_at' => $this->drip_available_at?->toIso8601String(),
+            'drip_after_days' => $this->drip_after_days,
+            // The numeric ref, matching `ref` above: the builder's item picker
+            // speaks in the same id the reorder endpoint does.
+            'drip_after_item_id' => $this->drip_after_item_id,
+
             'content' => $this->whenLoaded('itemable', fn () => $this->itemableContent()),
         ];
     }

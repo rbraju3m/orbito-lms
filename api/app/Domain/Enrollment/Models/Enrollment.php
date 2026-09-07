@@ -29,7 +29,10 @@ use Illuminate\Support\Str;
  * @property EnrollmentStatus $status
  * @property EnrollmentSource $source
  * @property CarbonInterface $enrolled_at
+ * @property CarbonInterface|null $starts_at
  * @property CarbonInterface|null $expires_at
+ * @property CarbonInterface|null $suspended_at
+ * @property string|null $suspended_reason
  * @property CarbonInterface|null $completed_at
  */
 final class Enrollment extends Model
@@ -100,6 +103,16 @@ final class Enrollment extends Model
     }
 
     /**
+     * A manual enrolment can be dated forward — a cohort that opens on the
+     * 1st, a seat granted before the course goes live. Until then the row
+     * exists and holds a seat, but opens nothing.
+     */
+    public function hasStarted(): bool
+    {
+        return $this->starts_at === null || ! $this->starts_at->isFuture();
+    }
+
+    /**
      * Whether this enrollment currently opens the course.
      *
      * Expiry is evaluated here rather than trusted from the status column: the
@@ -108,7 +121,7 @@ final class Enrollment extends Model
      */
     public function isActive(): bool
     {
-        return $this->status->grantsAccess() && ! $this->hasExpired();
+        return $this->status->grantsAccess() && ! $this->hasExpired() && $this->hasStarted();
     }
 
     /** @param  Builder<Enrollment>  $query */
