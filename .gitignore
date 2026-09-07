@@ -1,0 +1,9 @@
+# Editors
+/.idea
+/.vscode
+/.zed
+/.nova
+*.swp
+.DS_Store
+
+# Node / PHP artefacts are ignored inside each workspace's own .gitignore.

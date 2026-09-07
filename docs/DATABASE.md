@@ -1,0 +1,553 @@
+# DATABASE.md — Proposed Database Architecture
+
+MySQL 8, InnoDB, `utf8mb4_0900_ai_ci`. All timestamps UTC (`TIMESTAMP`/`DATETIME`).
+All money is `amount_minor BIGINT` + `currency CHAR(3)`.
+All tables get `id BIGINT UNSIGNED AUTO_INCREMENT`, `created_at`, `updated_at`.
+Public-facing identifiers use a separate `uuid CHAR(36)` or `ulid` where an id must not
+be guessable (certificates, orders, media).
+
+> **Status: proposal.** No migrations exist. Nothing here is final until Phase 1 is
+> approved. Column lists are indicative of shape and intent, not exhaustive.
+
+---
+
+## 1. Identity
+
+```sql
+users(id, uuid, name, email UNIQUE, email_verified_at, password, phone,
+      avatar_media_id, cover_media_id, headline, bio, timezone DEFAULT 'UTC',
+      locale DEFAULT 'en', status ENUM(active,pending,suspended,deleted),
+      last_login_at, last_seen_at, remember_token, deleted_at)
+      INDEX (status), INDEX (last_seen_at)
+
+user_social_links(id, user_id, platform, url)                       UNIQUE(user_id, platform)
+
+instructor_profiles(id, user_id UNIQUE, status ENUM(pending,approved,blocked),
+      approved_at, approved_by, application_source, rejection_reason,
+      commission_rate_bp INT NULL,        -- basis points; NULL = use platform default
+      payout_currency CHAR(3), rating_avg DECIMAL(3,2) DEFAULT 0, rating_count INT DEFAULT 0,
+      student_count INT DEFAULT 0, course_count INT DEFAULT 0)
+
+roles(id, key UNIQUE, name, description, is_system BOOL, scope_kind ENUM(global,course))
+permissions(id, key UNIQUE, group, description)
+permission_role(role_id, permission_id)                             PRIMARY KEY(role_id, permission_id)
+
+role_assignments(id, user_id, role_id, scope_type NULL, scope_id NULL, granted_by, expires_at)
+      UNIQUE (user_id, role_id, scope_type, scope_id)
+      INDEX (scope_type, scope_id)
+
+personal_access_tokens(...)          -- Sanctum
+user_devices(id, user_id, token_id, platform, name, last_used_at, ip, user_agent)
+```
+
+**Why `role_assignments` and not `role_user`:** course-scoped roles (TA, reviewer,
+course manager) fall out of the same table. See `ROLES_PERMISSIONS.md`.
+
+---
+
+## 2. Catalog
+
+```sql
+course_categories(id, parent_id, slug UNIQUE, name, description, image_media_id,
+      position, is_active)                                          INDEX (parent_id, position)
+
+course_tags(id, slug UNIQUE, name, usage_count)
+
+courses(id, uuid, slug UNIQUE, title, subtitle, description LONGTEXT,
+      thumbnail_media_id, intro_video_id,
+      owner_id,                              -- primary instructor (users.id)
+      category_id, level ENUM(beginner,intermediate,advanced,all),
+      locale CHAR(5), status ENUM(draft,in_review,published,archived) DEFAULT 'draft',
+      visibility ENUM(public,unlisted,private) DEFAULT 'public',
+      completion_mode ENUM(flexible,strict) DEFAULT 'flexible',
+      published_at, archived_at, coming_soon_at,
+      -- pricing pointer (details live in commerce.products)
+      pricing_model ENUM(free,one_time,subscription,mixed) DEFAULT 'free',
+      -- denormalised, event-maintained, nightly-reconciled
+      item_count INT DEFAULT 0, section_count INT DEFAULT 0,
+      total_duration_seconds INT DEFAULT 0,
+      enrollment_count INT DEFAULT 0,
+      rating_avg DECIMAL(3,2) DEFAULT 0, rating_count INT DEFAULT 0,
+      deleted_at)
+      INDEX (status, visibility, published_at)
+      INDEX (category_id, status)
+      INDEX (owner_id, status)
+      FULLTEXT (title, subtitle)
+
+course_tag(course_id, tag_id)                                       PRIMARY KEY(course_id, tag_id)
+
+course_instructors(id, course_id, user_id,
+      role ENUM(owner,co_instructor,assistant) DEFAULT 'co_instructor',
+      revenue_share_bp INT NULL, position)
+      UNIQUE (course_id, user_id), INDEX (user_id)
+
+course_details(course_id PK, objectives JSON, requirements JSON,
+      target_audience JSON, materials JSON, faq JSON)
+      -- long-form lists; validated against a schema, never free-form serialized PHP
+
+course_settings(course_id PK, enable_qa BOOL, enable_reviews BOOL, enable_notes BOOL,
+      enable_certificate BOOL, max_students INT NULL, enrollment_expires_days INT NULL,
+      drip_mode ENUM(none,by_date,by_days,sequential) DEFAULT 'none',
+      retake_allowed BOOL, reset_progress_allowed BOOL,
+      video_completion_threshold TINYINT DEFAULT 90)
+
+course_prerequisites(course_id, prerequisite_course_id)             PRIMARY KEY(course_id, prerequisite_course_id)
+```
+
+**Note on `course_details`/`course_settings`:** split from `courses` so the hot list query
+never reads cold JSON. `courses` stays narrow and index-friendly.
+
+---
+
+## 3. Curriculum — the ordered spine (ADR-01)
+
+```sql
+course_sections(id, course_id, title, description, position, deleted_at)
+      INDEX (course_id, position)
+
+course_items(id, uuid, course_id, section_id, position,
+      type ENUM(lesson,quiz,assignment,resource,live_session),
+      itemable_type, itemable_id,          -- polymorphic to the type table
+      title,                               -- denormalised for cheap listing
+      is_preview BOOL DEFAULT 0,
+      is_published BOOL DEFAULT 1,
+      duration_seconds INT DEFAULT 0,
+      -- drip
+      drip_available_at DATETIME NULL,
+      drip_after_days INT NULL,
+      drip_after_item_id BIGINT NULL,
+      deleted_at)
+      UNIQUE (itemable_type, itemable_id)
+      INDEX (course_id, position)
+      INDEX (section_id, position)
+      INDEX (course_id, is_published, position)
+
+lessons(id, content LONGTEXT, content_format ENUM(html,markdown),
+      video_provider ENUM(none,upload,youtube,vimeo,external,embed,bunny,mux),
+      video_media_id NULL, video_url NULL, video_duration_seconds INT,
+      video_poster_media_id NULL, audio_media_id NULL, document_media_id NULL)
+
+resources(id, title, description, media_id, external_url, download_allowed BOOL)
+
+course_item_attachments(id, course_item_id, media_id, position)
+      INDEX (course_item_id, position)
+```
+
+**Reordering contract.** A single `PATCH /courses/{c}/curriculum/order` receives the
+full ordered tree (`[{section_id, item_ids:[…]}, …]`), validated to be a permutation of
+the existing set, applied in one transaction. This is the only write path for `position`.
+
+---
+
+## 4. Assessment
+
+```sql
+quizzes(id, title, description, instructions,
+      time_limit_seconds INT NULL,
+      time_expiry_policy ENUM(auto_submit,auto_abandon) DEFAULT 'auto_submit',
+      attempts_allowed TINYINT NULL,        -- NULL = unlimited
+      passing_score_percent TINYINT,
+      grading_policy ENUM(highest,latest,first,average) DEFAULT 'highest',
+      question_order ENUM(sorted,random) DEFAULT 'sorted',
+      shuffle_answers BOOL DEFAULT 0,
+      questions_per_attempt INT NULL,       -- random subset size
+      questions_per_page TINYINT DEFAULT 1,
+      hide_question_numbers BOOL DEFAULT 0,
+      feedback_mode ENUM(deferred,reveal,retry) DEFAULT 'deferred',
+      show_correct_answers_after ENUM(never,submission,pass,due_date) DEFAULT 'submission',
+      negative_marking BOOL DEFAULT 0,
+      allow_previous_button BOOL DEFAULT 1)
+
+question_banks(id, owner_id, course_id NULL, title, description, is_shared BOOL)
+
+questions(id, bank_id NULL, type ENUM(single_choice,multiple_choice,true_false,
+        short_answer,long_answer,fill_blank,matching,ordering,image_choice,image_matching),
+      title TEXT, body LONGTEXT, explanation LONGTEXT,
+      points DECIMAL(8,2) DEFAULT 1, negative_points DECIMAL(8,2) DEFAULT 0,
+      media_id NULL, settings JSON, deleted_at)
+      INDEX (bank_id, type)
+      -- `settings` is validated against a per-type JSON schema. Never PHP-serialized.
+
+question_options(id, question_id, label TEXT, media_id NULL,
+      is_correct BOOL DEFAULT 0, match_key VARCHAR(191) NULL, position)
+      INDEX (question_id, position)
+
+quiz_questions(id, quiz_id, question_id, position, points_override DECIMAL(8,2) NULL)
+      UNIQUE (quiz_id, question_id), INDEX (quiz_id, position)
+
+quiz_attempts(id, uuid, quiz_id, course_item_id, course_id, user_id, enrollment_id,
+      attempt_number TINYINT,
+      status ENUM(in_progress,submitted,grading,graded,abandoned,expired),
+      started_at, expires_at, submitted_at, graded_at, graded_by NULL,
+      total_points DECIMAL(9,2), earned_points DECIMAL(9,2), percent DECIMAL(5,2),
+      result ENUM(pass,fail,pending) NULL,
+      question_order JSON,                  -- the shuffled order actually served
+      ip VARCHAR(45), user_agent VARCHAR(255))
+      INDEX (user_id, quiz_id, status)
+      INDEX (course_id, status)
+      INDEX (status, expires_at)            -- for the expiry sweeper
+
+quiz_attempt_answers(id, attempt_id, question_id, question_type,
+      answer JSON,                          -- typed by question_type
+      points_possible DECIMAL(8,2), points_earned DECIMAL(8,2),
+      is_correct BOOL NULL,                 -- NULL = awaiting manual grading
+      feedback TEXT, graded_by NULL, graded_at)
+      UNIQUE (attempt_id, question_id)
+      INDEX (attempt_id)
+
+assignments(id, instructions LONGTEXT, total_points DECIMAL(8,2),
+      passing_points DECIMAL(8,2) NULL,
+      due_at DATETIME NULL, late_policy ENUM(reject,accept,penalise) DEFAULT 'accept',
+      late_penalty_percent TINYINT DEFAULT 0,
+      max_attempts TINYINT DEFAULT 1,
+      allow_text BOOL DEFAULT 1, allow_files BOOL DEFAULT 1,
+      max_file_size_kb INT, allowed_extensions JSON, max_files TINYINT DEFAULT 5)
+
+assignment_submissions(id, uuid, assignment_id, course_item_id, course_id,
+      user_id, enrollment_id, attempt_number TINYINT,
+      status ENUM(draft,submitted,grading,graded,returned),
+      body LONGTEXT, submitted_at, is_late BOOL,
+      points_earned DECIMAL(8,2) NULL, feedback LONGTEXT,
+      graded_by NULL, graded_at)
+      UNIQUE (assignment_id, user_id, attempt_number)
+      INDEX (course_id, status), INDEX (user_id, status)
+
+assignment_submission_files(id, submission_id, media_id, original_name, size_bytes)
+```
+
+---
+
+## 5. Enrollment & Progress (ADR-02, ADR-03)
+
+```sql
+enrollments(id, uuid, course_id, user_id,
+      status ENUM(active,completed,expired,suspended,cancelled) DEFAULT 'active',
+      source ENUM(free,purchase,manual,subscription,bundle,membership,import),
+      source_id BIGINT NULL,                -- order_id / subscription_id / admin user id
+      cohort_id NULL,
+      enrolled_at, starts_at NULL, expires_at NULL, completed_at NULL,
+      suspended_at NULL, suspended_reason NULL, deleted_at)
+      UNIQUE (course_id, user_id)
+      INDEX (user_id, status)
+      INDEX (course_id, status, enrolled_at)
+      INDEX (status, expires_at)            -- expiry sweeper
+
+course_progress(enrollment_id PK, course_id, user_id,
+      completed_items INT DEFAULT 0, total_items INT DEFAULT 0,
+      percent DECIMAL(5,2) DEFAULT 0,
+      last_item_id NULL, last_activity_at NULL,
+      started_at NULL, completed_at NULL,
+      total_watch_seconds INT DEFAULT 0)
+      INDEX (user_id, last_activity_at)     -- "continue learning"
+      INDEX (course_id, percent)            -- cohort progress view
+
+item_progress(id, enrollment_id, course_item_id, course_id, user_id,
+      status ENUM(not_started,in_progress,completed) DEFAULT 'not_started',
+      first_seen_at, completed_at NULL,
+      watch_position_seconds INT DEFAULT 0, watch_max_seconds INT DEFAULT 0,
+      view_count INT DEFAULT 0)
+      UNIQUE (enrollment_id, course_item_id)
+      INDEX (course_item_id, status)        -- per-item drop-off (analytics heatmap)
+      INDEX (user_id, completed_at)
+
+lesson_notes(id, user_id, course_item_id, course_id, body TEXT,
+      video_timestamp_seconds INT NULL)
+      INDEX (user_id, course_item_id)
+```
+
+**Invariant.** `course_progress.percent` is derived; a nightly
+`progress:reconcile` command recomputes and reports drift. Drift > 0 is a bug alert.
+
+---
+
+## 6. Commerce
+
+```sql
+products(id, uuid, purchasable_type, purchasable_id,   -- course | bundle | download | plan | coaching
+      slug UNIQUE, title, status ENUM(draft,active,inactive),
+      tax_class_id NULL, is_taxable BOOL DEFAULT 1)
+      UNIQUE (purchasable_type, purchasable_id)
+
+product_prices(id, product_id, currency CHAR(3),
+      amount_minor BIGINT, sale_amount_minor BIGINT NULL,
+      sale_starts_at NULL, sale_ends_at NULL, is_default BOOL)
+      UNIQUE (product_id, currency)
+
+currencies(code CHAR(3) PK, name, symbol, minor_unit TINYINT, is_active, position)
+exchange_rates(id, base CHAR(3), quote CHAR(3), rate DECIMAL(18,8), fetched_at)
+      UNIQUE (base, quote, fetched_at)
+
+carts(id, uuid, user_id NULL, session_token NULL, currency CHAR(3),
+      coupon_id NULL, expires_at)
+cart_items(id, cart_id, product_id, quantity, unit_amount_minor)
+      UNIQUE (cart_id, product_id)
+
+orders(id, uuid, number VARCHAR(32) UNIQUE, user_id NULL, customer_id,
+      status ENUM(pending,awaiting_payment,paid,partially_refunded,refunded,cancelled,failed),
+      currency CHAR(3),
+      subtotal_minor, discount_minor, tax_minor, total_minor, refunded_minor,
+      coupon_id NULL, coupon_code_snapshot VARCHAR(64) NULL,
+      billing_snapshot JSON, placed_at, paid_at, cancelled_at, notes)
+      INDEX (user_id, status), INDEX (status, placed_at), INDEX (number)
+
+order_items(id, order_id, product_id,
+      purchasable_type, purchasable_id,     -- snapshot, survives product deletion
+      title_snapshot, quantity,
+      unit_amount_minor, discount_minor, tax_minor, total_minor,
+      instructor_id NULL, instructor_share_minor, platform_share_minor)
+      INDEX (order_id), INDEX (purchasable_type, purchasable_id)
+
+customers(id, user_id NULL, email, first_name, last_name, phone,
+      country CHAR(2), state, city, postcode, address_line1, address_line2, tax_id)
+      INDEX (user_id), INDEX (email)
+
+payments(id, uuid, order_id, gateway VARCHAR(50),
+      external_id VARCHAR(191), status ENUM(initiated,pending,captured,failed,cancelled),
+      currency CHAR(3), amount_minor, fee_minor,
+      initiated_at, captured_at, failed_at, failure_reason)
+      UNIQUE (gateway, external_id)
+      INDEX (order_id, status)
+
+payment_events(id, payment_id NULL, gateway, external_event_id VARCHAR(191),
+      type, payload JSON, signature_verified BOOL, processed_at, received_at)
+      UNIQUE (gateway, external_event_id)   -- webhook idempotency
+
+refunds(id, uuid, order_id, payment_id, amount_minor, currency, reason,
+      status ENUM(pending,completed,failed), external_id,
+      requested_by, requested_at, completed_at, revoke_access BOOL)
+
+coupons(id, code UNIQUE, type ENUM(code,automatic), name, description,
+      discount_type ENUM(percentage,fixed), discount_value_minor BIGINT,
+      discount_percent DECIMAL(5,2), currency CHAR(3) NULL,
+      applies_to ENUM(all,courses,bundles,categories,specific),
+      min_purchase_minor NULL, min_quantity NULL,
+      usage_limit INT NULL, usage_limit_per_user TINYINT NULL, used_count INT DEFAULT 0,
+      starts_at, expires_at NULL, status ENUM(active,inactive,expired))
+      INDEX (status, starts_at, expires_at)
+
+coupon_targets(id, coupon_id, target_type, target_id)               INDEX (coupon_id)
+coupon_redemptions(id, coupon_id, user_id, order_id, discount_minor, redeemed_at)
+      INDEX (coupon_id, user_id)
+
+tax_classes(id, name, is_default)
+tax_rates(id, tax_class_id, country CHAR(2), state NULL, rate_percent DECIMAL(6,3),
+      name, is_compound, priority)
+      INDEX (country, state)
+
+invoices(id, order_id UNIQUE, number VARCHAR(32) UNIQUE, issued_at,
+      pdf_media_id NULL, snapshot JSON)
+
+instructor_earnings(id, order_item_id UNIQUE, instructor_id, course_id, order_id,
+      currency, gross_minor, commission_minor, fee_minor, net_minor,
+      status ENUM(pending,available,paid,reversed),
+      available_at, paid_at, payout_id NULL)
+      INDEX (instructor_id, status), INDEX (status, available_at)
+
+payouts(id, uuid, instructor_id, currency, amount_minor,
+      method ENUM(bank,paypal,mobile_wallet), method_details_encrypted TEXT,
+      status ENUM(requested,approved,processing,paid,rejected),
+      requested_at, processed_at, processed_by, rejection_reason)
+
+idempotency_keys(id, key UNIQUE, user_id, endpoint, request_hash,
+      response_status, response_body JSON, created_at)
+```
+
+**Note.** Coupon FKs use `coupons.id`, never the code (a Tutor pitfall). The code is
+snapshotted onto the order for display.
+
+---
+
+## 7. Certification
+
+```sql
+certificate_templates(id, name, orientation ENUM(landscape,portrait),
+      background_media_id, layout JSON, is_default, is_active)
+
+certificates(id, uuid, number VARCHAR(32) UNIQUE, template_id,
+      user_id, course_id, enrollment_id UNIQUE,
+      issued_at, expires_at NULL,
+      status ENUM(issued,revoked), revoked_at, revoked_reason,
+      pdf_media_id NULL,
+      snapshot JSON,                        -- name/course/score at issue time
+      verification_token CHAR(32) UNIQUE)
+      INDEX (user_id), INDEX (course_id)
+```
+Verification page is public and reads `verification_token`, never the id.
+
+---
+
+## 8. Engagement
+
+```sql
+reviews(id, course_id, user_id, enrollment_id, rating TINYINT,   -- 1..5
+      title, body TEXT, status ENUM(pending,published,rejected),
+      instructor_reply TEXT NULL, replied_at, published_at)
+      UNIQUE (course_id, user_id)
+      INDEX (course_id, status, published_at)
+
+discussions(id, course_id, course_item_id NULL, user_id,
+      type ENUM(question,comment), title, body TEXT,
+      status ENUM(open,answered,resolved,hidden),
+      is_pinned BOOL, reply_count INT DEFAULT 0, last_reply_at,
+      accepted_reply_id NULL)
+      INDEX (course_id, type, status, last_reply_at)
+      INDEX (course_item_id)
+
+discussion_replies(id, discussion_id, parent_id NULL, user_id, body TEXT,
+      is_instructor_reply BOOL, status ENUM(published,hidden))
+      INDEX (discussion_id, created_at)
+
+announcements(id, course_id, author_id, title, body, published_at, notify BOOL)
+wishlists(id, user_id, course_id)                                   UNIQUE (user_id, course_id)
+```
+
+---
+
+## 9. Media
+
+```sql
+media(id, uuid, owner_id, disk ENUM(public,private), path,
+      collection VARCHAR(64),               -- avatars, thumbnails, lesson_video, submission …
+      original_name, mime, extension, size_bytes BIGINT,
+      width, height, duration_seconds,
+      checksum CHAR(64), status ENUM(pending,ready,failed),
+      attachable_type NULL, attachable_id NULL, meta JSON)
+      INDEX (owner_id, collection), INDEX (attachable_type, attachable_id), INDEX (status)
+
+media_variants(id, media_id, kind ENUM(thumb,preview,hls,transcode),
+      path, mime, size_bytes, width, height, bitrate)
+      INDEX (media_id, kind)
+
+storage_usage(owner_id PK, bytes_used BIGINT, files_count INT, recalculated_at)
+```
+
+---
+
+## 10. Notifications & Analytics
+
+```sql
+notifications(...)                       -- Laravel's table, uuid PK, notifiable morph
+notification_preferences(id, user_id, event_key, channel ENUM(mail,database,push), enabled)
+      UNIQUE (user_id, event_key, channel)
+
+analytics_events(id BIGINT, name VARCHAR(64), occurred_at DATETIME(3),
+      actor_id NULL, session_id CHAR(36) NULL,
+      subject_type NULL, subject_id NULL,
+      course_id NULL, course_item_id NULL,
+      properties JSON, ip_hash CHAR(64), source ENUM(web,mobile,api))
+      INDEX (name, occurred_at)
+      INDEX (course_id, name, occurred_at)
+      INDEX (actor_id, occurred_at)
+      -- PARTITION BY RANGE on occurred_at (monthly); retention policy in P13
+
+analytics_daily_course(date, course_id, views, enrollments, completions,
+      revenue_minor, currency, active_learners)        PRIMARY KEY(date, course_id)
+analytics_daily_platform(date, new_users, new_enrollments, completions,
+      revenue_minor, currency, active_learners)        PRIMARY KEY(date)
+analytics_daily_instructor(date, instructor_id, enrollments, revenue_minor,
+      currency, rating_avg)                            PRIMARY KEY(date, instructor_id)
+analytics_item_funnel(course_item_id, course_id, started, completed,
+      avg_seconds, drop_off_rate, computed_at)         PRIMARY KEY(course_item_id)
+```
+
+Canonical event names: `course_viewed`, `course_started`, `course_enrolled`,
+`item_started`, `item_completed`, `quiz_started`, `quiz_submitted`, `quiz_passed`,
+`assignment_submitted`, `assignment_graded`, `course_completed`, `certificate_issued`,
+`order_placed`, `payment_completed`, `refund_issued`, `download_delivered`,
+`search_performed`, `cart_abandoned`.
+
+---
+
+## 11. Gamification (P14)
+
+```sql
+gamification_rules(id, key UNIQUE, event_name, name, points INT,
+      conditions JSON, is_active, cooldown_seconds, max_per_day)
+point_transactions(id, user_id, rule_id NULL, points INT, balance_after INT,
+      source_type, source_id, reason, awarded_at)
+      INDEX (user_id, awarded_at)
+badges(id, key UNIQUE, name, description, icon_media_id, tier, criteria JSON, is_active)
+user_badges(id, user_id, badge_id, awarded_at, source_type, source_id)
+      UNIQUE (user_id, badge_id)
+streaks(user_id PK, current_days INT, longest_days INT, last_active_date)
+leaderboard_snapshots(id, scope ENUM(global,course,cohort), scope_id NULL,
+      period ENUM(daily,weekly,monthly,all_time), period_start DATE,
+      entries JSON, computed_at)
+      UNIQUE (scope, scope_id, period, period_start)
+```
+
+---
+
+## 12. Live learning (P15) & Content (P16) — shape only
+
+```sql
+cohorts(id, course_id, name, starts_at, ends_at, capacity, enrollment_deadline, status)
+live_sessions(id, uuid, course_id NULL, cohort_id NULL, course_item_id NULL,
+      provider ENUM(zoom,google_meet,custom), external_id, join_url, host_id,
+      title, starts_at, ends_at, timezone, status, recording_media_id NULL)
+      INDEX (starts_at, status)
+session_attendance(id, live_session_id, user_id, joined_at, left_at, duration_seconds)
+      UNIQUE (live_session_id, user_id)
+webinars(id, uuid, title, description, starts_at, capacity, is_paid, product_id NULL, status)
+webinar_registrations(id, webinar_id, user_id NULL, email, name, status, registered_at)
+      UNIQUE (webinar_id, email)
+
+bundles(id, title, slug, description, thumbnail_media_id, status)
+bundle_items(id, bundle_id, purchasable_type, purchasable_id, position)
+subscription_plans(id, product_id, interval ENUM(day,week,month,year), interval_count,
+      trial_days, currency, amount_minor, status)
+subscriptions(id, uuid, user_id, plan_id, gateway, external_id,
+      status ENUM(trialing,active,past_due,cancelled,expired),
+      current_period_start, current_period_end, cancel_at, cancelled_at)
+downloads(id, title, slug, description, media_id, file_size_bytes, download_limit, product_id)
+download_deliveries(id, download_id, user_id, order_id, token, downloads_count, expires_at)
+
+posts(id, uuid, slug UNIQUE, author_id, title, excerpt, body LONGTEXT,
+      cover_media_id, status ENUM(draft,published,archived), published_at,
+      seo_title, seo_description)
+post_categories / post_tags / post_category / post_tag
+
+pages(id, slug UNIQUE, title, status, seo JSON)
+page_blocks(id, page_id, type, position, props JSON)      -- the page-builder seam
+leads(id, email, name, phone, source, page_id NULL, course_id NULL, meta JSON)
+```
+
+---
+
+## 13. Localisation (ADR-10)
+
+```sql
+translations(id, translatable_type, translatable_id, locale CHAR(5),
+      field VARCHAR(64), value LONGTEXT)
+      UNIQUE (translatable_type, translatable_id, locale, field)
+      INDEX (locale, translatable_type)
+
+locales(code CHAR(5) PK, name, native_name, direction ENUM(ltr,rtl), is_active, is_default)
+```
+
+---
+
+## 14. Indexing & sizing principles
+
+1. Every FK gets an index. Every `status` used in a filter gets a composite index that
+   leads with the most selective column.
+2. Composite index order = equality columns first, then range/sort.
+   `(course_id, status, published_at)` serves `WHERE course_id=? AND status=? ORDER BY published_at`.
+3. Growth tables — `analytics_events`, `item_progress`, `quiz_attempt_answers`,
+   `notifications` — are the ones to watch. `analytics_events` is partitioned monthly
+   with a retention policy; raw rows older than 13 months are dropped after rollup.
+4. `item_progress` rows are created lazily (on first view), not eagerly at enrollment.
+   For 10k students × 100 items that is the difference between 1M rows and the rows
+   actually touched.
+5. Soft deletes only where restore is a real product requirement (courses, items,
+   sections, users). Everywhere else, hard delete.
+6. No EAV. If a field is worth storing it is worth a column or a schema-validated JSON
+   document. `postmeta` is exactly what we are escaping.
+
+## 15. Migration discipline
+
+- One migration per logical change, always reversible.
+- Additive first: add column → backfill in a job → switch reads → drop old column, across
+  separate releases. Never a breaking migration in the same deploy as the code that needs it.
+- Every index change gets a note in the migration explaining the query it serves.
+- Seeders: roles/permissions, currencies, locales, tax classes, a demo course.

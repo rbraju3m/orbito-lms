@@ -1,0 +1,17 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - config
+        - database
+        - routes
+
+    # Starts at 6 (Phase 2) and rises to 8 by Phase 10 — see docs/ARCHITECTURE_PROPOSAL.md §5.
+    level: 6
+
+    # tests/ is deliberately excluded. Pest binds `$this` inside test closures and
+    # registers custom expectations (`toBeApiError`) at runtime; PHPStan cannot
+    # model either without hand-written stubs that would need updating on every
+    # new expectation. Test correctness is enforced by the suite itself.
