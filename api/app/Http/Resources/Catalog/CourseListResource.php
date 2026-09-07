@@ -23,6 +23,13 @@ final class CourseListResource extends BaseResource
     {
         return [
             'id' => $this->uuid,
+            /*
+             * The numeric id, beside the uuid. Endpoints that REFERENCE a
+             * course rather than address it — prerequisites, and the bundle
+             * builder in Phase 16 — speak in this, the same convention as
+             * CourseItemResource and MediaResource.
+             */
+            'ref' => $this->id,
             'slug' => $this->slug,
             'title' => $this->title,
             'subtitle' => $this->subtitle,

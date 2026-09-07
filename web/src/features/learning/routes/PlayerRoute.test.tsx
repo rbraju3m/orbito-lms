@@ -154,7 +154,8 @@ describe('PlayerRoute', () => {
 
     renderPlayer();
 
-    expect(await screen.findByText(/this lesson is locked/i)).toBeInTheDocument();
+    // The screen names the way IN, not the fact of being out.
+    expect(await screen.findByText(/enrol to open this lesson/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /enrol for free/i })).toBeInTheDocument();
   });
 

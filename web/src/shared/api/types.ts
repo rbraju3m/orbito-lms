@@ -45,12 +45,28 @@ export interface ApiErrorDetail {
   message: string;
 }
 
+/**
+ * `meta` is optional and omitted when empty. It carries what the caller can DO
+ * about the failure — a date to wait for, the item blocking this one, the
+ * courses still outstanding — never decoration. See docs/API.md §2.
+ */
+export interface ApiErrorMeta {
+  unlocks_at?: string;
+  blocked_by_id?: number;
+  blocked_by_title?: string;
+  prerequisites?: { id: string; slug: string; title: string }[];
+  status?: string;
+  cover_ended_at?: string;
+  [key: string]: unknown;
+}
+
 export interface ApiErrorBody {
   error: {
     code: string;
     message: string;
     details: ApiErrorDetail[];
     request_id: string;
+    meta?: ApiErrorMeta;
   };
 }
 

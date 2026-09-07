@@ -18,6 +18,9 @@ function item(ref: number, sectionId: number): CourseItem {
     is_completable: true,
     duration_seconds: 60,
     updated_at: null,
+    drip_available_at: null,
+    drip_after_days: null,
+    drip_after_item_id: null,
   };
 }
 

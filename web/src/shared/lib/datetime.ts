@@ -45,3 +45,14 @@ export function formatDateTime(iso: string | null | undefined): string {
     timeStyle: 'short',
   }).format(date);
 }
+
+/** Date only, for a deadline or an expiry where the time of day is noise. */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+
+  const date = new Date(iso);
+
+  if (Number.isNaN(date.getTime())) return '—';
+
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
+}

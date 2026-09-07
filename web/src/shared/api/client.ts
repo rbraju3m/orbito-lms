@@ -58,6 +58,16 @@ export async function apiPatch<T>(
   return data.data;
 }
 
+/** For endpoints that replace a whole collection rather than patch one. */
+export async function apiPut<T>(
+  url: string,
+  body?: unknown,
+  config?: AxiosRequestConfig,
+): Promise<T> {
+  const { data } = await http.put<Envelope<T>>(url, body, config);
+  return data.data;
+}
+
 export async function apiDelete<T = void>(url: string, config?: AxiosRequestConfig): Promise<T> {
   const { data } = await http.delete<Envelope<T>>(url, config);
   return data?.data;

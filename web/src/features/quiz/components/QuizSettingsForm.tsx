@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import type { QuizSettings } from '../api/builderTypes';
 
-import { numberValue, optionalNumberValue } from './numberValue';
+import { numberValue, optionalNumberValue } from '@/shared/lib/numberValue';
 
 export interface QuizSettingsFormProps {
   settings: QuizSettings;

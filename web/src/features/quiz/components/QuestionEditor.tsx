@@ -26,7 +26,7 @@ import type {
 } from '../api/builderTypes';
 import type { QuestionType } from '../api/types';
 
-import { numberValue } from './numberValue';
+import { numberValue } from '@/shared/lib/numberValue';
 
 const TYPES: Array<{ value: QuestionType; label: string }> = [
   { value: 'single_choice', label: 'Single choice' },

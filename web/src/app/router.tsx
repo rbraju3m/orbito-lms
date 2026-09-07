@@ -22,18 +22,29 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <HomeRoute /> },
+      /*
+       * The catalogue is MEMBERS-ONLY, and that is structural rather than a
+       * product choice: tenancy is resolved from the authenticated user, so an
+       * anonymous request belongs to no academy and the API answers 401. The
+       * guard turns that into a login redirect instead of an error screen.
+       */
       {
-        path: 'courses',
-        lazy: async () => ({
-          Component: (await import('@/features/catalog/routes/CatalogRoute')).CatalogRoute,
-        }),
-      },
-      {
-        path: 'courses/:slug',
-        lazy: async () => ({
-          Component: (await import('@/features/catalog/routes/CourseDetailRoute'))
-            .CourseDetailRoute,
-        }),
+        element: <RequireAuth />,
+        children: [
+          {
+            path: 'courses',
+            lazy: async () => ({
+              Component: (await import('@/features/catalog/routes/CatalogRoute')).CatalogRoute,
+            }),
+          },
+          {
+            path: 'courses/:slug',
+            lazy: async () => ({
+              Component: (await import('@/features/catalog/routes/CourseDetailRoute'))
+                .CourseDetailRoute,
+            }),
+          },
+        ],
       },
       {
         path: 'system',
@@ -91,10 +102,14 @@ export const router = createBrowserRouter([
 
   {
     // The player is full-bleed by design: it is not the dashboard shell
-    // (docs/FRONTEND_ARCHITECTURE.md §1). Anonymous visitors reach it too, for
-    // free preview lessons.
+    // (docs/FRONTEND_ARCHITECTURE.md §1).
+    //
+    // It used to admit anonymous visitors for free previews. It cannot now —
+    // see the catalogue note above. Preview items still work, but they mean
+    // "try before you ENROL" rather than "try before you sign up".
     path: 'learn/:courseId',
     errorElement: <RouteErrorBoundary />,
+    element: <RequireAuth />,
     children: [
       {
         index: true,
@@ -110,10 +125,8 @@ export const router = createBrowserRouter([
       },
       // The quiz gets its own routes rather than a pane inside the player: an
       // attempt has a countdown and unsaved answers, and the player's Next
-      // button would silently discard both. Unlike the rest of the player
-      // these are never anonymous — an attempt belongs to somebody.
+      // button would silently discard both.
       {
-        element: <RequireAuth />,
         children: [
           {
             path: ':itemId/quiz',

@@ -20,6 +20,10 @@
 /public/storage
 /storage/*.key
 /storage/pail
+# The FilesystemTenancyBootstrapper suffixes the local disk per tenant, so a
+# test run writes storage/tenant<id>/. One of these was committed by accident
+# in the tenancy retrofit; this stops the next one.
+/storage/tenant*
 /vendor
 _ide_helper.php
 Homestead.json

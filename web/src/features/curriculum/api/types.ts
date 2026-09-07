@@ -26,6 +26,16 @@ export interface CourseItem {
   is_completable: boolean;
   duration_seconds: number;
   updated_at: string | null;
+
+  /**
+   * Drip parameters. All three are stored regardless of the course's current
+   * drip_mode, so switching mode reinterprets what is already there instead of
+   * discarding the author's work. `drip_after_item_id` is the numeric ref.
+   */
+  drip_available_at: string | null;
+  drip_after_days: number | null;
+  drip_after_item_id: number | null;
+
   content?: LessonContent | Record<string, unknown> | null;
 }
 

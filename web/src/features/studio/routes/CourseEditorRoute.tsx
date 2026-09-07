@@ -31,6 +31,7 @@ import { Link, useParams } from 'react-router';
 import { z } from 'zod';
 
 import { categoriesQuery } from '@/features/catalog/api/queries';
+import { StudentsPanel } from '@/features/enrollment/components/StudentsPanel';
 import { CurriculumBuilder } from '@/features/curriculum/components/CurriculumBuilder';
 import { ItemEditorDrawer } from '@/features/curriculum/components/ItemEditorDrawer';
 import type { CourseItem } from '@/features/curriculum/api/types';
@@ -44,6 +45,8 @@ import {
   useUpdateCourse,
   type CourseTransition,
 } from '../api/queries';
+import { AccessSettingsCard } from '../components/AccessSettingsCard';
+import { PrerequisitesCard } from '../components/PrerequisitesCard';
 import { PublishChecklistCard } from '../components/PublishChecklistCard';
 
 const schema = z.object({
@@ -275,125 +278,156 @@ export function CourseEditorRoute() {
           <Tabs.Tab value="curriculum">
             Curriculum{data.item_count > 0 ? ` (${data.item_count})` : ''}
           </Tabs.Tab>
+          <Tabs.Tab value="students">
+            Students{data.enrollment_count > 0 ? ` (${data.enrollment_count})` : ''}
+          </Tabs.Tab>
         </Tabs.List>
       </Tabs>
 
-      <Grid gap="lg">
-        <Grid.Col span={{ base: 12, md: 8 }}>
-          {tab === 'curriculum' ? (
-            <Card>
-              <CurriculumBuilder courseId={id} onEditItem={setEditingItem} />
-            </Card>
-          ) : (
-            <Card>
-              <form onSubmit={onSubmit} noValidate>
-                <Stack gap="md">
-                  <Title order={3}>Basics</Title>
+      {/*
+        The roster is full-width: it is a table with six columns and a
+        pagination bar, and squeezing it into two thirds gives it a horizontal
+        scrollbar on every laptop.
+      */}
+      {tab === 'students' ? (
+        <StudentsPanel courseId={id} />
+      ) : (
+        <Grid gap="lg">
+          <Grid.Col span={{ base: 12, md: 8 }}>
+            {tab === 'curriculum' ? (
+              <Card>
+                <CurriculumBuilder courseId={id} onEditItem={setEditingItem} />
+              </Card>
+            ) : (
+              <Card>
+                <form onSubmit={onSubmit} noValidate>
+                  <Stack gap="md">
+                    <Title order={3}>Basics</Title>
 
-                  {formError ? (
-                    <Alert color="danger" icon={<IconAlertCircle size={16} />} role="alert">
-                      {formError}
-                    </Alert>
-                  ) : null}
+                    {formError ? (
+                      <Alert color="danger" icon={<IconAlertCircle size={16} />} role="alert">
+                        {formError}
+                      </Alert>
+                    ) : null}
 
-                  {saved ? (
-                    <Alert color="success" icon={<IconCheck size={16} />} role="status">
-                      Changes saved.
-                    </Alert>
-                  ) : null}
+                    {saved ? (
+                      <Alert color="success" icon={<IconCheck size={16} />} role="status">
+                        Changes saved.
+                      </Alert>
+                    ) : null}
 
-                  <TextInput
-                    {...register('title')}
-                    label="Title"
-                    error={errors.title?.message}
-                    required
-                  />
-                  <TextInput
-                    {...register('subtitle')}
-                    label="Subtitle"
-                    error={errors.subtitle?.message}
-                  />
-                  <Textarea
-                    {...register('description')}
-                    label="Description"
-                    description="At least 50 characters before you can publish."
-                    autosize
-                    minRows={6}
-                    maxRows={20}
-                    error={errors.description?.message}
-                  />
-
-                  <Group grow>
-                    <Select
-                      data={categoryOptions}
-                      value={watch('category_id')}
-                      onChange={(value) => setValue('category_id', value, { shouldDirty: true })}
-                      label="Category"
-                      placeholder="Choose a category"
-                      searchable
-                      clearable
+                    <TextInput
+                      {...register('title')}
+                      label="Title"
+                      error={errors.title?.message}
+                      required
                     />
+                    <TextInput
+                      {...register('subtitle')}
+                      label="Subtitle"
+                      error={errors.subtitle?.message}
+                    />
+                    <Textarea
+                      {...register('description')}
+                      label="Description"
+                      description="At least 50 characters before you can publish."
+                      autosize
+                      minRows={6}
+                      maxRows={20}
+                      error={errors.description?.message}
+                    />
+
+                    <Group grow>
+                      <Select
+                        data={categoryOptions}
+                        value={watch('category_id')}
+                        onChange={(value) => setValue('category_id', value, { shouldDirty: true })}
+                        label="Category"
+                        placeholder="Choose a category"
+                        searchable
+                        clearable
+                      />
+                      <Select
+                        data={[
+                          { value: 'beginner', label: 'Beginner' },
+                          { value: 'intermediate', label: 'Intermediate' },
+                          { value: 'advanced', label: 'Advanced' },
+                          { value: 'all', label: 'All levels' },
+                        ]}
+                        value={watch('level')}
+                        onChange={(value) =>
+                          setValue('level', value ?? 'all', { shouldDirty: true })
+                        }
+                        label="Level"
+                      />
+                    </Group>
+
                     <Select
                       data={[
-                        { value: 'beginner', label: 'Beginner' },
-                        { value: 'intermediate', label: 'Intermediate' },
-                        { value: 'advanced', label: 'Advanced' },
-                        { value: 'all', label: 'All levels' },
+                        { value: 'public', label: 'Public — listed in the catalogue' },
+                        { value: 'unlisted', label: 'Unlisted — reachable by link only' },
+                        { value: 'private', label: 'Private — enrolled learners only' },
                       ]}
-                      value={watch('level')}
-                      onChange={(value) => setValue('level', value ?? 'all', { shouldDirty: true })}
-                      label="Level"
+                      value={watch('visibility')}
+                      onChange={(value) =>
+                        setValue('visibility', value ?? 'public', { shouldDirty: true })
+                      }
+                      label="Visibility"
                     />
-                  </Group>
 
-                  <Select
-                    data={[
-                      { value: 'public', label: 'Public — listed in the catalogue' },
-                      { value: 'unlisted', label: 'Unlisted — reachable by link only' },
-                      { value: 'private', label: 'Private — enrolled learners only' },
-                    ]}
-                    value={watch('visibility')}
-                    onChange={(value) =>
-                      setValue('visibility', value ?? 'public', { shouldDirty: true })
-                    }
-                    label="Visibility"
-                  />
+                    <TagsInput
+                      value={tags}
+                      onChange={setTags}
+                      label="Tags"
+                      description="Up to 15. Press Enter after each."
+                      maxTags={15}
+                    />
 
-                  <TagsInput
-                    value={tags}
-                    onChange={setTags}
-                    label="Tags"
-                    description="Up to 15. Press Enter after each."
-                    maxTags={15}
-                  />
+                    <TagsInput
+                      value={objectives}
+                      onChange={setObjectives}
+                      label="What learners will be able to do"
+                      description="One outcome per entry."
+                      maxTags={20}
+                    />
 
-                  <TagsInput
-                    value={objectives}
-                    onChange={setObjectives}
-                    label="What learners will be able to do"
-                    description="One outcome per entry."
-                    maxTags={20}
-                  />
+                    <Group justify="flex-end">
+                      <Button
+                        type="submit"
+                        loading={isSaving}
+                        disabled={!isDirty && tags === data.tags}
+                      >
+                        Save changes
+                      </Button>
+                    </Group>
+                  </Stack>
+                </form>
+              </Card>
+            )}
+          </Grid.Col>
 
-                  <Group justify="flex-end">
-                    <Button
-                      type="submit"
-                      loading={isSaving}
-                      disabled={!isDirty && tags === data.tags}
-                    >
-                      Save changes
-                    </Button>
-                  </Group>
-                </Stack>
-              </form>
-            </Card>
-          )}
-        </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Stack gap="md">
+              {data.publish_checklist ? (
+                <PublishChecklistCard checks={data.publish_checklist} />
+              ) : null}
 
-        <Grid.Col span={{ base: 12, md: 4 }}>
-          {data.publish_checklist ? <PublishChecklistCard checks={data.publish_checklist} /> : null}
-        </Grid.Col>
-      </Grid>
+              {/*
+                Access and prerequisites sit beside the checklist rather than in
+                the Basics form: they are settings an author revisits, not
+                fields they fill in once.
+              */}
+              {data.settings ? <AccessSettingsCard courseId={id} settings={data.settings} /> : null}
+
+              <PrerequisitesCard
+                courseId={id}
+                courseRef={data.ref}
+                prerequisites={data.prerequisites ?? []}
+              />
+            </Stack>
+          </Grid.Col>
+        </Grid>
+      )}
 
       <ItemEditorDrawer courseId={id} item={editingItem} onClose={() => setEditingItem(null)} />
     </Container>

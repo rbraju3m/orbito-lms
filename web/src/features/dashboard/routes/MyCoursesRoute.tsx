@@ -1,4 +1,5 @@
 import {
+  Badge,
   Card,
   Container,
   Group,
@@ -30,6 +31,17 @@ const FILTERS = [
   { value: 'in_progress', label: 'In progress' },
   { value: 'completed', label: 'Completed' },
 ];
+
+/**
+ * Enrolment states that close access. `completed` is absent on purpose — a
+ * finished course stays open, which is the point of `grantsAccess()` on the
+ * server including it.
+ */
+const CLOSED_STATES: Record<string, string | undefined> = {
+  expired: 'Access expired',
+  suspended: 'Access suspended',
+  cancelled: 'Access revoked',
+};
 
 export function MyCoursesRoute() {
   const [filter, setFilter] = useState('all');
@@ -85,6 +97,17 @@ export function MyCoursesRoute() {
                       : `${Math.round(row.progress.percent)}%`}
                   </Text>
                 </Group>
+
+                {/*
+                  A card the learner can no longer open must say so on the
+                  card. Letting them click through to a 423 they cannot act on
+                  is the "row that 403s when clicked" failure in a new place.
+                */}
+                {CLOSED_STATES[row.enrollment_status ?? ''] ? (
+                  <Badge color="gray" variant="light" size="sm">
+                    {CLOSED_STATES[row.enrollment_status ?? '']}
+                  </Badge>
+                ) : null}
               </Stack>
             </Card>
           ))}

@@ -24,6 +24,8 @@ import {
 } from '@tabler/icons-react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 
+import { SubscriptionBanner } from '@/features/platform/SubscriptionBanner';
+
 import { useLogout } from '@/features/auth/api/queries';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { ThemeToggle } from '@/shared/ui';
@@ -153,6 +155,7 @@ export function AppLayout() {
       </AppShell.Navbar>
 
       <AppShell.Main>
+        <SubscriptionBanner />
         <Outlet />
       </AppShell.Main>
     </AppShell>

@@ -18,7 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
-import { numberValue } from '@/features/quiz/components/numberValue';
+import { numberValue } from '@/shared/lib/numberValue';
 import { ApiError } from '@/shared/api/errors';
 import { formatDateTime } from '@/shared/lib/datetime';
 import { ErrorState, LoadingState } from '@/shared/ui';

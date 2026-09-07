@@ -5,12 +5,10 @@ import {
   Button,
   Drawer,
   Group,
-  Paper,
   Progress,
   Stack,
   Tabs,
   Text,
-  Title,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
@@ -38,6 +36,7 @@ import {
 import type { LearnerItem } from '../api/types';
 import { CurriculumPanel } from '../components/CurriculumPanel';
 import { LessonPane } from '../components/LessonPane';
+import { LockedPane } from '../components/LockedPane';
 import { AssignmentPane } from '@/features/assignment/components/AssignmentPane';
 
 import { QuizPane } from '../components/QuizPane';
@@ -88,7 +87,20 @@ export function PlayerRoute() {
 
   const { course, access, progress, curriculum } = player.data;
   const current = allItems.find((candidate) => candidate.id === resolvedItemId) ?? null;
-  const locked = item.isError && item.error instanceof ApiError && item.error.status === 423;
+  const locked = item.isError && item.error instanceof ApiError && item.error.isLocked;
+
+  /*
+   * When drip names the item standing in the way, the lock screen offers to go
+   * there. The API returns its title, not its id, so this matches on title —
+   * which is enough because the blocker is always in this course's outline.
+   */
+  const blockedByTitle =
+    locked && item.error instanceof ApiError
+      ? (item.error.meta.blocked_by_title as string | undefined)
+      : undefined;
+  const blocker = blockedByTitle
+    ? (allItems.find((candidate) => candidate.title === blockedByTitle) ?? null)
+    : null;
 
   const select = (next: LearnerItem) => {
     closeDrawer();
@@ -196,15 +208,10 @@ export function PlayerRoute() {
             {item.isPending && resolvedItemId ? <LoadingState rows={3} height={80} /> : null}
 
             {locked ? (
-              <Paper p="xl" withBorder>
-                <Stack align="center" gap="sm">
-                  <IconLock size={28} />
-                  <Title order={3}>This lesson is locked</Title>
-                  <Text size="sm" c="dimmed" ta="center">
-                    {(item.error as ApiError).message}
-                  </Text>
-                </Stack>
-              </Paper>
+              <LockedPane
+                error={item.error}
+                onOpenBlocker={blocker ? () => select(blocker) : undefined}
+              />
             ) : null}
 
             {item.data && !locked ? (

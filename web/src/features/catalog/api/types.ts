@@ -17,6 +17,8 @@ export interface CourseCategory {
 /** The thin shape used by catalogue and Studio lists. */
 export interface CourseListItem {
   id: string;
+  /** The numeric id. Endpoints that REFERENCE a course speak in this. */
+  ref: number;
   slug: string;
   title: string;
   subtitle: string | null;
@@ -47,6 +49,17 @@ export interface PublishCheck {
   passed: boolean;
 }
 
+export type DripMode = 'none' | 'by_date' | 'by_days' | 'sequential';
+
+export interface CoursePrerequisiteSummary {
+  id: string;
+  ref: number;
+  slug: string;
+  title: string;
+  /** Whether the VIEWER has completed it. */
+  is_met: boolean;
+}
+
 export interface CourseSettings {
   enable_qa: boolean;
   enable_reviews: boolean;
@@ -54,7 +67,8 @@ export interface CourseSettings {
   enable_certificate: boolean;
   max_students: number | null;
   enrollment_expires_days: number | null;
-  drip_mode: string;
+  /** none | by_date | by_days | sequential — decides which per-item field is read. */
+  drip_mode: DripMode;
   retake_allowed: boolean;
   reset_progress_allowed: boolean;
   video_completion_threshold: number;
@@ -84,6 +98,11 @@ export interface Course extends Omit<CourseListItem, 'category' | 'thumbnail_url
     role: string;
     role_label: string;
   }>;
+  /** Courses that must be completed before enrolling. Gates entry, not access. */
+  prerequisites: CoursePrerequisiteSummary[];
+  /** null means uncapped — which is not the same as none left. */
+  seats_remaining: number | null;
+
   /** Authoring-only fields; absent for a visitor. */
   settings?: CourseSettings;
   publish_checklist?: PublishCheck[];

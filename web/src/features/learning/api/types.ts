@@ -13,6 +13,15 @@ export interface LearnerItem {
   is_self_markable: boolean;
   status: ItemProgressStatus;
   watch_position_seconds: number;
+
+  /**
+   * Drip. A locked item is still LISTED — hiding it would make the course look
+   * shorter than it is. Exactly one of `unlocks_at` / `blocked_by` is set when
+   * `is_locked`, depending on the course's drip mode.
+   */
+  is_locked: boolean;
+  unlocks_at: string | null;
+  blocked_by: string | null;
 }
 
 export interface LearnerSection {

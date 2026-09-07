@@ -15,7 +15,7 @@ import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { numberValue, optionalNumberValue } from '@/features/quiz/components/numberValue';
+import { numberValue, optionalNumberValue } from '@/shared/lib/numberValue';
 import { ApiError } from '@/shared/api/errors';
 import { fromLocalInputValue, toLocalInputValue } from '@/shared/lib/datetime';
 import { ErrorState, LoadingState } from '@/shared/ui';

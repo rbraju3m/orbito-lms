@@ -163,6 +163,10 @@ export function playerFixture(overrides: Record<string, unknown> = {}) {
     is_self_markable: true,
     status: 'not_started',
     watch_position_seconds: 0,
+    // Drip defaults to open; a test that cares overrides these three.
+    is_locked: false,
+    unlocks_at: null,
+    blocked_by: null,
     ...extra,
   });
 

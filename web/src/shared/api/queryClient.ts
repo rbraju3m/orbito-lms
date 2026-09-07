@@ -1,4 +1,6 @@
-import { QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryClient } from '@tanstack/react-query';
+
+import { useSubscriptionLapsed } from '@/features/platform/useSubscriptionLapsed';
 
 import { ApiError } from './errors';
 
@@ -10,6 +12,22 @@ import { ApiError } from './errors';
  */
 export function createQueryClient(): QueryClient {
   return new QueryClient({
+    /*
+     * A lapsed subscription is an academy-wide fact, not this button's
+     * problem, so it is caught once here rather than in every mutation.
+     * Individual call sites still render their own error — this only adds the
+     * banner that explains why nothing will save.
+     */
+    mutationCache: new MutationCache({
+      onError: (error) => {
+        if (error instanceof ApiError && error.isSubscriptionLapsed) {
+          useSubscriptionLapsed.getState().report(error.message);
+        }
+      },
+      onSuccess: () => {
+        useSubscriptionLapsed.getState().clear();
+      },
+    }),
     defaultOptions: {
       queries: {
         staleTime: 30_000,

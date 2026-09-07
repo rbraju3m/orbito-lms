@@ -139,6 +139,11 @@ export interface UpdateItemPayload {
   is_preview?: boolean;
   is_published?: boolean;
   duration_seconds?: number;
+
+  /** Drip. Stored whatever the course's mode, so switching mode loses nothing. */
+  drip_available_at?: string | null;
+  drip_after_days?: number | null;
+  drip_after_item_id?: number | null;
 }
 
 export function useUpdateItem(courseId: string) {

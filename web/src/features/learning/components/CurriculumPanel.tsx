@@ -12,6 +12,7 @@ import {
 import { IconCircle, IconCircleCheckFilled, IconLock, IconPlayerPlay } from '@tabler/icons-react';
 
 import { formatDuration } from '@/features/curriculum/hooks/useCurriculumTree';
+import { formatDate } from '@/shared/lib/datetime';
 
 import type { CourseProgress, LearnerItem, LearnerSection } from '../api/types';
 
@@ -86,7 +87,7 @@ export function CurriculumPanel({
                       active={item.id === activeItemId}
                       // A locked item is still listed: seeing what you would
                       // get is the point of the outline.
-                      locked={!hasAccess && !item.is_preview}
+                      locked={(!hasAccess && !item.is_preview) || item.is_locked}
                       onSelect={onSelect}
                     />
                   ))}
@@ -112,6 +113,16 @@ function ItemRow({
   onSelect: (item: LearnerItem) => void;
 }) {
   const done = item.status === 'completed';
+
+  /*
+   * Two different locks. Not being enrolled is answered by enrolling; drip is
+   * answered by waiting or by finishing something first, and the outline says
+   * which rather than making the learner click to find out.
+   */
+  const dripped = item.is_locked;
+  const hint = dripped
+    ? (item.blocked_by ?? (item.unlocks_at ? `Unlocks ${formatDate(item.unlocks_at)}` : null))
+    : null;
 
   return (
     <UnstyledButton
@@ -141,9 +152,16 @@ function ItemRow({
           )}
         </ThemeIcon>
 
-        <Text size="sm" lineClamp={1} style={{ flex: 1 }} c={locked ? 'dimmed' : undefined}>
-          {item.title}
-        </Text>
+        <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
+          <Text size="sm" lineClamp={1} c={locked ? 'dimmed' : undefined}>
+            {item.title}
+          </Text>
+          {hint ? (
+            <Text size="xs" c="dimmed" lineClamp={1}>
+              {item.blocked_by ? `After “${item.blocked_by}”` : hint}
+            </Text>
+          ) : null}
+        </Stack>
 
         {item.is_preview && locked ? (
           <Badge size="xs" variant="light" color="success">

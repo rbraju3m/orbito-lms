@@ -1,6 +1,7 @@
 import {
   Alert,
   Button,
+  Divider,
   Drawer,
   Group,
   NumberInput,
@@ -11,14 +12,19 @@ import {
   TextInput,
 } from '@mantine/core';
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { AssignmentBuilder } from '@/features/assignment/components/AssignmentBuilder';
+import type { DripMode } from '@/features/catalog/api/types';
+import { studioCourseQuery } from '@/features/studio/api/queries';
 import { QuizBuilder } from '@/features/quiz/components/QuizBuilder';
 import { ApiError } from '@/shared/api/errors';
 
-import { useUpdateLesson } from '../api/queries';
+import { curriculumQuery, useUpdateItem, useUpdateLesson } from '../api/queries';
 import type { CourseItem, LessonContent, VideoProvider } from '../api/types';
+import type { DripValues } from './DripFields';
+import { DripFields } from './DripFields';
 
 export interface ItemEditorDrawerProps {
   courseId: string;
@@ -70,7 +76,21 @@ function ItemForm({
   onClose: () => void;
 }) {
   const { mutateAsync, isPending } = useUpdateLesson(courseId);
+  const { mutateAsync: updateItem } = useUpdateItem(courseId);
   const lesson = (item.content ?? {}) as Partial<LessonContent>;
+
+  /*
+   * The drip mode is a COURSE setting, and the sibling list comes from the
+   * curriculum — both already in the cache the builder reads, so this costs no
+   * extra request.
+   */
+  const course = useQuery(studioCourseQuery(courseId));
+  const tree = useQuery(curriculumQuery(courseId));
+
+  const dripMode: DripMode = course.data?.settings?.drip_mode ?? 'none';
+  const siblings = (tree.data ?? [])
+    .flatMap((section) => section.items)
+    .filter((candidate) => candidate.ref !== item.ref && candidate.is_completable);
 
   const [title, setTitle] = useState(item.title);
   const [content, setContent] = useState(lesson.content ?? '');
@@ -80,6 +100,11 @@ function ItemForm({
     Math.round((lesson.video_duration_seconds ?? item.duration_seconds) / 60),
   );
   const [isPreview, setIsPreview] = useState(item.is_preview);
+  const [drip, setDrip] = useState<DripValues>({
+    drip_available_at: item.drip_available_at,
+    drip_after_days: item.drip_after_days,
+    drip_after_item_id: item.drip_after_item_id,
+  });
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -98,6 +123,12 @@ function ItemForm({
         video_duration_seconds: Math.max(0, Math.round(duration * 60)),
         is_preview: isPreview,
       });
+
+      // Two endpoints, deliberately: the lesson body and the item's own
+      // scheduling are different resources. Drip goes second so a failure here
+      // cannot lose the author's writing.
+      await updateItem({ id: item.id, ...drip });
+
       setSaved(true);
     } catch (err) {
       setError(
@@ -169,7 +200,17 @@ function ItemForm({
         checked={isPreview}
         onChange={(event) => setIsPreview(event.currentTarget.checked)}
         label="Free preview"
-        description="Anyone can watch this without enrolling."
+        description="Any member of your academy can watch this without enrolling."
+      />
+
+      <Divider label="Release schedule" labelPosition="left" />
+
+      <DripFields
+        mode={dripMode}
+        values={drip}
+        onChange={(patch) => setDrip((current) => ({ ...current, ...patch }))}
+        siblings={siblings}
+        isPreview={isPreview}
       />
 
       <Group justify="flex-end">

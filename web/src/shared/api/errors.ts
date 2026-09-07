@@ -1,6 +1,6 @@
 import { AxiosError } from 'axios';
 
-import type { ApiErrorBody, ApiErrorDetail } from './types';
+import type { ApiErrorBody, ApiErrorDetail, ApiErrorMeta } from './types';
 
 /**
  * Every failure the app handles is one of these.
@@ -13,6 +13,8 @@ export class ApiError extends Error {
   readonly status: number;
   readonly details: ApiErrorDetail[];
   readonly requestId: string | undefined;
+  /** What the caller can do about it, when the API knows. */
+  readonly meta: ApiErrorMeta;
 
   constructor(params: {
     code: string;
@@ -20,6 +22,7 @@ export class ApiError extends Error {
     status: number;
     details?: ApiErrorDetail[];
     requestId?: string;
+    meta?: ApiErrorMeta;
   }) {
     super(params.message);
     this.name = 'ApiError';
@@ -29,6 +32,14 @@ export class ApiError extends Error {
     // response ever carries something other than the documented list.
     this.details = Array.isArray(params.details) ? params.details : [];
     this.requestId = params.requestId;
+    // Same guard as `details`: the error path is the worst place to throw a
+    // second time because a response carried something unexpected.
+    this.meta = typeof params.meta === 'object' && params.meta !== null ? params.meta : {};
+  }
+
+  /** The first detail's code — the specific reason behind a generic one. */
+  get reason(): string | undefined {
+    return this.details[0]?.code;
   }
 
   /**
@@ -50,6 +61,23 @@ export class ApiError extends Error {
 
   get isNotFound(): boolean {
     return this.status === 404;
+  }
+
+  /**
+   * 423 — the content exists and the caller could legitimately reach it.
+   * Not an error screen: a "here is how to get in" screen. `reason`
+   * distinguishes drip from an expired enrolment from not being enrolled.
+   */
+  get isLocked(): boolean {
+    return this.status === 423;
+  }
+
+  /**
+   * 402 — the ACADEMY's subscription lapsed, not anything about this user.
+   * Reads still work, so this only ever surfaces on a write.
+   */
+  get isSubscriptionLapsed(): boolean {
+    return this.status === 402;
   }
 
   /** 4xx is an answer, not a glitch — retrying it is pointless. */
@@ -97,6 +125,7 @@ export function normaliseError(error: unknown): ApiError {
         status,
         details: body.error.details ?? [],
         requestId: body.error.request_id,
+        meta: body.error.meta,
       });
     }
 
