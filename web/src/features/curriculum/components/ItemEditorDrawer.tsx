@@ -13,6 +13,7 @@ import {
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 import { useState } from 'react';
 
+import { AssignmentBuilder } from '@/features/assignment/components/AssignmentBuilder';
 import { QuizBuilder } from '@/features/quiz/components/QuizBuilder';
 import { ApiError } from '@/shared/api/errors';
 
@@ -50,6 +51,8 @@ export function ItemEditorDrawer({ courseId, item, onClose }: ItemEditorDrawerPr
           initial values, so no effect has to re-sync state into it. */}
       {item === null ? null : item.type === 'quiz' ? (
         <QuizBuilder key={item.id} itemId={item.id} />
+      ) : item.type === 'assignment' ? (
+        <AssignmentBuilder key={item.id} itemId={item.id} />
       ) : (
         <ItemForm key={item.id} courseId={courseId} item={item} onClose={onClose} />
       )}

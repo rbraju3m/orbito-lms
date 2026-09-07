@@ -128,6 +128,11 @@ tests a response the API never sends.
 failure case, register the failing handler *first*: `server.use(failing,
 ...defaults)`.
 
+**A state updater runs after React has released the event.** Two components
+read `event.currentTarget` inside one; both crashed the whole tree the moment
+somebody typed. If a test renders but the page dies on the first keystroke, the
+component test that types into every field is the one that catches it.
+
 **Fixtures mirror ADR-06 too.** `runnerFixture` has no `is_correct`,
 `match_key` or accepted answers, because the runner payload has none. A fixture
 that could carry them would let a test pass against a shape the API never sends.
@@ -195,6 +200,7 @@ backlog, and are worth clearing on a host that can run them.
 | 6 | enrol → play a lesson → progress updates → resume |
 | 7 | take a quiz → submit → see the result |
 | 8 | submit an assignment → grade it → see feedback |
+| 8 | one grading queue shows both a quiz and an assignment |
 | 10 | add to cart → checkout → webhook → access granted |
 | 11 | complete a course → certificate issued → verify publicly |
 

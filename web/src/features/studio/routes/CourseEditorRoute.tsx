@@ -17,7 +17,13 @@ import {
   Title,
 } from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { IconAlertCircle, IconCheck, IconChevronDown, IconExternalLink } from '@tabler/icons-react';
+import {
+  IconAlertCircle,
+  IconCheck,
+  IconChecklist,
+  IconChevronDown,
+  IconExternalLink,
+} from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -183,9 +189,18 @@ export function CourseEditorRoute() {
     <Container size="lg" py="lg">
       <PageHeader
         title={data.title}
-        description="Course basics. The curriculum builder arrives in Phase 5."
+        description="Everything about this course: its basics, its curriculum and its marking."
         actions={
           <Group gap="xs">
+            <Button
+              component={Link}
+              to={`/studio/courses/${id}/grading`}
+              variant="subtle"
+              leftSection={<IconChecklist size={16} />}
+            >
+              Grading
+            </Button>
+
             <Badge size="lg" color={STATUS_COLOR[data.status] ?? 'gray'} variant="light">
               {data.status_label}
             </Badge>

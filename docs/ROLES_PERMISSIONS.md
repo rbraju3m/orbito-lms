@@ -66,7 +66,8 @@ or is assigned to"; policies resolve ownership.
 `curriculum.reorder`
 **assessment** — `quiz.manage.own`, `quiz.manage.any`, `quiz.grade.own`, `quiz.grade.any`,
 `quiz.attempt.view.any`, `quiz.attempt.delete`, `questionbank.manage`,
-`assignment.manage.own`, `assignment.manage.any`, `assignment.grade.own`, `assignment.grade.any`
+`assignment.manage.own`, `assignment.manage.any`, `assignment.grade.own`, `assignment.grade.any`,
+`assignment.submission.view.any`
 **enrollment** — `enrollment.view.own`, `enrollment.view.any`, `enrollment.create`,
 `enrollment.bulk`, `enrollment.suspend`, `enrollment.delete`
 **progress** — `progress.view.own`, `progress.view.any`, `progress.reset`

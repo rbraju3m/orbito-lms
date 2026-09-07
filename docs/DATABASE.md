@@ -195,25 +195,46 @@ quiz_attempt_answers(id, attempt_id, question_id, question_type,
       UNIQUE (attempt_id, question_id)
       INDEX (attempt_id)
 
-assignments(id, instructions LONGTEXT, total_points DECIMAL(8,2),
-      passing_points DECIMAL(8,2) NULL,
+assignments(id, instructions LONGTEXT, total_points DECIMAL(8,2) DEFAULT 100,
+      passing_points DECIMAL(8,2) NULL,          -- NULL = no pass or fail
       due_at DATETIME NULL, late_policy ENUM(reject,accept,penalise) DEFAULT 'accept',
       late_penalty_percent TINYINT DEFAULT 0,
-      max_attempts TINYINT DEFAULT 1,
+      max_attempts TINYINT NULL DEFAULT 1,       -- NULL = unlimited
       allow_text BOOL DEFAULT 1, allow_files BOOL DEFAULT 1,
       max_file_size_kb INT, allowed_extensions JSON, max_files TINYINT DEFAULT 5)
+      -- The file rules NARROW MediaCollection::Submission, never widen it.
+
+assignment_attachments(id, assignment_id, media_id, position)
+      UNIQUE (assignment_id, media_id), INDEX (assignment_id, position)
 
 assignment_submissions(id, uuid, assignment_id, course_item_id, course_id,
       user_id, enrollment_id, attempt_number TINYINT,
-      status ENUM(draft,submitted,grading,graded,returned),
+      status ENUM(submitted,graded,returned),
       body LONGTEXT, submitted_at, is_late BOOL,
-      points_earned DECIMAL(8,2) NULL, feedback LONGTEXT,
+      points_raw DECIMAL(8,2) NULL,              -- what the grader awarded
+      late_penalty_points DECIMAL(8,2) DEFAULT 0,-- what lateness removed
+      points_earned DECIMAL(8,2) NULL,           -- the final figure
+      passed BOOL NULL, feedback LONGTEXT,
       graded_by NULL, graded_at)
       UNIQUE (assignment_id, user_id, attempt_number)
-      INDEX (course_id, status), INDEX (user_id, status)
+      INDEX (course_id, status, submitted_at)    -- the grading queue's read
+      INDEX (user_id, status), INDEX (course_item_id, user_id)
 
 assignment_submission_files(id, submission_id, media_id, original_name, size_bytes)
+      UNIQUE (submission_id, media_id)
+      -- name and size are COPIED at submission time: the media row can be
+      -- renamed or deleted later, and a graded submission must still say what
+      -- was handed in.
 ```
+
+**Deviations from the original plan, and why.** There is no `draft` status: a
+row exists because the learner handed something in, and a server-side draft
+would add an "is this really submitted?" question to every read path. There is
+no separate `grading` status either — `submitted` *is* "waiting for a person",
+which is what the shared grading queue selects on. `is_late` is decided by the
+server at submission and frozen, so moving `due_at` afterwards cannot rewrite
+history; the penalty is stored separately from the raw mark so a learner can
+see both numbers.
 
 ---
 

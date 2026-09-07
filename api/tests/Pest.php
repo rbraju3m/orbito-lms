@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Assessment\Models\Assignment;
 use App\Domain\Assessment\Models\Quiz;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Curriculum\Enums\ItemType;
@@ -157,4 +158,43 @@ function attachQuestions(Quiz $quiz, array $questions): void
             'updated_at' => now(),
         ]);
     }
+}
+
+/**
+ * A published course with an enrolled student and an assignment item.
+ *
+ * @param  array<string, mixed>  $settings
+ * @return array{course: Course, item: CourseItem, assignment: Assignment, student: User, enrollment: Enrollment, instructor: User}
+ */
+function assignmentScenario(array $settings = []): array
+{
+    seedRegistry();
+
+    $instructor = User::factory()->instructor()->create();
+    $course = Course::factory()->ownedBy($instructor)->published()->create();
+    $section = CourseSection::factory()->create(['course_id' => $course->id]);
+
+    $assignment = Assignment::create($settings + [
+        'instructions' => '<p>Write a close reading of one poem.</p>',
+        'total_points' => 100,
+    ]);
+
+    $item = CourseItem::create([
+        'course_id' => $course->id,
+        'section_id' => $section->id,
+        'position' => 0,
+        'type' => ItemType::Assignment,
+        'itemable_type' => $assignment->getMorphClass(),
+        'itemable_id' => $assignment->id,
+        'title' => 'Close reading',
+        'is_published' => true,
+    ]);
+
+    CurriculumChanged::dispatch($course);
+
+    $student = User::factory()->withRole(RoleKey::Student)->create();
+    $enrollment = Enrollment::factory()
+        ->create(['course_id' => $course->id, 'user_id' => $student->id]);
+
+    return compact('course', 'item', 'assignment', 'student', 'enrollment', 'instructor');
 }

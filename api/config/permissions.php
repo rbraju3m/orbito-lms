@@ -85,6 +85,7 @@ $permissions = [
         'assignment.manage.any' => 'Manage any assignment',
         'assignment.grade.own' => 'Grade submissions in scope',
         'assignment.grade.any' => 'Grade any submission',
+        'assignment.submission.view.any' => 'View any assignment submission',
     ],
 
     'enrollment' => [

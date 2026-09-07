@@ -248,11 +248,14 @@ export function QuestionEditor({ question, onSave, onCancel, saving }: QuestionE
               <TextInput
                 flex={1}
                 value={blank}
-                onChange={(event) =>
-                  setBlanks((current) =>
-                    current.map((value, i) => (i === index ? event.currentTarget.value : value)),
-                  )
-                }
+                onChange={(event) => {
+                  // Read before the updater runs: a state updater is called
+                  // after the event has been released, and `currentTarget` is
+                  // null by then.
+                  const next = event.currentTarget.value;
+
+                  setBlanks((current) => current.map((value, i) => (i === index ? next : value)));
+                }}
                 placeholder={`Blank ${index + 1}`}
                 aria-label={`Blank ${index + 1}`}
               />

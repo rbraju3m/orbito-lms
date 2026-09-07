@@ -421,10 +421,71 @@ submit late    status=graded percent=0
 417 backend tests, 91 frontend tests, PHPStan level 6 and `tsc` clean.
 First-paint JS 237.6 KB gzipped, against a 250 KB budget.
 
-### Phase 8 — Assignments
+### Phase 8 — Assignments ✅
 Assignment authoring · submission with files and text · late policy · grading and
 feedback · re-submission · the grading queue shared with quizzes.
 **Exit:** submit → grade → feedback → resubmit works, with file validation enforced.
+
+**One queue, two kinds.** An instructor thinks in terms of "what is there to
+mark today", not "which table is it in", so quizzes and assignments arrive in
+a single list. The two sources are unioned in SQL rather than merged in PHP —
+merging two paginated queries silently drops rows at every page boundary — and
+the queue is filtered by what that particular grader may actually open, so a
+row never 403s when clicked. This also closed a Phase 7 gap: the manual grading
+queue had an API but no screen, and an instructor could not reach it at all.
+
+Also delivered:
+- Assignment authoring on the curriculum spine — one `itemable`, no new
+  ordering, progress or drip mechanism (ADR-01 holding for the third content
+  type in a row).
+- Text and file submissions. Per-assignment file rules NARROW the
+  `MediaCollection`'s rules and never widen them, so an author typing `exe`
+  into a box cannot open a hole the platform already closed.
+- A late policy with three real behaviours: refuse, accept in full, or accept
+  with a penalty. Lateness is decided by the server at submission time and
+  frozen onto the row; the penalty is arithmetic the server does at grading,
+  so it cannot depend on an instructor remembering.
+- Re-submission, and handing work *back*: a returned submission does not
+  consume an attempt, because charging a learner for work the instructor chose
+  not to grade would make the gesture punitive.
+- `SubmissionRules` — one class rendered by the submit form and enforced by the
+  submit Action, so the button and the server cannot disagree about whether
+  handing in is possible. The Phase 4 `PublishChecklist` shape, reused.
+
+**Three real bugs found and fixed while building:**
+- **An uploaded file could not be attached to anything.** `MediaResource`
+  returned only the UUID, while every endpoint that *references* a file speaks
+  in the numeric id. The upload endpoint's response was unusable, which no
+  earlier phase had noticed because no screen had yet uploaded anything. It now
+  returns `ref` alongside `id`, the same convention as `CourseItemResource`.
+- **`event.currentTarget` read inside a `setState` updater**, in the quiz
+  question editor and again in the new grading screen. A state updater runs
+  after React has released the event, so `currentTarget` is null and the whole
+  tree crashes — typing into a fill-in-the-blank row took the page down.
+- **The grading queue paged non-deterministically.** `submitted_at` has second
+  precision, so two pieces of work handed in together ordered arbitrarily, and
+  a row could appear on two pages or on none.
+
+**Exit met.** Verified against the running API:
+
+```
+authored       50 marks, due set, late=penalise 25%, attempts=1
+learner sees   can_submit=True past_due=True will_be_late=True penalty=25%
+upload         essay.pdf id=01a07b89… ref=2
+handed in      attempt 1 late=True files=1 script_stripped=True marked=False
+no more goes   can_submit=False reason=no_attempts_left
+self-mark      409 progress_rejected
+shared queue   2 waiting: assignment/Close reading, quiz/Chapter quiz
+graded         raw=40 penalty=10 final=30 passed=True
+handed back    status=returned mark_cleared=True
+re-opened      can_submit=True attempts_used=0
+second go      201 attempt 2
+queue again    2 waiting
+progress       assignment=completed self_markable=False course=100%
+```
+
+489 backend tests, 116 frontend tests, PHPStan level 6 and `tsc` clean.
+First-paint JS 240.5 KB gzipped, against a 250 KB budget.
 
 ### Phase 9 — Enrollment & Access
 `CourseAccess` service · manual and bulk enrollment · expiry, suspension, revocation ·

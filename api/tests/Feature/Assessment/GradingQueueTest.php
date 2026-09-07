@@ -52,7 +52,7 @@ it('lists attempts awaiting review', function (): void {
 
 it('shows the grader the correct answers', function (): void {
     $response = $this->actingAs($this->owner)
-        ->getJson("/api/v1/studio/grading/{$this->attemptId}")
+        ->getJson("/api/v1/studio/grading/quiz/{$this->attemptId}")
         ->assertOk();
 
     // The grader may see them; the learner mid-attempt may not.
@@ -60,7 +60,7 @@ it('shows the grader the correct answers', function (): void {
 });
 
 it('finalises the attempt once the essay is scored', function (): void {
-    $response = $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/{$this->attemptId}", [
+    $response = $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/quiz/{$this->attemptId}", [
         'grades' => [
             ['question_id' => $this->essay->uuid, 'points' => 4, 'feedback' => 'Good, but expand on metre.'],
         ],
@@ -74,7 +74,7 @@ it('finalises the attempt once the essay is scored', function (): void {
 
 /* A typo must not award more than the question is worth. */
 it('clamps a score to the points available', function (): void {
-    $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/{$this->attemptId}", [
+    $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/quiz/{$this->attemptId}", [
         'grades' => [['question_id' => $this->essay->uuid, 'points' => 9999]],
     ])->assertOk();
 
@@ -82,7 +82,7 @@ it('clamps a score to the points available', function (): void {
 });
 
 it('records who graded it and their feedback', function (): void {
-    $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/{$this->attemptId}", [
+    $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/quiz/{$this->attemptId}", [
         'grades' => [['question_id' => $this->essay->uuid, 'points' => 3, 'feedback' => 'See me.']],
     ])->assertOk();
 
@@ -94,7 +94,7 @@ it('records who graded it and their feedback', function (): void {
 });
 
 it('shows the learner their feedback once it is graded', function (): void {
-    $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/{$this->attemptId}", [
+    $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/quiz/{$this->attemptId}", [
         'grades' => [['question_id' => $this->essay->uuid, 'points' => 3, 'feedback' => 'Expand on metre.']],
     ])->assertOk();
 
@@ -110,7 +110,7 @@ it('lets a course-scoped teaching assistant grade', function (): void {
     $ta = User::factory()->withRole(RoleKey::Student)->create();
     $ta->assignRole(RoleKey::TeachingAssistant, $this->scenario['course']);
 
-    $this->actingAs($ta->fresh())->postJson("/api/v1/studio/grading/{$this->attemptId}", [
+    $this->actingAs($ta->fresh())->postJson("/api/v1/studio/grading/quiz/{$this->attemptId}", [
         'grades' => [['question_id' => $this->essay->uuid, 'points' => 5]],
     ])->assertOk();
 
@@ -125,7 +125,7 @@ it('denies grading to a teaching assistant on another course', function (): void
     $other = Course::factory()->published()->create();
     $ta->assignRole(RoleKey::TeachingAssistant, $other);
 
-    $this->actingAs($ta->fresh())->postJson("/api/v1/studio/grading/{$this->attemptId}", [
+    $this->actingAs($ta->fresh())->postJson("/api/v1/studio/grading/quiz/{$this->attemptId}", [
         'grades' => [['question_id' => $this->essay->uuid, 'points' => 5]],
     ])->assertStatus(403);
 });
@@ -158,7 +158,7 @@ describe('results visibility', function (): void {
 
     it('withholds them from a failing learner when the quiz says on pass', function (): void {
         $this->quiz->update(['show_correct_answers_after' => 'pass', 'passing_score_percent' => 100]);
-        $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/{$this->attemptId}", [
+        $this->actingAs($this->owner)->postJson("/api/v1/studio/grading/quiz/{$this->attemptId}", [
             'grades' => [['question_id' => $this->essay->uuid, 'points' => 0]],
         ])->assertOk();
 

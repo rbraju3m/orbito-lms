@@ -3,7 +3,10 @@ import { useMutation } from '@tanstack/react-query';
 import { http } from '@/shared/api/client';
 
 export interface UploadedMedia {
+  /** UUID, for addressing the file itself. */
   id: string;
+  /** Numeric id — every endpoint that *references* a file speaks in these. */
+  ref: number;
   collection: string;
   mime: string;
   size_bytes: number;

@@ -38,6 +38,8 @@ import {
 import type { LearnerItem } from '../api/types';
 import { CurriculumPanel } from '../components/CurriculumPanel';
 import { LessonPane } from '../components/LessonPane';
+import { AssignmentPane } from '@/features/assignment/components/AssignmentPane';
+
 import { QuizPane } from '../components/QuizPane';
 import { NotesPanel } from '../components/NotesPanel';
 
@@ -212,6 +214,12 @@ export function PlayerRoute() {
                     courseId={courseId}
                     item={item.data}
                     canAttempt={access.granted && !access.is_staff}
+                  />
+                ) : item.data.type === 'assignment' ? (
+                  <AssignmentPane
+                    itemId={item.data.id}
+                    title={item.data.title}
+                    canSubmit={access.granted && !access.is_staff}
                   />
                 ) : (
                   <LessonPane item={item.data} resumeAt={current?.watch_position_seconds ?? 0} />

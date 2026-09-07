@@ -379,6 +379,88 @@ export function quizBuilderFixture(overrides: Record<string, unknown> = {}) {
   };
 }
 
+export function assignmentFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    instructions: '<p>Write a close reading of one poem.</p>',
+    total_points: 50,
+    passing_points: 25,
+    due_at: null,
+    late_policy: 'accept',
+    late_policy_label: 'Accept late work in full',
+    late_penalty_percent: 0,
+    max_attempts: 2,
+    allow_text: true,
+    allow_files: true,
+    max_file_size_kb: 10240,
+    max_files: 3,
+    allowed_extensions: null,
+    attachments: [],
+    ...overrides,
+  };
+}
+
+export function submissionRulesFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    can_submit: true,
+    reason: null,
+    attempts_used: 0,
+    attempts_allowed: 2,
+    attempts_left: 2,
+    is_past_due: false,
+    will_be_late: false,
+    late_penalty_percent: 0,
+    ...overrides,
+  };
+}
+
+export function submissionFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'submission-1',
+    attempt_number: 1,
+    status: 'submitted',
+    status_label: 'Awaiting review',
+    body: '<p>My close reading.</p>',
+    submitted_at: '2026-09-08T09:00:00+00:00',
+    is_late: false,
+    feedback: null,
+    graded_at: null,
+    files: [],
+    ...overrides,
+  };
+}
+
+export function assignmentBriefFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    assignment: assignmentFixture(),
+    submissions: [],
+    rules: submissionRulesFixture(),
+    ...overrides,
+  };
+}
+
+export function gradingQueueFixture() {
+  return [
+    {
+      kind: 'quiz',
+      id: 'attempt-1',
+      status: 'awaiting_review',
+      awaiting_review: true,
+      submitted_at: '2026-09-08T08:00:00+00:00',
+      learner: { id: 'user-1', name: 'Anita Roy' },
+      item: { id: 'item-9', title: 'Chapter quiz' },
+    },
+    {
+      kind: 'assignment',
+      id: 'submission-1',
+      status: 'submitted',
+      awaiting_review: true,
+      submitted_at: '2026-09-08T09:00:00+00:00',
+      learner: { id: 'user-2', name: 'Bijoy Das' },
+      item: { id: 'item-10', title: 'Close reading' },
+    },
+  ];
+}
+
 export function paginated<T>(rows: T[]) {
   return {
     data: rows,

@@ -199,3 +199,21 @@ it('refuses a private download without a valid signature', function (): void {
         ->get("/api/v1/media/{$media->uuid}/download")
         ->assertStatus(403);
 });
+
+/*
+ * The upload response has to be usable: every endpoint that references a file
+ * speaks in the numeric id, so without this an upload cannot be attached to
+ * anything.
+ */
+it('hands back both identifiers for the uploaded file', function (): void {
+    $user = User::factory()->instructor()->create();
+
+    $body = $this->actingAs($user)->postJson('/api/v1/media', [
+        'collection' => 'submission',
+        'file' => UploadedFile::fake()->create('essay.pdf', 40, 'application/pdf'),
+    ])->assertCreated()->json('data');
+
+    expect($body['id'])->toBeString()
+        ->and($body['ref'])->toBeInt()
+        ->and($body['ref'])->toBe(Media::first()->id);
+});

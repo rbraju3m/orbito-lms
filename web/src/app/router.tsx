@@ -204,6 +204,29 @@ export const router = createBrowserRouter([
                     .CourseEditorRoute,
                 }),
               },
+              // Grading sits under the course rather than under a kind: one
+              // list of work, whether it came from a quiz or an assignment.
+              {
+                path: 'studio/courses/:id/grading',
+                lazy: async () => ({
+                  Component: (await import('@/features/grading/routes/GradingQueueRoute'))
+                    .GradingQueueRoute,
+                }),
+              },
+              {
+                path: 'studio/grading/quiz/:attemptId',
+                lazy: async () => ({
+                  Component: (await import('@/features/grading/routes/GradeAttemptRoute'))
+                    .GradeAttemptRoute,
+                }),
+              },
+              {
+                path: 'studio/grading/assignment/:submissionId',
+                lazy: async () => ({
+                  Component: (await import('@/features/grading/routes/GradeSubmissionRoute'))
+                    .GradeSubmissionRoute,
+                }),
+              },
             ],
           },
 

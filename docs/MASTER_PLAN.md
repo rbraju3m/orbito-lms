@@ -93,13 +93,14 @@ certificate — on a phone, in dark mode, with a keyboard.
 
 ## 7. Current status
 
-Phases 0–7 are complete. An instructor can build and publish a course, write
-quizzes across ten question types, and grade the answers a machine cannot; a
-student can find the course, enrol, learn through a real player with video
-resume and notes, take a timed quiz, and complete it — with progress **stored**
-(ADR-02), access answered by a **single service** (ADR-03), and correct answers
-that never leave the server during an attempt (ADR-06).
-Phase 8 (assignments) is next — see `ROADMAP.md`.
+Phases 0–8 are complete. An instructor can build and publish a course, write
+quizzes across ten question types, set assignments, and work through one queue
+of everything waiting to be marked; a student can find the course, enrol, learn
+through a real player with video resume and notes, take a timed quiz, hand in
+written and uploaded work, read their feedback and hand in again — with
+progress **stored** (ADR-02), access answered by a **single service** (ADR-03),
+and correct answers that never leave the server during an attempt (ADR-06).
+Phase 9 (enrollment and access) is next — see `ROADMAP.md`.
 
 ## 8. Decisions taken
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Curriculum\Actions;
 
+use App\Domain\Assessment\Models\Assignment;
 use App\Domain\Assessment\Models\Quiz;
 use App\Domain\Curriculum\Enums\ItemType;
 use App\Domain\Curriculum\Events\CurriculumChanged;
@@ -129,6 +130,7 @@ final class ManageItems
             ItemType::Lesson => Lesson::create([]),
             ItemType::Resource => Resource::create([]),
             ItemType::Quiz => Quiz::create([]),
+            ItemType::Assignment => Assignment::create([]),
             default => throw CurriculumRejected::typeUnavailable($type),
         };
     }

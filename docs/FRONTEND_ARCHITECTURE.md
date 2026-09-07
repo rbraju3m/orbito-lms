@@ -70,8 +70,12 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
     ├─ /reviews
     ├─ /discussions
     └─ /analytics
-(quiz builder — reached through the curriculum item's editor drawer, not its
- own route: a quiz is edited in the context of the course it belongs to)
+/studio/courses/:id/grading                one queue: quizzes and assignments
+/studio/grading/quiz/:attemptId            mark the open questions
+/studio/grading/assignment/:submissionId   mark, or hand back for another go
+(quiz and assignment builders — reached through the curriculum item's editor
+ drawer, not their own routes: both are edited in the context of the course
+ they belong to)
 /studio/courses/:id/assignments/:id
 /studio/question-banks
 /studio/earnings · /studio/payouts
@@ -288,6 +292,8 @@ LearnLayout
 - The quiz runner is its own focused layout: one question per page by default, a server
   authoritative countdown (client clock is display only), autosave per answer, and an
   explicit review step before submit.
+- An assignment stays *inside* the player: there is no countdown and nothing to lose by
+  navigating away, so the brief, the submit form and the history are one pane.
 - Locked items render a `LockedItemState` explaining *why* (drip date, prerequisite,
   expired enrollment) with the next useful action.
 

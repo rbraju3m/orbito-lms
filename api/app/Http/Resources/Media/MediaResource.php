@@ -19,6 +19,13 @@ final class MediaResource extends BaseResource
     {
         return [
             'id' => $this->uuid,
+            /*
+             * The numeric id. Every endpoint that *references* a file speaks
+             * in these (`video_media_id`, `media_ids`), so an upload has to
+             * hand one back or the response cannot be used — the same `ref`
+             * convention as CourseItemResource and QuestionResource.
+             */
+            'ref' => $this->id,
             'collection' => $this->collection,
             'mime' => $this->mime,
             'extension' => $this->extension,

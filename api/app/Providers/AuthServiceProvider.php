@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Assessment\Models\Assignment;
 use App\Domain\Assessment\Models\Quiz;
+use App\Domain\Assessment\Policies\AssignmentPolicy;
 use App\Domain\Assessment\Policies\QuizPolicy;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\CourseCategory;
@@ -69,6 +71,7 @@ final class AuthServiceProvider extends ServiceProvider
             'lesson' => Lesson::class,
             'resource' => Resource::class,
             'quiz' => Quiz::class,
+            'assignment' => Assignment::class,
         ]);
     }
 
@@ -104,6 +107,30 @@ final class AuthServiceProvider extends ServiceProvider
             'view-quiz-attempts',
             fn (User $user, Course $course) => app(QuizPolicy::class)->viewAttempts($user, $course),
         );
+
+        Gate::define(
+            'manage-assignment',
+            fn (User $user, Course $course) => app(AssignmentPolicy::class)->manage($user, $course),
+        );
+
+        Gate::define(
+            'grade-assignment',
+            fn (User $user, Course $course) => app(AssignmentPolicy::class)->grade($user, $course),
+        );
+
+        Gate::define(
+            'view-submissions',
+            fn (User $user, Course $course) => app(AssignmentPolicy::class)->viewSubmissions($user, $course),
+        );
+
+        /*
+         * The grading queue is one list of work across quizzes and
+         * assignments, so it opens for anyone who can grade either — and then
+         * returns only the kinds that particular grader may actually see.
+         */
+        Gate::define('view-grading-queue', fn (User $user, Course $course) => app(QuizPolicy::class)
+            ->viewAttempts($user, $course)
+            || app(AssignmentPolicy::class)->viewSubmissions($user, $course));
 
         Gate::define(
             'reorder-curriculum',

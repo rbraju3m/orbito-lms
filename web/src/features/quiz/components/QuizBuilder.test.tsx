@@ -118,6 +118,25 @@ describe('QuizBuilder', () => {
     expect(within(dialog).queryByLabelText('Option 1')).not.toBeInTheDocument();
   });
 
+  /*
+   * A state updater runs after the event has been released, so reading
+   * `event.currentTarget` inside one crashes the whole tree.
+   */
+  it('accepts typing into a fill-in-the-blank row', async () => {
+    server.use(...builderHandlers());
+    renderBuilder();
+
+    await userEvent.click(await screen.findByRole('button', { name: /Add a question/ }));
+
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getAllByLabelText('Type')[0]!);
+    await userEvent.click(await screen.findByRole('option', { name: 'Fill in the blank' }));
+
+    await fill(within(dialog).getByLabelText('Blank 1'), '1910');
+
+    expect(within(dialog).getByLabelText('Blank 1')).toHaveValue('1910');
+  });
+
   it('warns that a long answer always waits for a person', async () => {
     server.use(...builderHandlers());
     renderBuilder();

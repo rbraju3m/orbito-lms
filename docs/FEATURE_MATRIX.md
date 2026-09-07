@@ -153,6 +153,13 @@ consumes it until the gradebook (P13), and E25 (P13).
 | F9 | Grading rubric | — | — | Post-1.0 | |
 | F10 | Plagiarism / similarity | — | — | Post-1.0 | |
 
+**Shipped in Phase 8:** F1–F8. Grading and feedback share one queue with
+quizzes (`GET /studio/courses/{course}/grading`) rather than living in a second
+screen. Re-submission (F8) also covers handing work *back*: a returned
+submission re-opens the assignment and does not consume an attempt.
+
+**Still open:** F9 and F10, both post-1.0 by decision.
+
 ## G. Enrollment & Access
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |

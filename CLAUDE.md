@@ -306,13 +306,44 @@ Gate::authorize('publish', $course);                   // in a controller
   ("070", "1.", ""). `typeof value === 'number'` silently turns a half-typed
   field into the fallback — use `numberValue`/`optionalNumberValue`.
 
-## 14. Current phase
+## 14. Patterns established in Phase 8 — reuse these
 
-**Phases 0–7 complete.** Audit, architecture, foundation, identity, catalog,
-curriculum, learning, assessment.
+- **A "may they do this yet?" object is rendered AND enforced.**
+  `SubmissionRules` is returned to the submit form and consulted by
+  `SubmitAssignment`. One class, so the button and the server cannot disagree.
+  Same shape as `PublishChecklist`.
+- **Per-item rules narrow platform rules, never widen them.** An assignment's
+  extension list and size cap sit inside what `MediaCollection` already allows;
+  an author cannot type `exe` into a box and open a hole.
+- **Decide against the clock once, then freeze it.** `is_late` is settled at
+  submission time and stored. Moving `due_at` afterwards must not retroactively
+  make somebody late, or un-late.
+- **Arithmetic the policy implies is the server's job.** The late penalty is
+  applied in `GradeSubmission`, not typed in by an instructor — otherwise it
+  depends on them remembering, and the learner cannot see it was applied.
+- **Union in SQL, do not merge in PHP.** The grading queue reads two tables;
+  merging two paginated queries drops rows at every page boundary. And give the
+  union a tiebreak — `submitted_at` has second precision, so without one a row
+  can appear on two pages or on none.
+- **Filter a shared list by what the reader may open**, not by a query
+  parameter. A row that 403s when clicked is a bug, not a permission check.
+- **Absent is not zero.** An ungraded submission omits `points_earned` rather
+  than sending 0; "not marked yet" and "scored nothing" are different facts.
+- **Never read `event.currentTarget` inside a `setState` updater.** The updater
+  runs after React has released the event, so it is null and the tree crashes.
+  Read the value first, then call the setter.
+- **An upload response must be usable.** Endpoints that reference a file speak
+  in the numeric id, so `MediaResource` returns `ref` beside the UUID — the
+  same convention as `CourseItemResource` and `QuestionResource`.
 
-**Phase 8 is next: assignments** — authoring, submission with files and text,
-a late policy, grading and feedback that share the queue quizzes already use,
-and re-submission. The grading queue, `GradeAnswerManually` and the
-`awaiting_review` status are the shapes to extend, not to duplicate. See
+## 15. Current phase
+
+**Phases 0–8 complete.** Audit, architecture, foundation, identity, catalog,
+curriculum, learning, assessment, assignments.
+
+**Phase 9 is next: enrollment and access** — manual and bulk enrollment,
+expiry, suspension and revocation, drip (date / days / sequential),
+prerequisites, seat limits, course completion in both modes, reset and retake.
+`CourseAccess` (ADR-03) is the one place a new access source is added; adding a
+second enrollment check anywhere is the failure this phase must avoid. See
 `docs/ROADMAP.md`.

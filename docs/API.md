@@ -205,20 +205,52 @@ matching / image_matching                   {"pairs": {"<optionId>": "<matchKey>
 ordering                                    {"option_ids": [3, 1, 2]}
 ```
 
+### Assignments — implemented in Phase 8
+Reached through the curriculum item, the same as a quiz.
+
+```
+# authoring
+GET    /studio/items/{item}/assignment
+PATCH  /studio/items/{item}/assignment          settings + attachment_media_ids[]
+
+# handing work in
+GET    /learn/items/{item}/assignment           → {assignment, submissions, rules}
+POST   /learn/items/{item}/assignment/submissions   {body?, media_ids[]}
+```
+
+`rules` is the object the submit form renders AND the submit Action enforces:
+`can_submit`, `reason` (`no_attempts_left` | `past_due`), `attempts_used`,
+`attempts_allowed`, `attempts_left`, `is_past_due`, `will_be_late`,
+`late_penalty_percent`. File rules (`max_files`, `allowed_extensions`,
+`max_file_size_kb`) fail as 422 with field details; attempts and the deadline
+fail as 409 `submission_rejected`.
+
+`media_ids` are the numeric `ref` from an upload, and must belong to the
+caller in the `submission` collection — an id that merely exists is refused.
+
+### Grading — one queue, both kinds
+```
+GET    /studio/courses/{course}/grading?status=awaiting_review|all
+       → paginated rows: {kind: 'quiz'|'assignment', id, status, awaiting_review,
+                          submitted_at, learner:{id,name}, item:{id,title}}
+         filtered by what THIS grader may open, so no row 403s when clicked
+
+GET    /studio/grading/quiz/{attempt}
+POST   /studio/grading/quiz/{attempt}           {grades:[{question_id,points,feedback}]}
+GET    /studio/grading/assignment/{submission}
+POST   /studio/grading/assignment/{submission}  {points, feedback?}
+POST   /studio/grading/assignment/{submission}/return   {feedback}
+```
+
+Returning hands work back without a mark and does **not** consume an attempt.
+The late penalty is applied server-side on grading, from the `is_late` frozen
+onto the submission — the grader always marks out of the full total.
+
 ### Assessment — later phases
 ```
 GET    /studio/question-banks · POST · /questions
 POST   /studio/items/{item}/quiz/questions/import-from-bank
 POST   /learn/quiz-attempts/{uuid}/abandon
-
-# assignments
-GET/POST/PATCH/DELETE  /studio/assignments/{id}
-GET    /learn/assignments/{id}
-POST   /learn/assignments/{id}/submissions      {body?, media_ids[]}
-GET    /learn/submissions/{uuid}
-GET    /studio/submissions?status=&course_id=
-POST   /studio/submissions/{uuid}/grade         {points, feedback}
-POST   /studio/submissions/{uuid}/return
 ```
 
 ### Enrollment & Commerce

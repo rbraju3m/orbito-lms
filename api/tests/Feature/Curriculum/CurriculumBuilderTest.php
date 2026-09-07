@@ -52,10 +52,24 @@ it('refuses an item type that does not exist yet', function (): void {
     expect($this->actingAs($this->instructor)
         ->postJson("/api/v1/studio/courses/{$this->course->uuid}/items", [
             'section_id' => $section->id,
-            'type' => 'assignment',
+            'type' => 'live_session',
             'title' => 'Too early',
         ])
         ->assertStatus(422))->toBeApiError('validation_failed');
+});
+
+it('creates an assignment item now that the assignment entity exists', function (): void {
+    $section = CourseSection::factory()->create(['course_id' => $this->course->id]);
+
+    $response = $this->actingAs($this->instructor)
+        ->postJson("/api/v1/studio/courses/{$this->course->uuid}/items", [
+            'section_id' => $section->id,
+            'type' => 'assignment',
+            'title' => 'Close reading',
+        ])->assertCreated();
+
+    expect($response->json('data.type'))->toBe('assignment');
+    $this->assertDatabaseCount('assignments', 1);
 });
 
 it('creates a quiz item now that the quiz entity exists', function (): void {
