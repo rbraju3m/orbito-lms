@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Assessment\Models\Quiz;
+use App\Domain\Assessment\Policies\QuizPolicy;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\CourseCategory;
 use App\Domain\Catalog\Policies\CourseCategoryPolicy;
@@ -66,6 +68,7 @@ final class AuthServiceProvider extends ServiceProvider
             // moving between namespaces.
             'lesson' => Lesson::class,
             'resource' => Resource::class,
+            'quiz' => Quiz::class,
         ]);
     }
 
@@ -85,6 +88,21 @@ final class AuthServiceProvider extends ServiceProvider
         Gate::define(
             'manage-curriculum',
             fn (User $user, Course $course) => app(CurriculumPolicy::class)->manage($user, $course),
+        );
+
+        Gate::define(
+            'manage-quiz',
+            fn (User $user, Course $course) => app(QuizPolicy::class)->manage($user, $course),
+        );
+
+        Gate::define(
+            'grade-quiz',
+            fn (User $user, Course $course) => app(QuizPolicy::class)->grade($user, $course),
+        );
+
+        Gate::define(
+            'view-quiz-attempts',
+            fn (User $user, Course $course) => app(QuizPolicy::class)->viewAttempts($user, $course),
         );
 
         Gate::define(

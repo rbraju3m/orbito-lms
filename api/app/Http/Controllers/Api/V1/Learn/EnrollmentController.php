@@ -41,7 +41,7 @@ final class EnrollmentController
                 'subtitle' => $progress->course->subtitle,
                 'thumbnail_url' => $progress->course->thumbnail?->publicUrl(),
             ],
-            'progress' => CourseProgressResource::make($progress)->toArray($request),
+            'progress' => CourseProgressResource::make($progress)->resolve($request),
             'resume_item_id' => $progress->lastItem?->uuid,
         ])->all());
     }
@@ -60,8 +60,8 @@ final class EnrollmentController
         );
 
         return ApiResponse::ok($rows->through(fn ($progress) => [
-            'course' => CourseListResource::make($progress->course)->toArray($request),
-            'progress' => CourseProgressResource::make($progress)->toArray($request),
+            'course' => CourseListResource::make($progress->course)->resolve($request),
+            'progress' => CourseProgressResource::make($progress)->resolve($request),
             'enrollment_status' => $progress->enrollment?->status->value,
         ]));
     }

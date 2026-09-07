@@ -25,7 +25,9 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.code = params.code;
     this.status = params.status;
-    this.details = params.details ?? [];
+    // Guarded: the error path is the worst place to throw a second time if a
+    // response ever carries something other than the documented list.
+    this.details = Array.isArray(params.details) ? params.details : [];
     this.requestId = params.requestId;
   }
 

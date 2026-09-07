@@ -108,6 +108,33 @@ export const router = createBrowserRouter([
           Component: (await import('@/features/learning/routes/PlayerRoute')).PlayerRoute,
         }),
       },
+      // The quiz gets its own routes rather than a pane inside the player: an
+      // attempt has a countdown and unsaved answers, and the player's Next
+      // button would silently discard both. Unlike the rest of the player
+      // these are never anonymous — an attempt belongs to somebody.
+      {
+        element: <RequireAuth />,
+        children: [
+          {
+            path: ':itemId/quiz',
+            lazy: async () => ({
+              Component: (await import('@/features/quiz/routes/QuizIntroRoute')).QuizIntroRoute,
+            }),
+          },
+          {
+            path: ':itemId/quiz/:attemptId',
+            lazy: async () => ({
+              Component: (await import('@/features/quiz/routes/QuizRunnerRoute')).QuizRunnerRoute,
+            }),
+          },
+          {
+            path: ':itemId/quiz/:attemptId/result',
+            lazy: async () => ({
+              Component: (await import('@/features/quiz/routes/QuizResultRoute')).QuizResultRoute,
+            }),
+          },
+        ],
+      },
     ],
   },
 
@@ -154,6 +181,27 @@ export const router = createBrowserRouter([
                 lazy: async () => ({
                   Component: (await import('@/features/studio/routes/StudioHomeRoute'))
                     .StudioHomeRoute,
+                }),
+              },
+              {
+                path: 'studio/courses',
+                lazy: async () => ({
+                  Component: (await import('@/features/studio/routes/StudioCoursesRoute'))
+                    .StudioCoursesRoute,
+                }),
+              },
+              {
+                path: 'studio/courses/new',
+                lazy: async () => ({
+                  Component: (await import('@/features/studio/routes/NewCourseRoute'))
+                    .NewCourseRoute,
+                }),
+              },
+              {
+                path: 'studio/courses/:id',
+                lazy: async () => ({
+                  Component: (await import('@/features/studio/routes/CourseEditorRoute'))
+                    .CourseEditorRoute,
                 }),
               },
             ],

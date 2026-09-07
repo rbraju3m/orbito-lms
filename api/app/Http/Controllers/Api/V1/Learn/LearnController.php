@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Learn;
 
+use App\Domain\Assessment\Models\Quiz;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\Lesson;
@@ -57,11 +58,11 @@ final class LearnController
                 'expires_at' => $decision->expiresAt?->toIso8601String(),
             ],
             'progress' => $enrollment?->progress !== null
-                ? CourseProgressResource::make($enrollment->progress)->toArray($request)
+                ? CourseProgressResource::make($enrollment->progress)->resolve($request)
                 : null,
             'curriculum' => LearnerSectionResource::collection(
                 $query->curriculumWithProgress($course, $enrollment),
-            )->toArray($request),
+            )->resolve($request),
         ]);
     }
 
@@ -119,6 +120,18 @@ final class LearnController
                 // URL, minted after access was granted above (ADR-09).
                 'video_signed_url' => $itemable->video !== null ? $urls->for($itemable->video) : null,
                 'video_duration_seconds' => $itemable->video_duration_seconds,
+            ];
+        }
+
+        if ($itemable instanceof Quiz) {
+            // The overview only. Questions, the deadline and the answers all
+            // come from the attempt endpoints, which is where ADR-06 lives.
+            return [
+                'instructions' => $itemable->instructions,
+                'question_count' => $itemable->questions()->count(),
+                'time_limit_seconds' => $itemable->time_limit_seconds,
+                'attempts_allowed' => $itemable->attempts_allowed,
+                'passing_score_percent' => $itemable->passing_score_percent,
             ];
         }
 

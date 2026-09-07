@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Domain\Assessment\Models\Quiz;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Curriculum\Enums\ItemType;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
+use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Support\PermissionRegistry;
@@ -102,4 +105,56 @@ function courseWithCurriculum(
     CurriculumChanged::dispatch($course);
 
     return $course->fresh(['sections.items', 'items']) ?? $course;
+}
+
+/**
+ * A published course with an enrolled student and a quiz item, ready to attempt.
+ *
+ * @return array{course: Course, item: CourseItem, quiz: Quiz, student: User, enrollment: Enrollment, instructor: User}
+ */
+function quizScenario(array $quizSettings = []): array
+{
+    seedRegistry();
+
+    $instructor = User::factory()->instructor()->create();
+    $course = Course::factory()
+        ->ownedBy($instructor)->published()->create();
+
+    $section = CourseSection::factory()
+        ->create(['course_id' => $course->id]);
+
+    $quiz = Quiz::create($quizSettings);
+
+    $item = CourseItem::create([
+        'course_id' => $course->id,
+        'section_id' => $section->id,
+        'position' => 0,
+        'type' => ItemType::Quiz,
+        'itemable_type' => $quiz->getMorphClass(),
+        'itemable_id' => $quiz->id,
+        'title' => 'Chapter quiz',
+        'is_published' => true,
+    ]);
+
+    CurriculumChanged::dispatch($course);
+
+    $student = User::factory()
+        ->withRole(RoleKey::Student)->create();
+
+    $enrollment = Enrollment::factory()
+        ->create(['course_id' => $course->id, 'user_id' => $student->id]);
+
+    return compact('course', 'item', 'quiz', 'student', 'enrollment', 'instructor');
+}
+
+/** Attaches questions to a quiz in order. */
+function attachQuestions(Quiz $quiz, array $questions): void
+{
+    foreach (array_values($questions) as $position => $question) {
+        $quiz->questions()->attach($question->id, [
+            'position' => $position,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
 }

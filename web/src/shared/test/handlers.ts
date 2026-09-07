@@ -160,6 +160,7 @@ export function playerFixture(overrides: Record<string, unknown> = {}) {
     duration_seconds: 300,
     is_preview: false,
     is_completable: true,
+    is_self_markable: true,
     status: 'not_started',
     watch_position_seconds: 0,
     ...extra,
@@ -216,6 +217,164 @@ export function itemFixture(overrides: Record<string, unknown> = {}) {
     },
     previous_id: null,
     next_id: 'item-2',
+    ...overrides,
+  };
+}
+
+/**
+ * A runner payload. Note what it cannot express: is_correct, match_key,
+ * accepted answers. That mirrors the server (ADR-06) — a fixture that could
+ * carry them would let a test pass on a shape the API never sends.
+ */
+export function runnerFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    attempt: {
+      id: 'attempt-1',
+      attempt_number: 1,
+      status: 'in_progress',
+      status_label: 'In progress',
+      started_at: '2026-09-07T10:00:00+00:00',
+      expires_at: '2026-09-07T10:10:00+00:00',
+      seconds_remaining: 600,
+      submitted_at: null,
+      quiz: {
+        passing_score_percent: 50,
+        feedback_mode: 'default',
+        questions_per_page: 1,
+        hide_question_numbers: false,
+        allow_previous_button: true,
+        show_correct_answers: true,
+      },
+    },
+    questions: [
+      {
+        id: 'q-1',
+        ref: 1,
+        type: 'single_choice',
+        type_label: 'Single choice',
+        title: 'Who wrote Gitanjali?',
+        body: null,
+        points: 1,
+        media_url: null,
+        options: [
+          { id: 11, label: 'Rabindranath Tagore', media_url: null },
+          { id: 12, label: 'Kazi Nazrul Islam', media_url: null },
+        ],
+      },
+      {
+        id: 'q-2',
+        ref: 2,
+        type: 'short_answer',
+        type_label: 'Short answer',
+        title: 'Name one Bengali metre.',
+        body: null,
+        points: 2,
+        media_url: null,
+      },
+    ],
+    answers: {},
+    ...overrides,
+  };
+}
+
+export function attemptResultFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    attempt: {
+      id: 'attempt-1',
+      attempt_number: 1,
+      status: 'graded',
+      status_label: 'Graded',
+      started_at: '2026-09-07T10:00:00+00:00',
+      expires_at: null,
+      seconds_remaining: null,
+      submitted_at: '2026-09-07T10:05:00+00:00',
+      total_points: 3,
+      earned_points: 1,
+      percent: 33.33,
+      result: 'fail',
+      passed: false,
+      quiz: {
+        passing_score_percent: 50,
+        feedback_mode: 'default',
+        questions_per_page: 1,
+        hide_question_numbers: false,
+        allow_previous_button: true,
+        show_correct_answers: true,
+      },
+    },
+    review: [
+      {
+        question_id: 'q-1',
+        type: 'single_choice',
+        title: 'Who wrote Gitanjali?',
+        points_possible: 1,
+        points_earned: 1,
+        is_correct: true,
+        awaiting_review: false,
+        your_answer: { option_id: 11 },
+        your_answer_label: 'Rabindranath Tagore',
+        feedback: null,
+        explanation: 'Published in 1910.',
+        correct_answer: 'Rabindranath Tagore',
+      },
+      {
+        question_id: 'q-2',
+        type: 'short_answer',
+        title: 'Name one Bengali metre.',
+        points_possible: 2,
+        points_earned: 0,
+        is_correct: false,
+        awaiting_review: false,
+        your_answer: { text: 'iambic' },
+        your_answer_label: 'iambic',
+        feedback: null,
+        explanation: null,
+        correct_answer: ['payar'],
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function quizBuilderFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    settings: {
+      description: null,
+      instructions: 'Answer every question.',
+      time_limit_seconds: 600,
+      time_expiry_policy: 'auto_submit',
+      attempts_allowed: 3,
+      passing_score_percent: 50,
+      grading_policy: 'highest',
+      question_order: 'sorted',
+      shuffle_answers: false,
+      questions_per_attempt: null,
+      questions_per_page: 1,
+      hide_question_numbers: false,
+      feedback_mode: 'default',
+      show_correct_answers_after: 'submission',
+      negative_marking: false,
+      allow_previous_button: true,
+    },
+    questions: [
+      {
+        id: 'q-1',
+        ref: 1,
+        type: 'single_choice',
+        type_label: 'Single choice',
+        title: 'Who wrote Gitanjali?',
+        body: null,
+        explanation: null,
+        points: 1,
+        negative_points: 0,
+        settings: null,
+        needs_manual_grading: false,
+        options: [
+          { id: 11, label: 'Rabindranath Tagore', is_correct: true, match_key: null, position: 0 },
+          { id: 12, label: 'Kazi Nazrul Islam', is_correct: false, match_key: null, position: 1 },
+        ],
+      },
+    ],
     ...overrides,
   };
 }

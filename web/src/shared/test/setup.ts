@@ -52,6 +52,14 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
+// jsdom implements no scrollIntoView. Mantine's Combobox calls it from a
+// timeout after the dropdown opens, so without this a Select interaction
+// throws AFTER the test that opened it has finished — failing whichever test
+// happens to be running at the time.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function scrollIntoView() {};
+}
+
 class ResizeObserverStub {
   observe() {}
   unobserve() {}

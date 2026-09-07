@@ -23,7 +23,7 @@ final class AuthenticatedUserResource extends BaseResource
     public function toArray(Request $request): array
     {
         return [
-            'user' => UserResource::make($this->resource)->toArray($request),
+            'user' => UserResource::make($this->resource)->resolve($request),
             'roles' => $this->roleKeys(),
             'permissions' => $this->globalPermissionKeys(),
             'is_instructor' => $this->isApprovedInstructor(),

@@ -13,6 +13,7 @@ use App\Domain\Enrollment\Queries\CourseAccess;
 use App\Domain\Progress\Actions\CompleteCourse;
 use App\Domain\Progress\Actions\ResetCourseProgress;
 use App\Domain\Progress\Actions\TrackItemProgress;
+use App\Domain\Progress\Exceptions\ProgressRejected;
 use App\Http\Resources\Progress\CourseProgressResource;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -29,23 +30,36 @@ final class ProgressController
     public function complete(Request $request, CourseItem $item): JsonResponse
     {
         $enrollment = $this->enrollmentForItem($request, $item);
+        $this->assertSelfMarkable($item);
 
         $this->track->complete($enrollment, $item);
 
         return ApiResponse::ok(
-            CourseProgressResource::make($enrollment->fresh('progress')->progress)->toArray($request)
+            CourseProgressResource::make($enrollment->fresh('progress')->progress)->resolve($request)
         );
     }
 
     public function uncomplete(Request $request, CourseItem $item): JsonResponse
     {
         $enrollment = $this->enrollmentForItem($request, $item);
+        $this->assertSelfMarkable($item);
 
         $this->track->uncomplete($enrollment, $item);
 
         return ApiResponse::ok(
-            CourseProgressResource::make($enrollment->fresh('progress')->progress)->toArray($request)
+            CourseProgressResource::make($enrollment->fresh('progress')->progress)->resolve($request)
         );
+    }
+
+    /**
+     * The completion of a quiz is earned by submitting an attempt. Allowing
+     * the button to do it would make every quiz in the course optional.
+     */
+    private function assertSelfMarkable(CourseItem $item): void
+    {
+        if (! $item->type->isSelfMarkable()) {
+            throw ProgressRejected::notSelfMarkable($item->type);
+        }
     }
 
     /**
@@ -79,7 +93,7 @@ final class ProgressController
         $enrollment = $this->enrollmentForCourse($request, $course);
 
         return ApiResponse::ok(
-            CourseProgressResource::make($action->handle($enrollment))->toArray($request)
+            CourseProgressResource::make($action->handle($enrollment))->resolve($request)
         );
     }
 
@@ -93,7 +107,7 @@ final class ProgressController
         }
 
         return ApiResponse::ok(
-            CourseProgressResource::make($action->handle($enrollment))->toArray($request)
+            CourseProgressResource::make($action->handle($enrollment))->resolve($request)
         );
     }
 

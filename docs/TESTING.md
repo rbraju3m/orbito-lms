@@ -98,9 +98,12 @@ component into its mobile branch, so a desktop-only element is simply absent and
 the test fails for a reason unrelated to the code. Use `setTestViewportWidth`
 to exercise the mobile layout.
 
-jsdom lacks `document.fonts` and `visualViewport`; both are polyfilled in
-`setup.ts` because Mantine's autosize Textarea and floating-ui need them, and
-without them a whole component tree throws. Test renders also pass
+jsdom lacks `document.fonts`, `visualViewport` and `Element.scrollIntoView`;
+all three are polyfilled in `setup.ts` because Mantine's autosize Textarea,
+floating-ui and Combobox need them. `scrollIntoView` is the nastiest of the
+three: Combobox calls it from a timeout after the dropdown opens, so the
+failure lands *after* the test that opened it has finished, and whichever test
+happens to be running takes the blame. Test renders also pass
 `env="test"` to `MantineProvider`, which disables transitions — otherwise
 portalled menus are still animating when an assertion runs and failures look
 like missing elements.
@@ -117,6 +120,23 @@ opposite of the real behaviour. See `CurriculumBuilder.test.tsx`.
 
 **Unhandled requests fail the test** (`onUnhandledRequest: 'error'`). A mock that
 drifts from the API contract is the failure mode this whole layer exists to catch.
+For the same reason, an error fixture must use the real envelope — `details` is
+a list of `{field, code, message}`, and a fixture that invents a different shape
+tests a response the API never sends.
+
+**MSW resolves handlers in the order given.** To override a default with a
+failure case, register the failing handler *first*: `server.use(failing,
+...defaults)`.
+
+**Fixtures mirror ADR-06 too.** `runnerFixture` has no `is_correct`,
+`match_key` or accepted answers, because the runner payload has none. A fixture
+that could carry them would let a test pass against a shape the API never sends.
+
+`testTimeout` is 20s, not Vitest's 5s default. These render whole Mantine trees
+and drive them through userEvent — comfortably under a second on an idle
+machine, several times that when every worker is busy. Prefer a click-and-paste
+helper over `userEvent.type` for long strings; typing key by key through a full
+component tree dominates the runtime.
 
 Every test gets a **fresh QueryClient** with retries off — a shared cache would
 leak one test's data into the next, and retries would turn a fast error
@@ -158,15 +178,21 @@ this development host. E2E therefore runs in CI (ubuntu-latest) and on any
 developer machine running Ubuntu 22.04+ / macOS. `npm run e2e` will refuse to
 install browsers on 20.04; this is a host constraint, not a configuration bug.
 
+**Only the phase 2 and 3 rows below are written** (`shell.spec.ts`,
+`auth.spec.ts`). Because the specs cannot be run on this host, later phases
+have been verified end to end against the running API with scripted HTTP
+instead — the transcripts are in `ROADMAP.md`. The remaining rows are the
+backlog, and are worth clearing on a host that can run them.
+
 ### The critical-flow suite (grows by phase)
 
 | Phase | Flow |
 |---|---|
 | 2 | shell renders · navigation · light/dark toggle · unknown route |
 | 3 | register → verify → login → logout · password reset ✅ |
-| 4 | create a course → publish it ✅ |
-| 5 | build curriculum by drag and drop → reorder persists ✅ |
-| 6 | enrol → play a lesson → progress updates → resume ✅ |
+| 4 | create a course → publish it |
+| 5 | build curriculum by drag and drop → reorder persists |
+| 6 | enrol → play a lesson → progress updates → resume |
 | 7 | take a quiz → submit → see the result |
 | 8 | submit an assignment → grade it → see feedback |
 | 10 | add to cart → checkout → webhook → access granted |

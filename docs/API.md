@@ -166,26 +166,50 @@ POST   /learn/courses/{id}/complete
 POST   /learn/courses/{id}/reset-progress
 ```
 
-### Assessment
-```
-# authoring
-GET/POST/PATCH/DELETE  /studio/quizzes/{id}
-GET/POST/PATCH/DELETE  /studio/quizzes/{id}/questions
-PATCH  /studio/quizzes/{id}/questions/order
-GET    /studio/question-banks · POST · /questions
-POST   /studio/quizzes/{id}/questions/import-from-bank
+### Assessment — implemented in Phase 7
+A quiz is reached through the curriculum item that owns it, not by its own id.
+The item is the thing the learner navigates to and the thing authorization is
+answered about, so making it the identifier keeps one gate instead of two.
 
-# taking
-POST   /learn/quizzes/{id}/attempts             → attempt + questions WITHOUT answers
-GET    /learn/quiz-attempts/{uuid}
+```
+# authoring — returns the correct answers, authorized against the course
+GET    /studio/items/{item}/quiz                → {settings, questions}
+PATCH  /studio/items/{item}/quiz                quiz settings
+POST   /studio/items/{item}/quiz/questions
+PATCH  /studio/items/{item}/quiz/questions/{question}
+DELETE /studio/items/{item}/quiz/questions/{question}
+PATCH  /studio/items/{item}/quiz/questions/order   {question_ids: [uuid, …]}
+
+# taking — questions WITHOUT answers (ADR-06); the deadline is the server's
+GET    /learn/items/{item}/quiz/attempts        history + attempts remaining
+POST   /learn/items/{item}/quiz/attempts        starts, or resumes an open attempt
+GET    /learn/quiz-attempts/{uuid}              {attempt, questions, answers}
 PATCH  /learn/quiz-attempts/{uuid}/answers      autosave one answer
-POST   /learn/quiz-attempts/{uuid}/submit       → graded result (or "grading")
-POST   /learn/quiz-attempts/{uuid}/abandon
+POST   /learn/quiz-attempts/{uuid}/submit       → graded, or awaiting_review
 GET    /learn/quiz-attempts/{uuid}/result       respects show_correct_answers_after
 
 # grading
-GET    /studio/quiz-attempts?status=grading&course_id=
-POST   /studio/quiz-attempts/{uuid}/grade       {answers:[{question_id,points,feedback}]}
+GET    /studio/courses/{course}/grading?status=awaiting_review
+GET    /studio/grading/{attempt}
+POST   /studio/grading/{attempt}                {grades:[{question_id,points,feedback}]}
+```
+
+Answer payloads, by question type — the only shapes the API accepts:
+
+```
+single_choice / true_false / image_choice   {"option_id": 12}
+multiple_choice                             {"option_ids": [1, 3]}
+short_answer / long_answer                  {"text": "…"}
+fill_blank                                  {"blanks": ["a", "b"]}
+matching / image_matching                   {"pairs": {"<optionId>": "<matchKey>"}}
+ordering                                    {"option_ids": [3, 1, 2]}
+```
+
+### Assessment — later phases
+```
+GET    /studio/question-banks · POST · /questions
+POST   /studio/items/{item}/quiz/questions/import-from-bank
+POST   /learn/quiz-attempts/{uuid}/abandon
 
 # assignments
 GET/POST/PATCH/DELETE  /studio/assignments/{id}

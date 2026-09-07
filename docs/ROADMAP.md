@@ -338,12 +338,88 @@ reconcile      corrupted 99/5 -> corrected 4/5, then "consistent"
 
 339 backend tests, 71 frontend tests, PHPStan level 6 and `tsc` clean.
 
-### Phase 7 — Quiz Engine
+### Phase 7 — Quiz Engine ✅
 Quizzes, questions (10 types), options, question banks, quiz→question pivot · attempt
 lifecycle with a server deadline · autosave answers · auto-grading · manual grading queue ·
 feedback modes · results · the quiz builder and the quiz runner.
 **Exit:** every question type is authored, taken, graded, and reviewed; expiry is
 enforced regardless of the client clock.
+
+**ADR-06 delivered — the answers never leave the server during an attempt.**
+Two resources describe a question: `QuestionResource` for authoring, which
+carries `is_correct`, `match_key`, accepted answers and the explanation, and
+`AttemptQuestionResource` for the learner, which cannot express any of them.
+Matching serves its targets shuffled and detached from the option they belong
+to; fill-in-the-blank serves a count, not the blanks; ordering serves options
+with no `position`. Nine tests assert the absence of each, because "we
+remembered not to include it" is not a guarantee.
+
+Also delivered:
+- Ten question types with documented answer payloads, one grader method each.
+  Partial credit where it is fair (multiple choice net of wrong picks, matching,
+  fill-in-the-blank), all-or-nothing where it is not (ordering). Unanswered is
+  never penalised.
+- Attempts that resume rather than burn: reopening a quiz with an attempt in
+  progress returns that attempt, with the question order and the point total
+  frozen at start so later edits to the quiz cannot change a score in flight.
+- A deadline the server sets and re-checks. `expires_at` is written at start;
+  every save and the submit re-read it. The client's countdown is a display.
+- The manual grading queue, `awaiting_review` as a first-class status, and a
+  results screen that reveals correct answers only when the quiz's policy says
+  so — never, on submission, on pass, or once attempts run out.
+- The quiz builder (settings, question CRUD per type, drag-to-reorder) and the
+  runner (paging, autosave with a save-state indicator, expiry alert,
+  confirm-before-submit).
+
+**Three real bugs found and fixed while building:**
+- **`->toArray($request)` on a Resource bypasses `MissingValue` filtering**, so
+  every `when(false)` field serialised as `{}` rather than vanishing. Scores
+  were reaching open attempts. All 23 call sites now use `->resolve($request)`.
+- **`{question}` is an unscoped route binding** (a question can be shared with a
+  bank), and the builder never checked the question belonged to *this* quiz.
+  Authoring your own quiz was edit and delete on any question id in the system.
+- **A quiz item could be marked complete by hand.** The mark-complete endpoint
+  was a way past every quiz in the course — the frontend declaring a completion
+  status, which is exactly what is never trusted. `ItemType::isSelfMarkable()`
+  now gates it, and the player reads that rather than deciding for itself.
+
+Two smaller ones: `Collection::shuffle()` no longer takes a seed in Laravel 13,
+so shuffled options jumped between page loads of the same attempt (now ordered
+by a hash of attempt+option); and a blank essay queued itself for manual
+grading, leaving the learner's whole result pending on an instructor clicking
+through empty answers.
+
+**Exit met.** Verified against the running API:
+
+```
+authored       10 question types, 18 points
+studio view    10 questions, answers visible = True
+attempt start  10 questions served, deadline in 119s
+runner payload is_correct=False match_key=False accepted=False score_keys=[]
+autosave       10 answers accepted, no score leaked = True
+submit         status=awaiting_review earned=11/18
+  single_choice    1/1       long_answer      0/4  (awaiting review)
+  multiple_choice  0/2       fill_blank       1/2
+  true_false       1/1       matching         2/2
+  short_answer     1/1       ordering         2/2
+  image_choice     1/1       image_matching   2/2
+grading queue  1 attempt(s) waiting
+manual grade   status=graded percent=77.78 passed=True
+progress       item status=completed self_markable=False course=100%
+self-mark      409 progress_rejected
+```
+
+And the deadline, with the client's own clock untouched:
+
+```
+client sees    119s left, deadline 2026-09-07T10:20:26+00:00
+   (the server's expires_at is moved into the past; the browser is not told)
+save answer    409 attempt_rejected: Time ran out on this attempt.
+submit late    status=graded percent=0
+```
+
+417 backend tests, 91 frontend tests, PHPStan level 6 and `tsc` clean.
+First-paint JS 237.6 KB gzipped, against a 250 KB budget.
 
 ### Phase 8 — Assignments
 Assignment authoring · submission with files and text · late policy · grading and

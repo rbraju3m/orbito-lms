@@ -13,6 +13,7 @@ import {
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 import { useState } from 'react';
 
+import { QuizBuilder } from '@/features/quiz/components/QuizBuilder';
 import { ApiError } from '@/shared/api/errors';
 
 import { useUpdateLesson } from '../api/queries';
@@ -42,12 +43,16 @@ export function ItemEditorDrawer({ courseId, item, onClose }: ItemEditorDrawerPr
       onClose={onClose}
       title={item?.type_label ?? 'Item'}
       position="right"
-      size="lg"
+      size={item?.type === 'quiz' ? 'xl' : 'lg'}
       padding="lg"
     >
       {/* Keyed by item id: switching items remounts the form with the right
           initial values, so no effect has to re-sync state into it. */}
-      {item ? <ItemForm key={item.id} courseId={courseId} item={item} onClose={onClose} /> : null}
+      {item === null ? null : item.type === 'quiz' ? (
+        <QuizBuilder key={item.id} itemId={item.id} />
+      ) : (
+        <ItemForm key={item.id} courseId={courseId} item={item} onClose={onClose} />
+      )}
     </Drawer>
   );
 }

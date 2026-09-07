@@ -38,6 +38,7 @@ import {
 import type { LearnerItem } from '../api/types';
 import { CurriculumPanel } from '../components/CurriculumPanel';
 import { LessonPane } from '../components/LessonPane';
+import { QuizPane } from '../components/QuizPane';
 import { NotesPanel } from '../components/NotesPanel';
 
 export function PlayerRoute() {
@@ -206,7 +207,15 @@ export function PlayerRoute() {
 
             {item.data && !locked ? (
               <>
-                <LessonPane item={item.data} resumeAt={current?.watch_position_seconds ?? 0} />
+                {item.data.type === 'quiz' ? (
+                  <QuizPane
+                    courseId={courseId}
+                    item={item.data}
+                    canAttempt={access.granted && !access.is_staff}
+                  />
+                ) : (
+                  <LessonPane item={item.data} resumeAt={current?.watch_position_seconds ?? 0} />
+                )}
 
                 <Group justify="space-between" wrap="wrap">
                   <Button
@@ -219,7 +228,10 @@ export function PlayerRoute() {
                   </Button>
 
                   <Group gap="xs">
-                    {access.granted && !access.is_staff && current?.is_completable ? (
+                    {access.granted &&
+                    !access.is_staff &&
+                    current?.is_completable &&
+                    current.is_self_markable ? (
                       <Button
                         variant={current.status === 'completed' ? 'light' : 'filled'}
                         color={current.status === 'completed' ? 'success' : undefined}

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Assessment\Models\Quiz;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
@@ -41,17 +42,35 @@ it('adds a lesson to a section', function (): void {
     expect(Lesson::count())->toBe(1);
 });
 
-/* Quiz and assignment entities arrive in Phases 7 and 8. */
+/*
+ * The spine declares every future item type, but only types whose entity
+ * exists can be created. Assignment arrives in Phase 8, live_session in P15.
+ */
 it('refuses an item type that does not exist yet', function (): void {
     $section = CourseSection::factory()->create(['course_id' => $this->course->id]);
 
     expect($this->actingAs($this->instructor)
         ->postJson("/api/v1/studio/courses/{$this->course->uuid}/items", [
             'section_id' => $section->id,
-            'type' => 'quiz',
+            'type' => 'assignment',
             'title' => 'Too early',
         ])
         ->assertStatus(422))->toBeApiError('validation_failed');
+});
+
+it('creates a quiz item now that the quiz entity exists', function (): void {
+    $section = CourseSection::factory()->create(['course_id' => $this->course->id]);
+
+    $this->actingAs($this->instructor)
+        ->postJson("/api/v1/studio/courses/{$this->course->uuid}/items", [
+            'section_id' => $section->id,
+            'type' => 'quiz',
+            'title' => 'Chapter quiz',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.type', 'quiz');
+
+    expect(Quiz::count())->toBe(1);
 });
 
 it('refuses a section belonging to another course', function (): void {

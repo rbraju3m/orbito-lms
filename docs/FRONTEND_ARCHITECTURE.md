@@ -43,7 +43,9 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
     ├─ content pane (video | text | pdf | quiz | assignment | live)
     ├─ curriculum drawer (mobile) / sidebar (desktop)
     └─ tabs: Overview · Notes · Resources · Discussion · Announcements
-/learn/:courseId/quiz/:attemptUuid quiz runner (own focused layout)
+/learn/:courseId/:itemId/quiz              quiz intro: attempts used, past results
+/learn/:courseId/:itemId/quiz/:attemptUuid quiz runner (own focused layout)
+/learn/:courseId/:itemId/quiz/:attemptUuid/result
 
 /dashboard                         continue learning + stats
 /dashboard/courses                 enrolled (in progress | completed | all)
@@ -68,7 +70,8 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
     ├─ /reviews
     ├─ /discussions
     └─ /analytics
-/studio/courses/:id/quizzes/:quizId          quiz builder
+(quiz builder — reached through the curriculum item's editor drawer, not its
+ own route: a quiz is edited in the context of the course it belongs to)
 /studio/courses/:id/assignments/:id
 /studio/question-banks
 /studio/earnings · /studio/payouts

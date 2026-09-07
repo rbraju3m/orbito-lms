@@ -129,6 +129,15 @@ Legend
 | E25 | Per-question analytics (difficulty, discrimination) | — | — | P13 | |
 | E26 | Anti-cheat: server-held answers, IP/UA log, tab-blur signal | Partial | — | **P7 · M** | Answers never leave the server mid-attempt |
 
+**Shipped in Phase 7:** E1–E10, E14–E23, and the server-held half of E26 (the
+attempt records IP and user agent at start; the tab-blur signal is not built).
+
+**Still open in this section:** E11 (post-1.0 by decision), E12 and E13 — the
+`question_banks` table and `questions_per_attempt` both exist and the random
+subset is drawn at attempt start, but there is no bank UI or import-from-bank
+endpoint yet — E24, where `grading_policy` is stored and editable but nothing
+consumes it until the gradebook (P13), and E25 (P13).
+
 ## F. Assessment — Assignment
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |

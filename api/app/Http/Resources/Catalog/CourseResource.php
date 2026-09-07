@@ -57,7 +57,7 @@ final class CourseResource extends BaseResource
             'category' => $this->whenLoaded(
                 'category',
                 fn () => $this->category
-                    ? CourseCategoryResource::make($this->category)->toArray($request)
+                    ? CourseCategoryResource::make($this->category)->resolve($request)
                     : null,
             ),
             'tags' => $this->whenLoaded('tags', fn () => $this->tags->pluck('name')->values()),

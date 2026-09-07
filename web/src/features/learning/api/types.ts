@@ -9,6 +9,8 @@ export interface LearnerItem {
   duration_seconds: number;
   is_preview: boolean;
   is_completable: boolean;
+  /** False for items that are earned, not declared — a quiz. */
+  is_self_markable: boolean;
   status: ItemProgressStatus;
   watch_position_seconds: number;
 }

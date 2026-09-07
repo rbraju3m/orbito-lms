@@ -34,9 +34,9 @@ enum ItemType: string
     public function isAvailable(): bool
     {
         return match ($this) {
-            self::Lesson, self::Resource => true,
-            // Quiz: Phase 7. Assignment: Phase 8. Live session: Phase 15.
-            self::Quiz, self::Assignment, self::LiveSession => false,
+            self::Lesson, self::Resource, self::Quiz => true,
+            // Assignment: Phase 8. Live session: Phase 15.
+            self::Assignment, self::LiveSession => false,
         };
     }
 
@@ -50,5 +50,18 @@ enum ItemType: string
     public function isCompletable(): bool
     {
         return $this !== self::Resource;
+    }
+
+    /**
+     * Whether a learner may declare this item complete themselves.
+     *
+     * A quiz is completed by submitting an attempt, not by pressing a button.
+     * Otherwise the "mark complete" endpoint would be a way past every quiz in
+     * the course — the frontend saying "done" is exactly what must not be
+     * trusted. Assignments join this list in Phase 8.
+     */
+    public function isSelfMarkable(): bool
+    {
+        return $this !== self::Quiz;
     }
 }

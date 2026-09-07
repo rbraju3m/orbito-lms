@@ -24,7 +24,7 @@ final class EmailVerificationController
 
         return ApiResponse::ok([
             'verified' => true,
-            'user' => UserResource::make($user)->toArray($request),
+            'user' => UserResource::make($user)->resolve($request),
         ]);
     }
 

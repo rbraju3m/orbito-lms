@@ -48,6 +48,11 @@ export default defineConfig({
     setupFiles: ['./src/shared/test/setup.ts'],
     css: false,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // Vitest's 5s default is sized for unit tests. These render whole Mantine
+    // trees and drive them through userEvent, which is comfortably under a
+    // second on an idle machine and several times that when the workers are
+    // all busy. The higher ceiling stops that showing up as a flake.
+    testTimeout: 20_000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

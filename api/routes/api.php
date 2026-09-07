@@ -21,4 +21,5 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/catalog.php';
     require __DIR__.'/api/curriculum.php';
     require __DIR__.'/api/learn.php';
+    require __DIR__.'/api/assessment.php';
 });

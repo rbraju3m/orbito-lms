@@ -28,6 +28,9 @@ final class LearnerItemResource extends BaseResource
             'duration_seconds' => $this->duration_seconds,
             'is_preview' => $this->is_preview,
             'is_completable' => $this->type->isCompletable(),
+            // Counts toward completion, but is earned rather than declared —
+            // the player hides "Mark complete" for these.
+            'is_self_markable' => $this->type->isSelfMarkable(),
 
             'status' => $this->getAttribute('progress_status')->value ?? 'not_started',
             'watch_position_seconds' => (int) ($this->getAttribute('watch_position_seconds') ?? 0),

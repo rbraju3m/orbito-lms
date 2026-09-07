@@ -35,7 +35,7 @@ final class RegisterController
 
         $payload = AuthenticatedUserResource::make(
             $user->fresh(['roleAssignments.role.permissions', 'instructorProfile'])
-        )->toArray($request);
+        )->resolve($request);
 
         if ($token !== null) {
             $payload['token'] = $token;

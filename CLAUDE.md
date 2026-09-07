@@ -277,12 +277,42 @@ Gate::authorize('publish', $course);                   // in a controller
   fires up to 60×/second; `useWatchHeartbeat` collapses that to one request
   per 15s plus a flush on unmount.
 
-## 13. Current phase
+## 13. Patterns established in Phase 7 — reuse these
 
-**Phases 0–6 complete.** Audit, architecture, foundation, identity, catalog,
-curriculum, learning.
+- **Two resources per model when the audience differs.** `QuestionResource`
+  (authoring, carries the answers) and `AttemptQuestionResource` (the learner,
+  cannot express them). One resource with conditional fields is one `when()`
+  away from leaking (ADR-06).
+- **Call `->resolve($request)` on a Resource, never `->toArray($request)`.**
+  `toArray` skips `MissingValue` filtering, so `when(false)` fields serialise
+  as `{}` instead of disappearing.
+- **A shuffle a learner reloads must be deterministic.** Order by a hash of
+  (attempt, option) — `Collection::shuffle()` is random on every call, so the
+  options would jump between pages.
+- **Grade a blank before deciding it needs a human.** An unanswered essay has
+  nothing to read; queueing it leaves the whole result pending on an
+  instructor clicking through empty answers.
+- **An unscoped route binding must be re-scoped in the controller.** A question
+  can be shared with a bank, so `{question}` resolves globally — membership of
+  *this* quiz is then checked explicitly, or authoring your own quiz becomes
+  edit-and-delete on any question id in the system.
+- **Completion that is earned is not self-markable.** `ItemType::isSelfMarkable()`
+  gates the mark-complete endpoint, and the player reads `is_self_markable`
+  rather than deciding for itself.
+- **Countdown from a monotonic clock, and never let it decide anything.**
+  `useAttemptCountdown` derives the display from `performance.now()`; the
+  server re-checks its own deadline on every save and on submit.
+- **Mantine's `NumberInput` reports a string for anything not yet canonical**
+  ("070", "1.", ""). `typeof value === 'number'` silently turns a half-typed
+  field into the fallback — use `numberValue`/`optionalNumberValue`.
 
-**Phase 7 is next: the complete quiz engine** — questions (10 types), question
-banks, attempts with a server-authoritative deadline, auto-grading, the manual
-grading queue, and feedback modes. Correct answers must never be serialised
-into an in-progress attempt (ADR-06). See `docs/ROADMAP.md`.
+## 14. Current phase
+
+**Phases 0–7 complete.** Audit, architecture, foundation, identity, catalog,
+curriculum, learning, assessment.
+
+**Phase 8 is next: assignments** — authoring, submission with files and text,
+a late policy, grading and feedback that share the queue quizzes already use,
+and re-submission. The grading queue, `GradeAnswerManually` and the
+`awaiting_review` status are the shapes to extend, not to duplicate. See
+`docs/ROADMAP.md`.

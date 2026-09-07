@@ -21,6 +21,6 @@ final class MeController
 
         $user->forceFill(['last_seen_at' => now()])->saveQuietly();
 
-        return ApiResponse::ok(AuthenticatedUserResource::make($user)->toArray($request));
+        return ApiResponse::ok(AuthenticatedUserResource::make($user)->resolve($request));
     }
 }
