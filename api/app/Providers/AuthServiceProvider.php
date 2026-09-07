@@ -8,6 +8,11 @@ use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\CourseCategory;
 use App\Domain\Catalog\Policies\CourseCategoryPolicy;
 use App\Domain\Catalog\Policies\CoursePolicy;
+use App\Domain\Curriculum\Models\CourseItem;
+use App\Domain\Curriculum\Models\CourseSection;
+use App\Domain\Curriculum\Models\Lesson;
+use App\Domain\Curriculum\Models\Resource;
+use App\Domain\Curriculum\Policies\CurriculumPolicy;
 use App\Domain\Identity\Models\InstructorProfile;
 use App\Domain\Identity\Models\Role;
 use App\Domain\Identity\Models\User;
@@ -40,6 +45,7 @@ final class AuthServiceProvider extends ServiceProvider
 
         $this->registerMorphMap();
         $this->registerSuperAdminBypass();
+        $this->registerCurriculumGates();
     }
 
     /**
@@ -52,7 +58,37 @@ final class AuthServiceProvider extends ServiceProvider
             'user' => User::class,
             'course' => Course::class,
             'media' => Media::class,
+            'course_section' => CourseSection::class,
+            'course_item' => CourseItem::class,
+            // Itemable aliases: course_items rows must survive these classes
+            // moving between namespaces.
+            'lesson' => Lesson::class,
+            'resource' => Resource::class,
         ]);
+    }
+
+    /**
+     * Curriculum authorization always resolves through the parent course, so
+     * these are Gates over a Course rather than policies on section/item —
+     * which keeps course-scoped roles working without duplicating the logic on
+     * three models.
+     */
+    private function registerCurriculumGates(): void
+    {
+        Gate::define(
+            'view-curriculum',
+            fn (User $user, Course $course) => app(CurriculumPolicy::class)->view($user, $course),
+        );
+
+        Gate::define(
+            'manage-curriculum',
+            fn (User $user, Course $course) => app(CurriculumPolicy::class)->manage($user, $course),
+        );
+
+        Gate::define(
+            'reorder-curriculum',
+            fn (User $user, Course $course) => app(CurriculumPolicy::class)->reorder($user, $course),
+        );
     }
 
     /**

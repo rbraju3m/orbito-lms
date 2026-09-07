@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Domain\Catalog\Enums\PricingModel;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Support\PublishChecklist;
+use App\Domain\Curriculum\Models\CourseItem;
+use App\Domain\Curriculum\Models\CourseSection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -15,7 +17,7 @@ beforeEach(function (): void {
 });
 
 it('passes a complete course', function (): void {
-    $course = Course::factory()->withCategory()->create();
+    $course = Course::factory()->publishable()->create();
 
     expect($this->checklist->isPublishable($course))->toBeTrue()
         ->and($this->checklist->blockingFailures($course))->toBe([]);
@@ -56,18 +58,18 @@ it('blocks a paid course because pricing does not exist yet', function (): void 
 });
 
 it('reports advisory checks without blocking', function (): void {
-    $course = Course::factory()->withCategory()->create([
+    $course = Course::factory()->publishable()->create([
         'subtitle' => null,
         'thumbnail_media_id' => null,
     ]);
 
-    $advisory = collect($this->checklist->evaluate($course))
+    $advisory = collect($this->checklist->evaluate($course->fresh()))
         ->where('blocking', false)
         ->where('passed', false)
         ->pluck('code');
 
     expect($advisory)->toContain('thumbnail_present', 'subtitle_present')
-        ->and($this->checklist->isPublishable($course))->toBeTrue();
+        ->and($this->checklist->isPublishable($course->fresh()))->toBeTrue();
 });
 
 it('returns every check with its blocking flag and outcome', function (): void {
@@ -76,4 +78,65 @@ it('returns every check with its blocking flag and outcome', function (): void {
     foreach ($this->checklist->evaluate($course) as $check) {
         expect($check)->toHaveKeys(['code', 'field', 'message', 'blocking', 'passed']);
     }
+});
+
+/* --- Curriculum rules, added in Phase 5 --- */
+
+it('blocks a course with no sections', function (): void {
+    $course = Course::factory()->withCategory()->create();
+
+    expect(collect($this->checklist->blockingFailures($course))->pluck('code'))
+        ->toContain('has_section', 'has_published_item');
+});
+
+it('blocks a course whose sections are all empty', function (): void {
+    $course = Course::factory()->withCategory()->create();
+    CourseSection::factory()->count(2)->create([
+        'course_id' => $course->id,
+    ]);
+
+    $failures = collect($this->checklist->blockingFailures($course->fresh()));
+
+    expect($failures->pluck('code'))->toContain('no_empty_sections')
+        ->and($failures->firstWhere('code', 'no_empty_sections')['message'])
+        // Name the sections; "some sections are empty" makes the author hunt.
+        ->toContain('"');
+});
+
+it('blocks a course whose only items are unpublished', function (): void {
+    $course = Course::factory()->withCategory()->create();
+    $section = CourseSection::factory()->create(['course_id' => $course->id]);
+    CourseItem::factory()->inSection($section)->unpublished()->create();
+
+    expect(collect($this->checklist->blockingFailures($course->fresh()))->pluck('code'))
+        ->toContain('has_published_item');
+});
+
+it('does not count a downloadable resource as teachable content', function (): void {
+    $course = Course::factory()->withCategory()->create();
+    $section = CourseSection::factory()->create(['course_id' => $course->id]);
+    CourseItem::factory()->inSection($section)->resource()->create();
+
+    // A learner does not "finish" a PDF, so a course of only resources has
+    // nothing to complete.
+    expect(collect($this->checklist->blockingFailures($course->fresh()))->pluck('code'))
+        ->toContain('has_published_item');
+});
+
+it('passes a course with a real curriculum', function (): void {
+    $course = courseWithCurriculum(Course::factory()->withCategory()->create(), [2, 2]);
+
+    expect($this->checklist->isPublishable($course->fresh()))->toBeTrue();
+});
+
+it('suggests a free preview without blocking', function (): void {
+    $course = courseWithCurriculum(Course::factory()->withCategory()->create(), [2]);
+
+    $advisory = collect($this->checklist->evaluate($course->fresh()))
+        ->where('blocking', false)
+        ->where('passed', false)
+        ->pluck('code');
+
+    expect($advisory)->toContain('has_preview_item')
+        ->and($this->checklist->isPublishable($course->fresh()))->toBeTrue();
 });

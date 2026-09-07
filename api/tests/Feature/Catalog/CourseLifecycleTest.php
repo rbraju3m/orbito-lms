@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Domain\Catalog\Enums\CourseStatus;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\CourseCategory;
+use App\Domain\Curriculum\Models\CourseItem;
+use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Enums\UsageMetric;
@@ -14,7 +16,7 @@ beforeEach(fn () => seedRegistry());
 
 it('publishes a complete course', function (): void {
     $instructor = User::factory()->instructor()->create();
-    $course = Course::factory()->ownedBy($instructor)->withCategory()->create();
+    $course = Course::factory()->ownedBy($instructor)->publishable()->create();
 
     $this->actingAs($instructor)
         ->postJson("/api/v1/studio/courses/{$course->uuid}/publish")
@@ -47,7 +49,7 @@ it('refuses to publish an incomplete course and says exactly why', function (): 
 
 it('keeps published_at from the first publish across a republish', function (): void {
     $instructor = User::factory()->instructor()->create();
-    $course = Course::factory()->ownedBy($instructor)->withCategory()->published()->create();
+    $course = Course::factory()->ownedBy($instructor)->publishable()->published()->create();
     $originalPublishedAt = $course->published_at;
 
     $this->actingAs($instructor)->postJson("/api/v1/studio/courses/{$course->uuid}/unpublish")->assertOk();
@@ -59,7 +61,7 @@ it('keeps published_at from the first publish across a republish', function (): 
 
 it('submits a course for review', function (): void {
     $instructor = User::factory()->instructor()->create();
-    $course = Course::factory()->ownedBy($instructor)->withCategory()->create();
+    $course = Course::factory()->ownedBy($instructor)->publishable()->create();
 
     $this->actingAs($instructor)
         ->postJson("/api/v1/studio/courses/{$course->uuid}/submit-review")
@@ -71,7 +73,7 @@ it('submits a course for review', function (): void {
 
 it('lets an admin reject a submission back to draft with a note', function (): void {
     $admin = User::factory()->withRole(RoleKey::Admin)->create();
-    $course = Course::factory()->inReview()->create();
+    $course = Course::factory()->publishable()->inReview()->create();
 
     $this->actingAs($admin)->postJson(
         "/api/v1/studio/courses/{$course->uuid}/reject-review",
@@ -85,7 +87,7 @@ it('lets an admin reject a submission back to draft with a note', function (): v
 
 it('archives and restores a course', function (): void {
     $instructor = User::factory()->instructor()->create();
-    $course = Course::factory()->ownedBy($instructor)->withCategory()->published()->create();
+    $course = Course::factory()->ownedBy($instructor)->publishable()->published()->create();
 
     $this->actingAs($instructor)->postJson("/api/v1/studio/courses/{$course->uuid}/archive")
         ->assertOk()->assertJsonPath('data.status', 'archived');
@@ -99,7 +101,7 @@ it('archives and restores a course', function (): void {
 
 it('refuses an illegal transition', function (): void {
     $instructor = User::factory()->instructor()->create();
-    $course = Course::factory()->ownedBy($instructor)->withCategory()->published()->create();
+    $course = Course::factory()->ownedBy($instructor)->publishable()->published()->create();
 
     expect($this->actingAs($instructor)
         ->postJson("/api/v1/studio/courses/{$course->uuid}/submit-review")
@@ -108,7 +110,7 @@ it('refuses an illegal transition', function (): void {
 
 it('exposes the allowed transitions to course staff', function (): void {
     $instructor = User::factory()->instructor()->create();
-    $course = Course::factory()->ownedBy($instructor)->withCategory()->create();
+    $course = Course::factory()->ownedBy($instructor)->publishable()->create();
 
     $transitions = $this->actingAs($instructor)
         ->getJson("/api/v1/studio/courses/{$course->uuid}")
@@ -131,6 +133,12 @@ it('maintains published-course usage counters across the lifecycle', function ()
     ])->assertCreated();
 
     $course = Course::firstOrFail();
+
+    // The publish checklist requires a curriculum from Phase 5 on.
+    $section = CourseSection::factory()->create([
+        'course_id' => $course->id,
+    ]);
+    CourseItem::factory()->inSection($section)->create();
 
     expect($counters->get($metric, $instructor))->toBe(0);
 

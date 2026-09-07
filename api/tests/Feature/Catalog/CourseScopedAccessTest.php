@@ -40,7 +40,7 @@ it('does not let one instructor read another unpublished course', function (): v
 it('does not let one instructor publish another course', function (): void {
     $owner = User::factory()->instructor()->create();
     $stranger = User::factory()->instructor()->create();
-    $course = Course::factory()->ownedBy($owner)->withCategory()->create();
+    $course = Course::factory()->ownedBy($owner)->publishable()->create();
 
     $this->actingAs($stranger)
         ->postJson("/api/v1/studio/courses/{$course->uuid}/publish")
@@ -68,7 +68,7 @@ it('grants a course manager rights on their assigned course only', function (): 
 it('lets a course manager publish their assigned course', function (): void {
     $owner = User::factory()->instructor()->create();
     $manager = User::factory()->withRole(RoleKey::Student)->create();
-    $course = Course::factory()->ownedBy($owner)->withCategory()->create();
+    $course = Course::factory()->ownedBy($owner)->publishable()->create();
 
     $manager->assignRole(RoleKey::CourseManager, $course);
 
@@ -96,7 +96,7 @@ it('lets a reviewer approve a submission but not their own course', function ():
     $owner = User::factory()->instructor()->create();
     $reviewer = User::factory()->withRole(RoleKey::Student)->create();
 
-    $course = Course::factory()->ownedBy($owner)->withCategory()->inReview()->create();
+    $course = Course::factory()->ownedBy($owner)->publishable()->inReview()->create();
     $reviewer->assignRole(RoleKey::CourseReviewer, $course);
 
     $this->actingAs($reviewer)
@@ -107,7 +107,7 @@ it('lets a reviewer approve a submission but not their own course', function ():
 
 it('does not let an author approve their own submission', function (): void {
     $owner = User::factory()->instructor()->create();
-    $course = Course::factory()->ownedBy($owner)->withCategory()->inReview()->create();
+    $course = Course::factory()->ownedBy($owner)->publishable()->inReview()->create();
 
     // Even granted the reviewer role on their own course, self-approval defeats
     // the point of review.

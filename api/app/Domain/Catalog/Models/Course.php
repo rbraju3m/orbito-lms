@@ -9,6 +9,8 @@ use App\Domain\Catalog\Enums\CourseLevel;
 use App\Domain\Catalog\Enums\CourseStatus;
 use App\Domain\Catalog\Enums\CourseVisibility;
 use App\Domain\Catalog\Enums\PricingModel;
+use App\Domain\Curriculum\Models\CourseItem;
+use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Identity\Models\User;
 use App\Domain\Media\Models\Media;
 use Carbon\CarbonInterface;
@@ -122,6 +124,22 @@ final class Course extends Model
     public function instructors(): HasMany
     {
         return $this->hasMany(CourseInstructor::class)->orderBy('position');
+    }
+
+    /** @return HasMany<CourseSection, $this> */
+    public function sections(): HasMany
+    {
+        return $this->hasMany(CourseSection::class)->orderBy('position');
+    }
+
+    /**
+     * The whole spine, in display order (ADR-01).
+     *
+     * @return HasMany<CourseItem, $this>
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(CourseItem::class)->orderBy('position');
     }
 
     /** @return HasOne<CourseDetail, $this> */

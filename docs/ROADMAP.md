@@ -237,12 +237,48 @@ PATCHing it gets 403 and the usage counters read 1 total / 1 published.
 
 218 backend tests, 38 frontend tests, PHPStan level 6 and `tsc` clean.
 
-### Phase 5 — Curriculum Builder
-Sections · `course_items` · lessons · the reorder endpoint · duplicate · preview flags ·
-validation rules for publish · the builder UI with dnd-kit, inline edit, autosave,
-collapse, and the publish checklist.
-**Exit:** an instructor builds a 3-section, 10-item course entirely by drag and drop, and
-the publish checklist blocks a broken course.
+### Phase 5 — Curriculum Builder ✅ complete
+
+Delivered:
+- **The `course_items` spine (ADR-01), realised.** `position` is COURSE-GLOBAL,
+  not section-local, which is what makes "what comes next?" a single indexed
+  query across section boundaries. `ItemType` declares quiz, assignment and
+  live_session now even though their entities arrive in Phases 7, 8 and 15, so
+  the spine — and progress, drip and ordering with it — never changes shape.
+- **One write path for `position`.** `PATCH …/curriculum/order` takes the whole
+  tree, validates it is a permutation of what the course holds, and rewrites
+  every position in one transaction. Partial moves are deliberately not
+  accepted: they let concurrent drags silently interleave. A stale tree gets a
+  409 rather than quietly dropping someone's work.
+- Sections and items: create, inline rename, duplicate, delete, preview and
+  publish flags. Deleting or duplicating renormalises positions so the sequence
+  stays dense.
+- Lessons with content and a `VideoProvider` seam (none/upload/YouTube/Vimeo/
+  external). Switching provider clears the field the new one does not use, so a
+  stale media id can never point at a file the lesson no longer shows.
+- **Curriculum rules joined the publish checklist**: at least one section, at
+  least one published *completable* item (a downloadable resource is not
+  something a learner finishes), and no empty sections — named, so the author
+  does not have to hunt for them.
+- **The builder UI**: dnd-kit with an explicit drag handle (not long-press, so
+  a phone can still scroll), keyboard sensor with named handles, collapse/expand,
+  inline rename with Escape-to-cancel, one save indicator for the whole surface
+  rather than a toast per drag, and a Retry that keeps the user's arrangement.
+  Confirmation only when deleting a section that actually has items.
+
+**Exit met.** Verified against the running API:
+
+```
+publish with no curriculum   -> 422 course_not_publishable
+                                  Add at least one section before publishing.
+built: 3 sections, 10 items, positions [0..9]
+after drag                   -> 200; sections [3,3,4]; positions [0..9]
+stale reorder                -> 409 curriculum_rejected
+publish with curriculum      -> 200 published; item_count 10
+publish with an empty section-> 422 These sections have no items: "Bibliography".
+```
+
+259 backend tests, 59 frontend tests, PHPStan level 6 and `tsc` clean.
 
 ### Phase 6 — Learning Experience
 `enrollments` (free path only) · `item_progress` + `course_progress` · the player shell ·

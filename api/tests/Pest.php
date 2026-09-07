@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Domain\Catalog\Models\Course;
+use App\Domain\Curriculum\Events\CurriculumChanged;
+use App\Domain\Curriculum\Models\CourseItem;
+use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Support\PermissionRegistry;
@@ -65,4 +69,37 @@ function userWithRole(
 function spaHeaders(): array
 {
     return ['Origin' => (string) config('app.frontend_url')];
+}
+
+/**
+ * Builds a course with a real curriculum: `$shape` is items-per-section.
+ * Positions are course-global and dense, exactly as the reorder endpoint
+ * leaves them.
+ *
+ * @param  list<int>  $shape
+ */
+function courseWithCurriculum(
+    Course $course,
+    array $shape = [2, 2],
+): Course {
+    $position = 0;
+
+    foreach ($shape as $sectionIndex => $itemCount) {
+        $section = CourseSection::factory()->create([
+            'course_id' => $course->id,
+            'position' => $sectionIndex,
+            'title' => 'Section '.($sectionIndex + 1),
+        ]);
+
+        for ($i = 0; $i < $itemCount; $i++) {
+            CourseItem::factory()->inSection($section)->create([
+                'position' => $position++,
+                'title' => 'Item '.($i + 1),
+            ]);
+        }
+    }
+
+    CurriculumChanged::dispatch($course);
+
+    return $course->fresh(['sections.items', 'items']) ?? $course;
 }

@@ -23,7 +23,7 @@ final class PublishChecklist
      */
     public function evaluate(Course $course): array
     {
-        $course->loadMissing(['detail', 'tags']);
+        $course->loadMissing(['detail', 'tags', 'sections.items', 'items']);
 
         return [
             $this->check(
@@ -55,6 +55,34 @@ final class PublishChecklist
                 // Pricing lands in Phase 10; until then only free courses can
                 // satisfy this, which is honest rather than silently passing.
                 passed: $course->pricing_model === PricingModel::Free,
+            ),
+            $this->check(
+                'has_section',
+                'curriculum',
+                'Add at least one section before publishing.',
+                blocking: true,
+                passed: $course->sections->isNotEmpty(),
+            ),
+            $this->check(
+                'has_published_item',
+                'curriculum',
+                'A course needs at least one published lesson before learners can start it.',
+                blocking: true,
+                passed: $this->publishedItemCount($course) > 0,
+            ),
+            $this->check(
+                'no_empty_sections',
+                'curriculum',
+                $this->emptySectionMessage($course),
+                blocking: true,
+                passed: $this->emptySections($course) === [],
+            ),
+            $this->check(
+                'has_preview_item',
+                'curriculum',
+                'Marking one lesson as a free preview lets people try before they commit.',
+                blocking: false,
+                passed: $course->items->contains(fn ($item) => $item->is_preview && $item->is_published),
             ),
             $this->check(
                 'thumbnail_present',
@@ -101,6 +129,36 @@ final class PublishChecklist
     public function isPublishable(Course $course): bool
     {
         return $this->blockingFailures($course) === [];
+    }
+
+    private function publishedItemCount(Course $course): int
+    {
+        return $course->items->filter(fn ($item) => $item->is_published && $item->type->isCompletable())
+            ->count();
+    }
+
+    /** @return list<string> */
+    private function emptySections(Course $course): array
+    {
+        return $course->sections
+            ->filter(fn ($section) => $section->items->isEmpty())
+            ->pluck('title')
+            ->values()
+            ->all();
+    }
+
+    private function emptySectionMessage(Course $course): string
+    {
+        $empty = $this->emptySections($course);
+
+        // Name the sections: "some sections are empty" makes the instructor
+        // hunt for them.
+        return $empty === []
+            ? 'Every section has at least one item.'
+            : 'These sections have no items: '.implode(', ', array_map(
+                fn (string $title) => '"'.$title.'"',
+                array_slice($empty, 0, 5),
+            )).'.';
     }
 
     /** @return array{code: string, field: string, message: string, blocking: bool, passed: bool} */

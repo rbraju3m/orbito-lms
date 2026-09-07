@@ -11,8 +11,11 @@ use App\Domain\Catalog\Enums\CourseStatus;
 use App\Domain\Catalog\Enums\CourseVisibility;
 use App\Domain\Catalog\Enums\PricingModel;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
+use Database\Factories\Curriculum\CourseItemFactory;
+use Database\Factories\Curriculum\CourseSectionFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -74,12 +77,48 @@ final class CourseFactory extends Factory
         });
     }
 
+    /**
+     * Adds a real curriculum. From Phase 5 the publish checklist requires one,
+     * so anything asserting a successful publish needs this.
+     */
+    public function withCurriculum(int $sections = 2, int $itemsPerSection = 2): static
+    {
+        return $this->afterCreating(function (Course $course) use ($sections, $itemsPerSection): void {
+            $position = 0;
+
+            for ($s = 0; $s < $sections; $s++) {
+                $section = CourseSectionFactory::new()->create([
+                    'course_id' => $course->id,
+                    'position' => $s,
+                    'title' => 'Section '.($s + 1),
+                ]);
+
+                for ($i = 0; $i < $itemsPerSection; $i++) {
+                    CourseItemFactory::new()->inSection($section)->create([
+                        'position' => $position++,
+                        'title' => 'Item '.($i + 1),
+                    ]);
+                }
+            }
+
+            CurriculumChanged::dispatch($course);
+        });
+    }
+
+    /** Everything the publish checklist demands. */
+    public function publishable(): static
+    {
+        return $this->withCategory()->withCurriculum();
+    }
+
     public function published(): static
     {
         return $this->state(fn () => [
             'status' => CourseStatus::Published,
             'published_at' => now()->subDays(3),
         ])->withCategory();
+        // NOTE: deliberately no curriculum — a published course fixture is used
+        // by catalogue tests that care about listing, not about publishability.
     }
 
     public function inReview(): static

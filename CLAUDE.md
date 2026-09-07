@@ -242,10 +242,27 @@ Gate::authorize('publish', $course);                   // in a controller
 - **An id that merely `exists` is not authorized.** Referencing another user's
   media by id is rejected in the Form Request, not just validated for existence.
 
-## 11. Current phase
+## 11. Patterns established in Phase 5 — reuse these
 
-**Phases 0–4 complete.** Audit, architecture, foundation, identity, catalog.
+- **`course_items` is the spine.** A new content type is one `itemable` plus an
+  `ItemType` case. Never add a parallel ordering, progress or drip mechanism.
+- **`position` is course-global.** Anything that writes it goes through
+  `ReorderCurriculum` (whole tree, one transaction, permutation-checked) or
+  `NormalisePositions`. Nothing else touches the column.
+- **Bulk-move endpoints take the whole collection, not a delta.** A delta lets
+  two concurrent clients interleave into a state neither asked for.
+- **The query cache is the single source of truth on the client.** Do not mirror
+  server state into `useState` and sync it with an effect — apply optimistic
+  changes in the mutation's `onMutate` and read straight from the cache.
+- **Strict mode forbids implicit lazy loading.** Reaching for `$item->course`
+  inside an Action or a controller must be `loadMissing('course')`; inside a
+  loop, eager-load the batch instead.
 
-**Phase 5 is next: the curriculum builder** — sections, the single ordered
-`course_items` spine (ADR-01), lessons, drag-and-drop reordering, autosave, and
-the curriculum rules joining the publish checklist. See `docs/ROADMAP.md`.
+## 12. Current phase
+
+**Phases 0–5 complete.** Audit, architecture, foundation, identity, catalog,
+curriculum.
+
+**Phase 6 is next: the learning experience** — enrollments, the
+`item_progress` / `course_progress` tables (ADR-02), the lesson player, video
+resume, notes, prev/next and "continue learning". See `docs/ROADMAP.md`.

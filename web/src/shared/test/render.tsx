@@ -1,4 +1,5 @@
 import { MantineProvider } from '@mantine/core';
+import { ModalsProvider } from '@mantine/modals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
@@ -32,7 +33,7 @@ export function renderWithProviders(
             content (menus, dropdowns) is still animating when an assertion
             runs, producing failures that look like missing elements. */}
         <MantineProvider theme={theme} defaultColorScheme="light" env="test">
-          {children}
+          <ModalsProvider>{children}</ModalsProvider>
         </MantineProvider>
       </QueryClientProvider>
     );

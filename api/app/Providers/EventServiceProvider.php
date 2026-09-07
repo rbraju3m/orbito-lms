@@ -7,6 +7,8 @@ namespace App\Providers;
 use App\Domain\Catalog\Events\CourseCreated;
 use App\Domain\Catalog\Events\CourseDeleted;
 use App\Domain\Catalog\Events\CourseStatusChanged;
+use App\Domain\Curriculum\Events\CurriculumChanged;
+use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
 use App\Domain\Identity\Events\InstructorReviewed;
 use App\Domain\Identity\Events\UserLoggedIn;
 use App\Domain\Identity\Events\UserRegistered;
@@ -54,6 +56,12 @@ final class EventServiceProvider extends ServiceProvider
         ],
         InstructorReviewed::class => [
             TrackInstructorUsage::class,
+        ],
+
+        // Curriculum fires; Catalog's denormalised counters follow. Progress
+        // will join this list in Phase 6 to recount every enrollment.
+        CurriculumChanged::class => [
+            RefreshCourseCurriculumCounters::class,
         ],
     ];
 

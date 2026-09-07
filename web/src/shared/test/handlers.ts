@@ -115,6 +115,41 @@ export function checklistFixture(allPassed = true) {
   ];
 }
 
+export function curriculumFixture() {
+  const item = (ref: number, sectionId: number, overrides: Record<string, unknown> = {}) => ({
+    id: `item-${ref}`,
+    ref,
+    section_id: sectionId,
+    position: ref - 1,
+    type: 'lesson',
+    type_label: 'Lesson',
+    title: `Item ${ref}`,
+    is_preview: false,
+    is_published: true,
+    is_completable: true,
+    duration_seconds: 300,
+    updated_at: null,
+    ...overrides,
+  });
+
+  return [
+    {
+      id: 1,
+      title: 'Getting started',
+      description: null,
+      position: 0,
+      items: [item(1, 1), item(2, 1)],
+    },
+    {
+      id: 2,
+      title: 'Going deeper',
+      description: null,
+      position: 1,
+      items: [item(3, 2)],
+    },
+  ];
+}
+
 export function paginated<T>(rows: T[]) {
   return {
     data: rows,

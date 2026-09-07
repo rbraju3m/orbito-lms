@@ -99,6 +99,16 @@ without them a whole component tree throws. Test renders also pass
 portalled menus are still animating when an assertion runs and failures look
 like missing elements.
 
+Component tests render through the same providers as the app —
+`QueryClientProvider`, `MantineProvider`, `ModalsProvider`. Leaving one out is
+how a confirm dialog silently never appears and a destructive-action test
+passes for the wrong reason.
+
+**Mocks that a mutation changes must be stateful.** A static MSW handler
+returns the original fixture the moment a mutation settles and invalidates,
+silently undoing every optimistic update — so the test ends up asserting the
+opposite of the real behaviour. See `CurriculumBuilder.test.tsx`.
+
 **Unhandled requests fail the test** (`onUnhandledRequest: 'error'`). A mock that
 drifts from the API contract is the failure mode this whole layer exists to catch.
 
@@ -149,7 +159,7 @@ install browsers on 20.04; this is a host constraint, not a configuration bug.
 | 2 | shell renders · navigation · light/dark toggle · unknown route |
 | 3 | register → verify → login → logout · password reset ✅ |
 | 4 | create a course → publish it ✅ |
-| 5 | build curriculum by drag and drop → reorder persists |
+| 5 | build curriculum by drag and drop → reorder persists ✅ |
 | 6 | enrol → play a lesson → progress updates → resume |
 | 7 | take a quiz → submit → see the result |
 | 8 | submit an assignment → grade it → see feedback |
