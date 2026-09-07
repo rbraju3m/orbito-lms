@@ -8,8 +8,12 @@ tokens, wrappers, and patterns. We do not fork Mantine and we do not add a secon
 ## 1. Rules
 
 1. **Tokens over values.** No hard-coded hex, px spacing, or font size in a feature component.
-2. **Wrap, don't rebuild.** `shared/ui/Button` wraps `@mantine/core` Button with our
-   defaults. Feature code imports from `shared/ui`.
+2. **Wrap where the wrapper makes a decision**, not by reflex. `shared/ui`
+   holds the components that encode a choice (what an empty screen says, that
+   every error carries a retry and a request id). A wrapper that only
+   re-exports a Mantine component is an indirection with no payload — import
+   `@mantine/core` directly for those. Feature code imports from `shared/ui`
+   wherever a wrapper exists.
 3. **One component per job.** If two components render a course card, one of them is wrong.
 4. **Every state is designed**: loading, empty, error, success, disabled, locked.
 5. **Dark mode is not an afterthought** — every token has a light and dark value, and every
@@ -74,6 +78,23 @@ Design mobile-first: the 360 px layout is the primary target, not a fallback.
 ---
 
 ## 3. Component inventory (`shared/ui`)
+
+> **What actually exists at Phase 8 is five components**: `EmptyState`,
+> `ErrorState`, `LoadingState`, `PageHeader`, `ThemeToggle` — the four that
+> encode a *decision* (what an empty screen says, that an error carries a retry
+> and a request id, that a loading state matches the layout it replaces) plus
+> the theme switch. Everything else on this list is either used straight from
+> `@mantine/core` or lives in the feature that needed it.
+>
+> That was not the original plan, and it is worth being clear about why it held.
+> A wrapper that only re-exports a Mantine component adds an indirection and a
+> file to keep in step, and buys nothing: Mantine's own props are already the
+> design system. Rule 2 below — *wrap, don't rebuild* — therefore reads in
+> practice as **wrap where the wrapper makes a decision**. Domain components
+> (`CourseCard`, `CurriculumTree`, `QuestionInput`) belong to their feature,
+> not to `shared/ui`, because they are not shared.
+>
+> The list below stays as the intended shape for anything that does get built.
 
 **Primitives** — `Button`, `IconButton`, `Link`, `Badge`, `Chip`, `Avatar`, `AvatarGroup`,
 `Tag`, `StatusDot`, `Divider`, `Kbd`, `Tooltip`.

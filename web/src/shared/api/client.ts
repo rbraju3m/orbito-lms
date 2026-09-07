@@ -28,7 +28,7 @@ http.interceptors.response.use(
 
 /**
  * Sanctum's cookie flow needs a CSRF cookie before the first mutating request.
- * Called once by the auth feature in Phase 3.
+ * Called by the auth feature before the first login or register.
  */
 export async function ensureCsrfCookie(): Promise<void> {
   await axios.get(`${API_BASE_URL}/sanctum/csrf-cookie`, { withCredentials: true });

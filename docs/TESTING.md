@@ -3,6 +3,10 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
+**Where it stands at Phase 8:** 489 backend tests / 1,823 assertions, 116
+frontend tests, PHPStan level 6 clean, `tsc` clean. Playwright specs exist for
+phases 2 and 3 only — see §4.
+
 ---
 
 ## 1. The rule
@@ -85,10 +89,12 @@ correctness is enforced by running the suite.
 ```
 web/src/
 ├── shared/test/
-│   ├── setup.ts      jsdom polyfills, MSW lifecycle
-│   ├── handlers.ts   default happy-path API mocks
+│   ├── setup.ts      jsdom polyfills, MSW lifecycle, viewport control
+│   ├── handlers.ts   default happy-path API mocks + fixtures
 │   ├── server.ts     MSW node server
-│   └── render.tsx    renderWithProviders + a fresh QueryClient per test
+│   ├── render.tsx    renderWithProviders + a fresh QueryClient per test
+│   └── renderRoute.tsx  the same, inside a memory router — for anything that
+│                        navigates, reads the URL, or renders a <Link>
 └── **/*.test.tsx     colocated with the code under test
 ```
 

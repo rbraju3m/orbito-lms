@@ -11,8 +11,9 @@ const NAV = [
 ];
 
 /**
- * The public shell. Phase 2 ships this one only; the Learn, Dashboard, Studio
- * and Admin shells arrive with their phases (docs/FRONTEND_ARCHITECTURE.md §1).
+ * The public shell — catalogue and marketing surfaces. The player, dashboard
+ * and studio have their own shells (docs/FRONTEND_ARCHITECTURE.md §1); the
+ * player's is full-bleed by design and is deliberately not this one.
  */
 export function PublicLayout() {
   const [opened, { toggle, close }] = useDisclosure(false);

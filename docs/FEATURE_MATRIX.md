@@ -30,6 +30,14 @@ Legend
 | A15 | Audit log of privileged actions | — | — | P19 | |
 | A16 | GDPR consent + data export/erase | Core | — | P19 | Tutor has a decent model |
 
+**Shipped in Phase 3:** A1–A5, A10, A11, A13. Course-scoped roles (A11) work
+through `role_assignments(scope_type, scope_id)`; see ADR-07 and the correction
+that came with it. A12 (staff role) exists in the registry but has no dedicated
+screens yet.
+
+**Still open:** A6, A7, A15, A16 (P19) · A8 (P16) · A9, A14 (post-1.0 / P6
+backlog — the "view as student" toggle was not built).
+
 ## B. Catalog (Courses)
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
@@ -57,6 +65,15 @@ Legend
 | B21 | Course duplication | Pro | — | P5 | |
 | B22 | Course archive / unlist | Core (trash) | Yes | **P4 · M** | Archive ≠ delete |
 
+**Shipped in Phase 4:** B1–B14 and B22. The status machine (B2) lives in one
+Action, `ChangeCourseStatus`, and `PublishChecklist` is both rendered by the UI
+and enforced on publish so the two cannot drift.
+
+**Still open:** B15 (`coming_soon_at` is in the schema but nothing reads it) ·
+B16–B18 (P9) · B19 (P16) · **B21 course duplication, which the matrix put in P5
+and which was not built** — section and item duplication were (C10) · B20
+post-1.0.
+
 ## C. Curriculum
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
@@ -77,6 +94,12 @@ Legend
 | C14 | Content bank (reusable items across courses) | Pro | — | P16 | |
 | C15 | Curriculum validation before publish | Partial | — | **P5 · M** | e.g. no empty sections |
 
+**Shipped in Phase 5:** C1, C2, C5, C7–C12, C15. C3 and C4 became real in P7
+and P8 respectively — the spine accepted both without changing shape, which
+was the point of ADR-01.
+
+**Still open:** C6 (P15) · C13 drip (P9) · C14 (P16).
+
 ## D. Lessons & Media
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
@@ -88,6 +111,16 @@ Legend
 | D5 | Audio lesson | — | Yes | P6 | |
 | D6 | PDF / document lesson | Partial (attachment) | Yes | **P6 · M** | |
 | D7 | Per-lesson attachments | Core | Yes | **P6 · M** | |
+
+**Shipped in Phase 6:** D2, D3, D4 and video playback with resume, plus a
+lesson body that is **sanitised on write** against an allowlist. D6 is stored
+(`document_media_id`) but has no viewer yet.
+
+**Still open, and the matrix was optimistic here:** D1 — the rich text
+*editor* was never built. Lesson bodies are authored in a plain textarea and
+rendered as sanitised HTML; `@mantine/tiptap` is not installed. D5 (audio) is
+a schema column with no code behind it. D7 per-lesson attachments have no
+endpoint. All three are small, and all three are unfinished.
 | D8 | Video watch-position resume | Core | Yes | **P6 · M** | Throttled heartbeat |
 | D9 | Video completion threshold (e.g. 90 %) | — | — | P6 | Server-side rule |
 | D10 | Protected/signed media delivery | Pro | Yes | **P6 · M** | Private disk + signed URLs |
@@ -190,6 +223,15 @@ submission re-opens the assignment and does not consume an attempt.
 | H7 | Course retake | Core | — | P9 | |
 | H8 | Progress heatmap / stall detection | — | Yes | P13 | Klasio-inspired |
 | H9 | Gradebook across items | Pro | — | P13 | |
+
+**Shipped in Phase 6:** H1–H4, and H5–H6 arrived early — course completion in
+both modes and `POST /learn/courses/{course}/reset-progress` are both live,
+ahead of the P9 the matrix predicted. Progress is **stored** and event-
+maintained (ADR-02), never recomputed on a read path, and reconciled nightly.
+
+**Still open:** H7 retake (P9) · H8, H9 (P13). H9 is the first consumer of
+`quizzes.grading_policy`, which is stored and editable today but which nothing
+reads yet.
 
 ## I. Certificates
 

@@ -105,7 +105,12 @@ app/
 
 Bounded contexts: `Identity`, `Catalog`, `Curriculum`, `Assessment`, `Enrollment`,
 `Progress`, `Commerce`, `Certification`, `Engagement`, `Gamification`, `Analytics`,
-`Media`, `Live`, `Content`, `Notification`, `AI`.
+`Media`, `Live`, `Content`, `Notification`, `AI`, plus `Platform` (plan-limit
+usage counters, which every other context increments).
+
+Filled in so far: `Identity`, `Catalog`, `Curriculum`, `Enrollment`, `Progress`,
+`Assessment`, `Media`, `Platform`. The rest are empty placeholders so the shape
+of the system is visible before it is built.
 
 ### Rules
 - A controller method is at most ~20 lines: authorize → validate → call Action → return Resource.
@@ -152,7 +157,9 @@ src/
 - Forms: React Hook Form + Zod resolver. The Zod schema is the single source of truth
   for the form's TypeScript type.
 - No business rules in components. Derived logic goes in a hook or a pure function.
-- Components import from `shared/ui`, not `@mantine/core`, wherever a wrapper exists.
+- Components import from `shared/ui` wherever a wrapper exists; import
+  `@mantine/core` directly where one does not. A wrapper that only re-exports a
+  Mantine component is an indirection with no payload — do not add one.
 - Every list view ships: skeleton → empty state → error state → data.
 - No `any`. No `@ts-ignore` without a comment explaining why.
 

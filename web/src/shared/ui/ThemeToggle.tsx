@@ -9,8 +9,8 @@ const OPTIONS = [
 
 /**
  * Light / dark / system. `auto` is the default so we follow the OS until the
- * user says otherwise. In Phase 3 the choice also persists to the server so it
- * follows the user across devices.
+ * user says otherwise. The choice is per-device; persisting it to the profile
+ * so it follows a user across devices is not built.
  */
 export function ThemeToggle() {
   const { colorScheme, setColorScheme } = useMantineColorScheme();

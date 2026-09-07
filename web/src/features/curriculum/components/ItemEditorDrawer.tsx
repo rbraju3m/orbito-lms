@@ -133,7 +133,7 @@ function ItemForm({
         value={content}
         onChange={(event) => setContent(event.currentTarget.value)}
         label="Lesson content"
-        description="A rich text editor replaces this field in Phase 6."
+        description="Sanitised on the server. A rich text editor is still to come."
         autosize
         minRows={6}
         maxRows={18}

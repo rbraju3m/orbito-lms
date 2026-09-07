@@ -6,6 +6,12 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 > Versions verified 2026-09-07: Mantine 9.x, `@tanstack/react-query` 5.x.
 > Mantine requires `postcss`, `postcss-preset-mantine`, `postcss-simple-vars`,
 > `@mantine/core/styles.css`, a `<MantineProvider>`, and `<ColorSchemeScript>`.
+>
+> **State at Phase 8.** The route map and directory layout below are the target.
+> What exists today is marked; unmarked entries are not built. `@mantine/dates`
+> is deliberately *not* installed — the one date field so far uses a native
+> `datetime-local` input converted at the edge by `shared/lib/datetime.ts`,
+> which costs nothing against the 250 KB first-paint budget.
 
 ---
 
@@ -26,53 +32,59 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
 
 ## 2. Route map
 
+`✅` marks a route that exists today. The rest is the target.
+
 ```
-/                                  home / marketing
-/courses                           catalogue  (filters in the URL, shareable)
-/courses/:slug                     course sales page
+/                                  home / marketing                       ✅
+/courses                           catalogue  (filters in the URL, shareable)✅
+/courses/:slug                     course sales page                      ✅
 /courses/:slug/preview/:itemId     free preview item
 /instructors/:slug
 /categories/:slug
 /blog · /blog/:slug                                       (P16)
 /verify/:token                     public certificate verification
 /cart · /checkout · /checkout/:orderUuid/status
-/login · /register · /forgot-password · /reset-password · /verify-email
+/login · /register · /forgot-password · /reset-password · /verify-email   ✅
 
-/learn/:courseId                   → redirect to last/first item
-/learn/:courseId/:itemId           the player
+/learn/:courseId                   → redirect to last/first item          ✅
+/learn/:courseId/:itemId           the player                             ✅
     ├─ content pane (video | text | pdf | quiz | assignment | live)
     ├─ curriculum drawer (mobile) / sidebar (desktop)
     └─ tabs: Overview · Notes · Resources · Discussion · Announcements
-/learn/:courseId/:itemId/quiz              quiz intro: attempts used, past results
-/learn/:courseId/:itemId/quiz/:attemptUuid quiz runner (own focused layout)
-/learn/:courseId/:itemId/quiz/:attemptUuid/result
+/learn/:courseId/:itemId/quiz              quiz intro: attempts used, past results   ✅
+/learn/:courseId/:itemId/quiz/:attemptUuid quiz runner (own focused layout)        ✅
+/learn/:courseId/:itemId/quiz/:attemptUuid/result                                  ✅
 
-/dashboard                         continue learning + stats
-/dashboard/courses                 enrolled (in progress | completed | all)
+/dashboard                         continue learning + stats              ✅
+/dashboard/courses                 enrolled (in progress | completed | all)✅
 /dashboard/certificates
 /dashboard/wishlist
 /dashboard/orders · /dashboard/orders/:uuid
 /dashboard/quiz-attempts · /dashboard/submissions
 /dashboard/achievements                                    (P14)
 /dashboard/notifications
-/dashboard/profile · /dashboard/settings · /dashboard/security
+/dashboard/profile · /dashboard/settings · /dashboard/security            ✅
 
-/studio                            instructor home (reorderable cards)
-/studio/courses                    my/managed courses
-/studio/courses/new                creation wizard
-/studio/courses/:id                → /basics
-    ├─ /basics          title, category, level, language, thumbnail, intro video
-    ├─ /curriculum      THE BUILDER
-    ├─ /pricing         price, sale, currency, coupons scope
-    ├─ /settings        drip, completion mode, certificate, Q&A, seats, expiry
-    ├─ /students        enrolled list, manual enroll, progress
-    ├─ /grading         quiz + assignment queues (badge = pending count)
-    ├─ /reviews
-    ├─ /discussions
-    └─ /analytics
-/studio/courses/:id/grading                one queue: quizzes and assignments
-/studio/grading/quiz/:attemptId            mark the open questions
-/studio/grading/assignment/:submissionId   mark, or hand back for another go
+/studio                            instructor home (reorderable cards)    ✅
+/studio/courses                    my/managed courses                     ✅
+/studio/courses/new                creation wizard                        ✅
+/studio/courses/:id                the course editor                              ✅
+    ├─ basics           title, category, level, language, thumbnail, intro video   ✅
+    ├─ curriculum       THE BUILDER                                                ✅
+    ├─ settings         completion mode, certificate, Q&A, seats, expiry           ✅
+    ├─ pricing          price, sale, currency, coupons scope                       P10
+    ├─ students         enrolled list, manual enroll, progress                     P9
+    ├─ reviews · discussions                                                       P12
+    └─ analytics                                                                   P13
+
+The sub-pages shipped as **tabs within one route**, not as nested routes. A
+course editor is one task with several panels, and a URL per panel would mean a
+refetch and a scroll reset every time the author moved between them. Grading is
+the exception and does have its own route: it is a queue somebody works
+through, not a panel of the editor.
+/studio/courses/:id/grading                one queue: quizzes and assignments      ✅
+/studio/grading/quiz/:attemptId            mark the open questions                 ✅
+/studio/grading/assignment/:submissionId   mark, or hand back for another go       ✅
 (quiz and assignment builders — reached through the curriculum item's editor
  drawer, not their own routes: both are edited in the context of the course
  they belong to)
@@ -82,8 +94,8 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
 /studio/analytics
 
 /admin                             KPIs + charts
-/admin/users · /admin/users/:id
-/admin/instructors                 approval queue
+/admin/users · /admin/users/:id                                           ✅
+/admin/instructors                 approval queue                         ✅
 /admin/courses                     all courses, review queue
 /admin/orders · /admin/orders/:uuid
 /admin/coupons · /admin/products · /admin/tax
@@ -121,20 +133,31 @@ src/
 │   ├── lib/                  money.ts, date.ts, duration.ts, slug.ts, cn.ts
 │   └── i18n/
 └── features/
-    ├── auth/
-    ├── catalog/
-    ├── curriculum/
-    ├── learning/
-    ├── assessment/
-    ├── enrollment/
-    ├── commerce/
-    ├── certification/
-    ├── engagement/
-    ├── media/
-    ├── analytics/
-    ├── users/
-    └── settings/
+    ├── account/       ✅ profile, password, instructor application
+    ├── admin/         ✅ users, instructor approval queue
+    ├── assignment/    ✅ authoring, the learner's pane, submission form
+    ├── auth/          ✅
+    ├── catalog/       ✅ public catalogue + course detail
+    ├── curriculum/    ✅ the drag-and-drop builder, item editor drawer
+    ├── dashboard/     ✅ continue learning, my courses
+    ├── grading/       ✅ the shared queue + both grading screens
+    ├── home/          ✅
+    ├── learning/      ✅ the player
+    ├── media/         ✅ the upload hook
+    ├── quiz/          ✅ builder, runner, results
+    ├── studio/        ✅ course list, course editor
+    ├── system/        ✅ the health page
+    ├── enrollment/    P9
+    ├── commerce/      P10
+    ├── certification/ P11
+    ├── engagement/    P12
+    └── analytics/     P13
 ```
+
+The plan called this folder `assessment/`; it shipped as `quiz/` and
+`assignment/` because the two have almost no shared UI — one is a timed runner,
+the other is a form and a history. They share the `grading/` feature instead,
+which is where the overlap actually was.
 
 Every feature folder is the same shape:
 

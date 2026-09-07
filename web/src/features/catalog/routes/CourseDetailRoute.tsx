@@ -126,8 +126,9 @@ export function CourseDetailRoute() {
                 {data.pricing_model === 'free' ? 'Free' : 'Paid'}
               </Text>
 
-              {/* Enrolment arrives in Phase 6; promising a button that does
-                  nothing would be worse than saying so. */}
+              {/* The enrol endpoint exists, but the SPA has no enrolment
+                  flow until Phase 9. Promising a button that does nothing
+                  would be worse than saying so. */}
               <Text size="sm" c="dimmed">
                 Enrolment opens in a later phase.
               </Text>

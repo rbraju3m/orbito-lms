@@ -3,6 +3,11 @@
 Companion documents: `DATABASE.md`, `API.md`, `ROLES_PERMISSIONS.md`,
 `FRONTEND_ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `ROADMAP.md`.
 
+> **The name is now half wrong.** Phases 0–8 are built, so most of this is a
+> record rather than a proposal. Each ADR below carries its delivery status;
+> where the shipped code differs from the original decision, the difference is
+> stated rather than quietly edited away.
+
 ---
 
 ## 1. Shape of the system
@@ -38,23 +43,31 @@ fast now and leaves clean seams if anything ever needs extracting.
 
 ## 2. Bounded contexts
 
+Events in **bold** exist today; the rest arrive with their phase.
+
 | Context | Owns | Key events emitted |
 |---|---|---|
-| **Identity** | users, roles, permissions, sessions, profiles | `UserRegistered`, `InstructorApproved` |
-| **Catalog** | courses, categories, tags, instructors-on-course | `CoursePublished`, `CourseArchived` |
-| **Curriculum** | sections, course_items, lessons, resources | `CurriculumChanged`, `ItemPublished` |
-| **Assessment** | quizzes, questions, attempts, assignments, submissions | `QuizAttemptSubmitted`, `QuizPassed`, `AssignmentGraded` |
-| **Enrollment** | enrollments, access grants, access resolution | `CourseEnrolled`, `EnrollmentRevoked` |
-| **Progress** | item_progress, course_progress, watch state | `ItemCompleted`, `CourseCompleted` |
+| **Identity** | users, roles, permissions, sessions, profiles | **`UserRegistered`**, **`UserLoggedIn`**, **`InstructorApplied`**, **`InstructorReviewed`**, **`RoleAssigned`**, **`RoleRevoked`** |
+| **Catalog** | courses, categories, tags, instructors-on-course | **`CourseCreated`**, **`CourseStatusChanged`**, **`CourseDeleted`** |
+| **Curriculum** | sections, course_items, lessons, resources | **`CurriculumChanged`** |
+| **Assessment** | quizzes, questions, attempts, assignments, submissions | **`QuizAttemptSubmitted`**, **`QuizAttemptGraded`**, **`AssignmentSubmitted`**, **`AssignmentGraded`**, **`AssignmentReturned`** |
+| **Enrollment** | enrollments, access grants, access resolution | **`CourseEnrolled`**, `EnrollmentRevoked` |
+| **Progress** | item_progress, course_progress, watch state | **`ItemCompleted`**, **`CourseCompleted`** |
 | **Commerce** | products, cart, orders, payments, refunds, coupons, tax | `OrderPlaced`, `PaymentCaptured`, `RefundIssued` |
 | **Certification** | templates, certificates, verification | `CertificateIssued` |
 | **Engagement** | reviews, discussions, announcements, wishlist | `ReviewPublished`, `QuestionAnswered` |
 | **Notification** | channels, preferences, delivery | — (listener-heavy) |
-| **Media** | media, variants, storage accounting, signed delivery | `MediaUploaded`, `MediaProcessed` |
+| **Media** | media, variants, storage accounting, signed delivery | **`MediaUploaded`**, **`MediaDeleted`**, `MediaProcessed` |
 | **Analytics** | events, rollups, reports | — (listener-heavy) |
 | **Gamification** | rules, points, badges, streaks, leaderboards | `BadgeAwarded` |
 | **Live** *(P15)* | sessions, cohorts, webinars, attendance | `SessionScheduled`, `AttendanceRecorded` |
 | **Content** *(P16)* | blog, pages, blocks, leads | — |
+
+A seventeenth directory, **Platform**, was added in Phase 4 and is not a bounded
+context in the same sense: it holds the plan-limit usage counters that every
+other context increments. Every context has a directory under `app/Domain/`;
+the ones whose phase has not arrived are empty placeholders, which is
+deliberate — the shape of the system is visible before it is filled in.
 | **AI** *(P17)* | providers, actions, generation audit | `AiGenerationCompleted` |
 
 ### Dependency rule
@@ -125,6 +138,9 @@ app/
 ## 4. Key architectural decisions
 
 ### ADR-01 — Curriculum is a single ordered spine, not a post tree
+**Status: delivered (P5).** Four item types now hang off it — `lesson`,
+`resource`, `quiz` (P7), `assignment` (P8) — and none of them added a second
+ordering, progress or drip mechanism.
 **Problem.** Tutor stores lessons, quizzes and assignments as separate post types under
 `post_parent`, ordered by `menu_order`. Every "what is item #7", "what's next", and
 "how many items does this course have" is a heterogeneous multi-table query.
@@ -142,6 +158,8 @@ polymorphic pointer (`itemable_type`, `itemable_id`) to the type-specific row
 - Cost: one extra join to reach type-specific fields. Acceptable and cacheable.
 
 ### ADR-02 — Progress is stored, not computed
+**Status: delivered (P6).** `progress:reconcile` runs nightly at 03:10 and
+reports drift as a bug alert.
 **Problem.** Tutor recomputes course percentage on every read, and stores one usermeta row
 per completed lesson.
 
@@ -155,21 +173,33 @@ Recount on curriculum change is a queued job. Percentages can drift only if a jo
 so a nightly reconciliation command is part of P6.
 
 ### ADR-03 — Access is resolved by one service
+**Status: delivered (P6).** The signature settled as
+`CourseAccess::for(?User, Course)` plus `forItem(?User, CourseItem)` and
+`enrollmentFor(User, Course)` — the user is nullable because free preview
+content is reachable anonymously. Quiz start, assignment submission, media
+signing and every download route call it. Adding an access source in P9/P10
+means editing that one class.
 **Problem.** Access can come from: free enrollment, a paid order, a subscription, a
 membership, a bundle, an admin grant, being the instructor, or an item being marked
 preview. Tutor checks these in many places and they disagree.
 
-**Decision.** `Enrollment\Queries\CourseAccess::for(User, Course): AccessDecision`.
-Every gate — API, player, media signing, download — calls it. It returns a value object
-with `granted`, `reason`, `source`, `expires_at`. Media signing and drip both consume it.
+**Decision.** `Enrollment\Queries\CourseAccess` answers it. Every gate — API,
+player, media signing, download — calls it. It returns an `AccessDecision` value
+object with `granted`, `reason`, `source`, `enrollment`, `expiresAt`.
+
+A refusal the caller could legitimately fix answers **423 Locked**, not 403,
+and carries the reason: 403 means "you did something wrong", 423 means "here is
+how to get in".
 
 ### ADR-04 — Money is integer minor units + currency
+**Status: not built (P10).**
 `amount_minor BIGINT` + `currency CHAR(3)`. Never float, never a bare decimal without a
 currency. A `Money` value object handles arithmetic and formatting; the API returns
 `{"amount_minor": 249900, "currency": "BDT", "formatted": "৳2,499.00"}` so clients never
 format money themselves and locale rules stay server-side.
 
 ### ADR-05 — Payment truth is server-side and idempotent
+**Status: not built (P10).**
 The client never reports success. Flow:
 `CreateOrder` (server prices from DB) → `InitiatePayment` (gateway) → redirect →
 **webhook** → `VerifyPayment` (signature + amount + currency + order match) →
@@ -178,40 +208,75 @@ Webhooks are stored in `payment_events` with a unique `(gateway, external_id)` s
 replays are no-ops. A reconciliation job polls pending orders as a safety net.
 
 ### ADR-06 — Quiz answers never leave the server during an attempt
-The attempt API returns questions **without** `is_correct` and without explanations.
-The attempt has a server-recorded `expires_at`; submissions after it are graded per the
-quiz's expiry policy regardless of client clocks. Grading happens entirely in
-`Assessment\Actions\GradeAttempt`.
+**Status: delivered (P7).** Enforced by having **two resources**, not one with
+conditional fields: `QuestionResource` (authoring, carries the answers) and
+`AttemptQuestionResource` (the learner, cannot express them). One resource with
+`when()` guards is one mistake away from leaking.
+
+The attempt has a server-recorded `expires_at`; every save and the submit
+re-read it, so submissions after it are handled per the quiz's expiry policy
+regardless of client clocks. Grading happens entirely in
+`Assessment\Grading\QuestionGrader`, called from `SubmitQuizAttempt`;
+`GradeAnswerManually` finalises through the same path so downstream listeners
+see one consistent event.
+
+Matching serves its targets shuffled and detached from the option they belong
+to, fill-in-the-blank serves a count rather than the blanks, and ordering
+serves options with no `position`. Nine tests assert each absence.
 
 ### ADR-07 — Roles carry an optional scope
+**Status: delivered (P3).**
 `role_assignments(user_id, role_id, scope_type NULL, scope_id NULL)`. A global admin has
 `scope_type = NULL`; a TA on course 42 has `scope_type = 'course', scope_id = 42`.
 Policies compute effective permissions as `global ∪ scoped-for-this-resource`.
 This is how Course Manager / Reviewer / TA work without new tables per role.
 
+**The correction that cost a security bug.** `hasPermission($key, $scope)`
+answers the *broad* question and returns global ∪ scoped, so it must never be
+used to ask "does this person hold a seat on THIS resource?" — that made every
+instructor staff on every course. `hasScopedPermission()` /
+`hasAnyScopedPermission()` ignore global roles and answer the narrow question.
+The regression tests are in `CourseScopedAccessTest`.
+
 ### ADR-08 — Analytics is an append-only event log + rollups
+**Status: not built (P13).**
 `analytics_events` is written by queued listeners and never read by a dashboard.
 Nightly (and hourly for today) jobs build `analytics_daily_*` rollups. Dashboards read
 only rollups. This keeps the write path cheap and the read path O(rows in range).
 
 ### ADR-09 — Media is private by default
+**Status: partly delivered (P4).** The private-by-default disk, the
+`MediaCollection` rules (disk, MIME allowlist, size cap) and short-lived signed
+URLs minted only after `CourseAccess` grants are all in place.
+
+**Direct-to-S3 presigned upload is not.** Uploads currently stream through the
+API, which derives the real MIME from the bytes rather than trusting the
+client. That is the safer default and fine at this scale; the presigned path is
+still the intended answer for large video, and is a change to
+`StoreUploadedMedia` plus one new endpoint, not a reshaping of the model.
 Course content lands on a private disk. Delivery is a short-lived signed URL minted only
 after `CourseAccess` grants. Public assets (thumbnails, avatars) live on a public disk.
 Uploads go direct to S3/R2 via presigned multipart; the API only records metadata.
 
 ### ADR-10 — Translations live in a sidecar table
+**Status: not built (P18).**
 `translations(translatable_type, translatable_id, locale, field, value)` with a unique
 index on all four. Base-locale values stay on the parent row so the common path needs no
 join; a locale-aware query left-joins once. Chosen over per-entity JSON columns because
 we need to search and filter translated titles.
 
 ### ADR-11 — AI is optional, abstracted, and audited
+**Status: not built (P17).**
 `AiProvider` interface (`complete`, `stream`, `embed`) with Anthropic/OpenAI/local
 implementations; feature-specific `AiAction`s (`GenerateCourseOutline`) that own their
 prompts and output schemas; every call recorded in `ai_generations` with tokens and cost.
 The app boots and every feature works with **no** provider configured.
 
 ### ADR-12 — Extension without plugins
+**Status: partly delivered.** The domain-event catalogue exists and is real —
+20 events across seven contexts, and cross-context work already travels on it
+(`ItemCompleted`, `CurriculumChanged`, `QuizAttemptGraded`, `AssignmentGraded`).
+Outbound webhooks and plan capability flags are not built.
 Three seams: (1) a documented domain-event catalogue, (2) outbound webhooks subscribing to
 those events, (3) capability flags per plan. No PHP plugin loader — that is the complexity
 that made Tutor's codebase what it is.
@@ -220,33 +285,57 @@ that made Tutor's codebase what it is.
 
 ## 5. Cross-cutting concerns
 
-**Validation.** Form Requests only. Shared rule objects for slugs, money, locale, timezone.
+Marked **✅ in place** or **planned** as of Phase 8.
+
+**Validation.** ✅ Form Requests only. Shared rule objects for slugs, money, locale, timezone.
 The frontend's Zod schemas mirror them; the server is authoritative.
 
-**Errors.** One exception→response mapper. Envelope in `API.md` §Errors. Domain
-exceptions (`CourseNotPublishable`, `AttemptExpired`) carry a stable machine `code`.
+**Errors.** ✅ One exception→response mapper. Envelope in `API.md` §Errors. Domain
+exceptions extend `Support\Exceptions\DomainException` and carry a stable machine
+`code` and status: `attempt_rejected` (409), `submission_rejected` (409),
+`progress_rejected` (409), `content_locked` (423), `validation_failed` (422).
+Switch on the code, never the message.
 
-**Idempotency.** Mutating endpoints that create money or access accept an
-`Idempotency-Key` header stored in `idempotency_keys` with the response hash.
+**Idempotency.** Planned, with P10. Nothing today creates money. Where it
+matters now it is achieved structurally instead: starting a quiz attempt
+resumes an open one rather than creating a second, and the reorder endpoint
+takes the whole tree so replaying it is a no-op.
 
-**Caching.** Redis. Cache read models (curriculum tree, course card, category tree),
-never authorization decisions. Tag-based invalidation keyed by course id; every
-Action that changes a course fires an event that flushes its tag.
+**Caching.** Planned. Redis is wired (predis; the PHP extension is absent on
+this host) and backs the cache store, sessions and queues, but **no read model
+is cached yet** — the aggregates that would have needed it are
+stored and event-maintained instead (ADR-02), which removed the reason. When it
+does arrive: cache read models, never authorization decisions, and invalidate
+by a course-id tag. `HasRoles` keeps a per-request memo of resolved permissions,
+which is a memo and not a cache — it dies with the request.
 
-**Queues.** `default`, `media`, `mail`, `analytics`, `certificates`, `webhooks`.
-Horizon for visibility. Nothing user-facing waits on a queue except where a job status
-endpoint exists (video processing, certificate generation, bulk enrollment).
+**Queues.** Horizon is installed; the named queues (`media`, `mail`,
+`analytics`, `certificates`, `webhooks`) arrive with the phases that need them —
+everything currently runs on `default`. The rule holds either way: nothing
+user-facing waits on a queue except where a job status endpoint exists.
 
-**Scheduler.** drip unlock notices, live-session reminders, analytics rollups, expiry
-sweeps, payment reconciliation, leaderboard snapshots, progress reconciliation.
+**Scheduler.** ✅ Three commands today, none load-bearing for correctness —
+expiry and progress are evaluated live on every request, so a missed run costs
+tidiness, not truth:
 
-**Observability.** Structured JSON logs with a request id; Sentry (or equivalent) for
-exceptions; Laravel Pulse for slow queries and queue depth; a `/api/v1/health` endpoint.
+| Command | When | Why |
+|---|---|---|
+| `quiz:sweep-expired` | every 5 min | resolve attempts nobody came back to |
+| `progress:reconcile` | 03:10 daily | drift in a stored aggregate is a bug alert |
+| `usage:reconcile` | 03:30 daily | same, for the plan-limit counters |
 
-**Testing.** Pest. Feature tests hit real routes against a transactional SQLite/MySQL.
-Every endpoint gets three tests minimum: happy, forbidden, invalid. Domain logic
-(grading, progress math, pricing, access resolution) gets unit tests with tables of cases.
-Larastan level 6 at Phase 2, raised to 8 by Phase 10.
+Drip notices, live-session reminders, analytics rollups, payment reconciliation
+and leaderboard snapshots join them with their phases.
+
+**Observability.** Partly. Structured logs carry a request id, and it is echoed
+in every error envelope so a user can quote it. `/api/v1/health` reports
+database, cache and queue. Sentry and Pulse are planned (P19).
+
+**Testing.** ✅ Pest against MySQL, 489 backend tests at Phase 8. Every endpoint
+gets three minimum: happy, forbidden, invalid. Domain logic (grading, progress
+math, submission rules, access resolution) gets unit tests with tables of cases.
+Larastan is at level 6; raising it to 8 is still the intention by Phase 10.
+See `TESTING.md`.
 
 ---
 
@@ -305,8 +394,8 @@ serves traffic; all migrations must be backward-compatible for one release.
 | # | Risk / decision | Recommendation |
 |---|---|---|
 | ~~R1~~ | Laravel version | **CLOSED (Phase 2).** Building on **Laravel 13.30.1**, PHP 8.4. |
-| R2 | Course versioning (edit a published course safely) | Excluded from MVP. Mitigation: `course_items` are immutable-ish rows with soft deletes, so a snapshot model can be added without reshaping progress. Revisit before Phase 10. |
-| R3 | Video hosting cost/complexity (default applied, confirm before Phase 6) | MVP: self-hosted + YouTube/Vimeo. Introduce a `VideoProvider` interface in P6 so Bunny/Mux is a config change in P16. |
+| R2 | Course versioning (edit a published course safely) | Excluded from MVP. Mitigation held: `course_items` are soft-deleted rows, so a snapshot model can be added without reshaping progress. Sharper now that assessment is built — editing a live quiz cannot change a score in flight, because an attempt freezes its question order and point total at start. Revisit before Phase 10. |
+| R3 | Video hosting cost/complexity | **Default applied (P6), and the mitigation came out weaker than planned.** Self-hosted upload + YouTube/Vimeo ship today, but `VideoProvider` landed as an **enum**, not an interface: the player branches on it to build an embed URL. Adding Bunny/Mux therefore means a new case plus a URL builder, not a config change. Cheap to fix, and worth doing before P16 rather than after. |
 | ~~R4~~ | Multi-tenancy | **CLOSED (Phase 2).** **Single tenant per deployment.** Asserted in `config/orbito.php` as `multi_tenant => false`. Plan-limit counters still land in Phase 4; tenant isolation is out of scope for 1.0. |
 | R5 | Regional gateways (bKash/Nagad/SSLCommerz) | **Deferred.** MVP ships **Stripe + PayPal** (decided Phase 2). Regional gateways become a post-MVP `PaymentGateway` implementation; start merchant-account procurement whenever that is scheduled. |
 | R6 | Real-time (live class chat, presence) | Not in scope for 1.0. Laravel Reverb is the intended path; keep it out of the MVP. |

@@ -84,18 +84,24 @@ The web SPA, the future mobile app, and third-party integrators use the **same**
 | Mobile / third-party | Sanctum **personal access token**, `Authorization: Bearer <token>`, with abilities. |
 
 ```
+# live
 POST   /auth/register            {name,email,password,role_intent?}
 POST   /auth/login               {email,password,device_name?}   → user + (token for mobile)
 POST   /auth/logout
-POST   /auth/refresh                                             (token rotation, mobile)
 POST   /auth/forgot-password     {email}
 POST   /auth/reset-password      {token,email,password}
-POST   /auth/email/verify/{id}/{hash}
+POST   /auth/email/verify        {id,hash}
 POST   /auth/email/resend
 GET    /auth/me                                                  → user + effective permissions
+
+# planned
+POST   /auth/refresh                                             (token rotation, mobile)
 GET    /auth/devices             · DELETE /auth/devices/{id}
 POST   /auth/two-factor/enable   · /confirm · /disable            (P19)
 ```
+
+`device_name` is **required** when the request has no session — a token client must
+name itself, and a stateful SPA must not be handed a bearer token it never asked for.
 
 `GET /auth/me` returns the user **and their resolved permission keys**, so the SPA can
 hide UI it may not use. The server still enforces every one of them independently.
@@ -104,45 +110,60 @@ hide UI it may not use. The server still enforces every one of them independentl
 
 ## 4. Domain surface
 
+Blocks are marked **live** (implemented, tested, in the route table as of Phase 8)
+or **planned** (design intent for a later phase). A planned path is not a promise
+about its final shape — see `ROADMAP.md` for when each lands.
+
 ### Catalog
 ```
+# live — public
 GET    /courses                      public catalogue; filters below
-GET    /courses/{slug}               public detail (marketing view)
-GET    /courses/{id}/curriculum      preview-aware; locked items return metadata only
-GET    /courses/{id}/instructors
-GET    /courses/{id}/reviews
-GET    /categories · GET /categories/{slug}
+GET    /courses/{slug}               public detail, incl. preview-aware curriculum
+GET    /categories · GET /categories/{category}
 GET    /tags
 
-# authoring
+# live — authoring
 POST   /studio/courses
 GET    /studio/courses                 my/managed courses
-GET    /studio/courses/{id}            full authoring payload
-PATCH  /studio/courses/{id}
-DELETE /studio/courses/{id}
-POST   /studio/courses/{id}/publish
-POST   /studio/courses/{id}/submit-review
-POST   /studio/courses/{id}/archive
-POST   /studio/courses/{id}/duplicate
-PATCH  /studio/courses/{id}/settings
-POST   /studio/courses/{id}/instructors      · DELETE /…/instructors/{userId}
+GET    /studio/courses/{course}        full authoring payload + publish checklist
+PATCH  /studio/courses/{course}
+DELETE /studio/courses/{course}
+PATCH  /studio/courses/{course}/settings
+POST   /studio/courses/{course}/publish     · /unpublish · /archive
+POST   /studio/courses/{course}/submit-review
+POST   /studio/courses/{course}/approve-review · /reject-review
+POST   /studio/courses/{course}/instructors · DELETE /…/instructors/{user}
+
+# planned
+GET    /courses/{course}/instructors
+GET    /courses/{course}/reviews             (P12)
+POST   /studio/courses/{course}/duplicate
 ```
+
+Course status moves only through `ChangeCourseStatus`, which owns the legal
+transitions; an author cannot approve their own submitted course.
 
 Catalogue filters (documented, stable, all optional):
 `?q=&category=&tags[]=&level=&language=&price=free|paid&min_rating=&instructor=&sort=popular|newest|rating|price_asc|price_desc&page=&per_page=`
 
 ### Curriculum
 ```
-GET    /studio/courses/{id}/sections
-POST   /studio/courses/{id}/sections            · PATCH /sections/{id} · DELETE /sections/{id}
-POST   /studio/courses/{id}/items               {section_id, type, title}
-PATCH  /studio/items/{id}                       inline rename, preview flag, drip
-DELETE /studio/items/{id}
-POST   /studio/items/{id}/duplicate
-PATCH  /studio/courses/{id}/curriculum/order    ← the ONLY reorder endpoint
-GET    /studio/lessons/{id} · PATCH /studio/lessons/{id}
-POST   /studio/items/{id}/attachments · DELETE /studio/attachments/{id}
+# live
+GET    /studio/courses/{course}/curriculum      the whole tree, sections + items
+POST   /studio/courses/{course}/sections        · PATCH /sections/{section} · DELETE
+POST   /studio/sections/{section}/duplicate
+POST   /studio/courses/{course}/items           {section_id, type, title}
+GET    /studio/items/{item} · PATCH · DELETE    rename, preview flag, publish flag
+POST   /studio/items/{item}/duplicate
+PATCH  /studio/items/{item}/lesson              lesson body, video, attachments
+PATCH  /studio/courses/{course}/curriculum/order   ← the ONLY reorder endpoint
+
+# planned
+drip fields on PATCH /studio/items/{item}       (P9)
 ```
+
+Item types available today: `lesson`, `resource`, `quiz`, `assignment`.
+`live_session` is declared on the spine but not yet creatable (P15).
 
 `PATCH …/curriculum/order` body:
 ```json
@@ -153,18 +174,30 @@ returns the new tree. Idempotent.
 
 ### Learning (the player)
 ```
+# live
+POST   /courses/{course}/enroll             free courses only
 GET    /learn/courses                       my enrolled courses + progress
-GET    /learn/courses/{id}                  player bootstrap: course, curriculum, progress, access
-GET    /learn/items/{id}                    item content — 403/423 if not accessible
-POST   /learn/items/{id}/complete
-DELETE /learn/items/{id}/complete           un-complete (flexible mode)
-POST   /learn/items/{id}/watch              {position_seconds, max_seconds}  throttled
-GET    /learn/items/{id}/next               resolves prev/next across sections
-GET    /learn/courses/{id}/notes  · POST · PATCH /learn/notes/{id} · DELETE
-GET    /learn/courses/{id}/resources
-POST   /learn/courses/{id}/complete
-POST   /learn/courses/{id}/reset-progress
+GET    /learn/continue                      "continue learning" — ONE indexed read
+GET    /learn/courses/{course}              player bootstrap: course, curriculum, progress, access
+GET    /learn/items/{item}                  item content — 423 if locked, with the reason
+POST   /learn/items/{item}/complete
+DELETE /learn/items/{item}/complete         un-complete (flexible mode)
+POST   /learn/items/{item}/watch            {position_seconds}  throttled to 1/15s
+GET    /learn/items/{item}/notes · POST · DELETE /learn/notes/{note}
+POST   /learn/courses/{course}/complete
+POST   /learn/courses/{course}/reset-progress
+
+# planned
+GET    /learn/courses/{course}/resources
 ```
+
+Prev/next arrive **inside** the item payload (`previous_id`, `next_id`) rather than
+from their own endpoint: the player needs them on every item anyway, and a second
+round trip to learn where "next" is would be one per page turn.
+
+`complete` refuses an item whose completion is *earned* rather than declared —
+a quiz or an assignment answers 409 `progress_rejected`. See `is_self_markable`
+on every curriculum item.
 
 ### Assessment — implemented in Phase 7
 A quiz is reached through the curriculum item that owns it, not by its own id.
@@ -253,9 +286,10 @@ POST   /studio/items/{item}/quiz/questions/import-from-bank
 POST   /learn/quiz-attempts/{uuid}/abandon
 ```
 
-### Enrollment & Commerce
+### Enrollment & Commerce — planned (P9, P10)
+Only `POST /courses/{course}/enroll` exists today; it is listed under Learning above.
+
 ```
-POST   /courses/{id}/enroll                     free courses only; 402 if paid
 GET    /enrollments                             mine
 GET    /studio/courses/{id}/students
 POST   /studio/courses/{id}/enrollments         manual enroll {user_id|email}
@@ -279,7 +313,34 @@ every line from `product_prices` in the cart's currency, re-evaluates the coupon
 recomputes tax, and stores the result. `POST /orders/{uuid}/pay` never marks anything
 paid — only the webhook path does.
 
-### Certification, Engagement, Media, Analytics, Admin
+### Media — live
+```
+POST   /media                                   multipart upload; server derives the real
+                                                MIME from the bytes, not the filename
+                                                → {id: uuid, ref: numeric, url, …}
+GET    /media/{media}/url                       short-lived signed URL (access-checked)
+GET    /media/{media}/download                  signed link; the signature IS the credential
+DELETE /media/{media}
+```
+
+Every endpoint that *references* a file speaks in the numeric `ref`; the UUID
+addresses the file itself. Direct-to-S3 presigned upload (ADR-09) is **not** built —
+uploads currently stream through the API.
+
+### Identity & Admin — live
+```
+GET    /account/profile · PATCH                 · POST /account/password
+GET    /account/instructor-application · POST
+GET    /admin/users · GET /admin/users/{user}
+POST   /admin/users/{user}/suspension
+GET    /admin/users/{user}/roles · POST · DELETE /…/roles/{role:key}
+GET    /admin/instructors?status=pending
+POST   /admin/instructors/{instructorProfile}/review   {decision, reason?}
+GET    /admin/roles · GET /admin/permissions
+GET    /health
+```
+
+### Certification, Engagement, Analytics, Settings — planned
 ```
 GET    /certificates                            mine
 GET    /certificates/{uuid}                     · /download (signed PDF URL)
@@ -295,23 +356,12 @@ POST   /discussions/{id}/resolve
 GET    /courses/{id}/announcements · POST (studio)
 GET    /wishlist · POST /wishlist/{courseId} · DELETE
 
-POST   /media/upload-url                        presigned direct upload
-POST   /media                                   confirm + record metadata
-GET    /media/{uuid}/url                        short-lived signed URL (access-checked)
-DELETE /media/{uuid}
-
 GET    /analytics/overview?from=&to=
 GET    /analytics/enrollments · /revenue · /courses/{id} · /instructors/{id}
 GET    /analytics/courses/{id}/funnel           per-item drop-off
 POST   /analytics/track                         client-side events, rate-limited
 
-GET    /admin/users · PATCH /admin/users/{id}
-POST   /admin/users/{id}/roles · DELETE /admin/users/{id}/roles/{roleId}
-GET    /admin/instructors?status=pending
-POST   /admin/instructors/{id}/approve · /reject · /block
-GET    /admin/roles · /permissions
 GET    /admin/settings · PATCH /admin/settings
-GET    /health
 ```
 
 ---

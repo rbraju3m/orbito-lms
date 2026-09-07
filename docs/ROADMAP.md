@@ -1,5 +1,33 @@
 # ROADMAP.md — Phases, Dependency Graph, MVP Scope
 
+## Where this stands
+
+**Phases 0–8 are complete.** Audit, architecture, foundation, identity, catalog,
+curriculum, the learning experience, quizzes, assignments. **Phase 9 —
+enrollment and access — is next.**
+
+| | |
+|---|---|
+| Backend | 489 Pest tests / 1,823 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 116 Vitest tests · `tsc` clean · oxlint clean |
+| Budget | first-paint JS 240.5 KB gzipped, against 250 KB |
+| E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
+
+Each completed phase below carries what it delivered, the bugs it found, and a
+transcript of the exit criterion verified against a running API. Those
+transcripts are the record — if one contradicts the code, the code is right and
+the doc is stale.
+
+**What an instructor can do today:** sign up, be approved, build a course with
+lessons, resources, quizzes and assignments, publish it against an enforced
+checklist, and work through one queue of everything waiting to be marked.
+**What a learner can do:** find the course, enrol in it if it is free, learn
+through a player with video resume and notes, take a timed quiz, hand in
+written and uploaded work, read the feedback and hand in again.
+
+**What is conspicuously missing:** paid enrolment, drip, prerequisites, seat
+limits, certificates, reviews and discussions — Phases 9–12.
+
 ---
 
 ## 1. Implementation dependency graph

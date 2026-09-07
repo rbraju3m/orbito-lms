@@ -153,22 +153,35 @@ or is assigned to"; policies resolve ownership.
 
 ## 5. Policies
 
+**Built (Phase 8).** Nine policies, plus seven Gates for the things whose
+authorization resolves through a parent course rather than through the model
+itself — a section, an item, a quiz and an assignment are all "may I do this to
+*this course*", so putting the logic on the Course keeps course-scoped roles
+working without duplicating it on four models.
+
 | Policy | Guards |
 |---|---|
-| `CoursePolicy` | view, viewUnpublished, create, update, delete, publish, submitForReview, approve, archive, duplicate, manageInstructors |
-| `SectionPolicy` / `CourseItemPolicy` | view, create, update, delete, reorder — all delegate to the parent course |
-| `LessonPolicy` | view (⟶ `CourseAccess`), update |
-| `QuizPolicy` | view, manage, attempt, grade, viewAttempts |
-| `QuizAttemptPolicy` | view, answer, submit, grade — `answer`/`submit` require ownership **and** `in_progress` **and** not expired |
-| `AssignmentPolicy` / `SubmissionPolicy` | manage, submit, view, grade |
-| `EnrollmentPolicy` | view, create, suspend, delete |
-| `OrderPolicy` | view, refund |
-| `PayoutPolicy` | request, approve |
-| `ReviewPolicy` | create (enrolled + not already reviewed), update (own, within window), moderate, reply |
-| `DiscussionPolicy` | view, create, reply, moderate, resolve |
+| `CoursePolicy` | viewAny, view, viewUnpublished, create, update, delete, publish, submitForReview, reviewSubmission, archive, manageInstructors, manageSettings |
+| `CurriculumPolicy` | view, manage, reorder — via the `view-curriculum`, `manage-curriculum`, `reorder-curriculum` Gates |
+| `QuizPolicy` | manage, grade, viewAttempts — via `manage-quiz`, `grade-quiz`, `view-quiz-attempts` |
+| `AssignmentPolicy` | manage, grade, viewSubmissions — via `manage-assignment`, `grade-assignment`, `view-submissions` |
 | `MediaPolicy` | view (⟶ `CourseAccess` for private), upload, delete |
-| `CertificatePolicy` | view, download, revoke |
+| `CourseCategoryPolicy` | view, create, update, delete |
 | `UserPolicy` / `RolePolicy` | view, update, assign, delete |
+| `InstructorProfilePolicy` | view, review |
+
+One more Gate has no policy of its own: **`view-grading-queue`** is
+`QuizPolicy::viewAttempts ∪ AssignmentPolicy::viewSubmissions`, because the
+grading queue is one list across both and opens for anyone who can mark either.
+It then returns only the kinds that reader may actually open.
+
+**Ownership of an attempt or a submission is checked in the controller, not a
+policy**, and answers **404** rather than 403 — a policy that says "forbidden"
+confirms the row exists, which is exactly what must not leak about somebody
+else's work.
+
+**Planned:** `EnrollmentPolicy` (P9), `OrderPolicy` / `PayoutPolicy` (P10),
+`ReviewPolicy` / `DiscussionPolicy` (P12), `CertificatePolicy` (P11).
 
 **Rules for policy code**
 - A policy never queries a role name. It calls `$user->hasPermission($key, $resource)`.
@@ -187,10 +200,16 @@ These are separate and must never be conflated:
 | *May this user perform this operation?* | Policy + permissions | Can an instructor publish this course? |
 | *May this user consume this content?* | `Enrollment\Queries\CourseAccess` | Is this student enrolled, unexpired, and past the drip date for lesson 12? |
 
-`CourseAccess::for(User, Course)` returns
-`{granted, reason, source, expires_at}` where `source ∈ {owner, staff, enrollment,
-subscription, membership, bundle, manual, preview}`. Media signing, the player, downloads,
-and the quiz-start endpoint all call it. There is exactly one implementation.
+`CourseAccess::for(?User, Course)` — and `forItem(?User, CourseItem)` — returns
+an `AccessDecision` of `{granted, reason, source, enrollment, expiresAt}`. The
+user is nullable because free preview content is reachable anonymously.
+`source ∈ {owner, staff, enrollment, preview}` today; `subscription`,
+`membership`, `bundle` and `manual` are added to that one class in P9/P10 and
+nowhere else.
+
+Media signing, the player, item content, downloads, quiz start and assignment
+submission all call it. There is exactly one implementation, and a refusal the
+caller could legitimately fix answers **423 Locked** with the reason, not 403.
 
 ---
 
@@ -201,6 +220,12 @@ and the quiz-start endpoint all call it. There is exactly one implementation.
   removes a key that a role still uses.
 - The first registered user becomes Super Admin. Subsequent users are Students.
 - Instructor role is granted only after approval (`instructor_profiles.status = approved`).
-- Course-scoped assignments expire via `role_assignments.expires_at`; a scheduled sweeper
-  removes expired rows and emits `RoleAssignmentExpired`.
-- Every role assignment change is written to the audit log with actor, target, and scope.
+- Course-scoped assignments carry `role_assignments.expires_at`. **The column
+  exists and nothing sweeps it yet** — an expired row is not currently ignored
+  at read time either, so treat expiry as unimplemented rather than partially
+  implemented, and build both halves together in P9.
+- `RoleAssigned` and `RoleRevoked` events are emitted. A general audit log
+  (P19) will listen to them; today nothing does.
+
+**Counts at Phase 8:** 98 permission keys across 8 system roles, synced from
+`config/permissions.php` by `php artisan permissions:sync`.

@@ -24,4 +24,14 @@ directly, or import another context's Eloquent model into its own Action.
 Cross-context writes go through events. `Progress` does not call `Gamification`;
 it fires `ItemCompleted` and Gamification listens.
 
-Directories are empty until their phase lands — see `docs/ROADMAP.md`.
+## What is filled in
+
+Built: `Identity`, `Catalog`, `Curriculum`, `Enrollment`, `Progress`,
+`Assessment`, `Media`, and `Platform` (which is not a bounded context in the
+same sense — it holds the plan-limit usage counters every other context
+increments).
+
+Still empty placeholders: `Commerce`, `Certification`, `Engagement`,
+`Gamification`, `Analytics`, `Live`, `Content`, `Notification`, `AI`. They exist
+so the shape of the system is visible before it is filled in — see
+`docs/ROADMAP.md` for which phase each one lands in.

@@ -5,6 +5,28 @@ course management, curriculum builder, the learning experience, the quiz
 engine, and assignments. Phase 9 — enrollment and access — is next.
 
 Start here → [`MASTER_PLAN.md`](MASTER_PLAN.md)
+Picking the work back up → [`ROADMAP.md`](ROADMAP.md), which opens with exactly
+where things stand and what each finished phase actually delivered.
+
+## How to read these while the build is in progress
+
+Some of these documents were written before the code and are now partly a
+record and partly still a plan. Where the two differ, the difference is stated
+rather than quietly edited away — a doc that silently rewrites its own history
+is worth less than one that says "this came out differently, and here is why".
+
+| Document | How much of it is built |
+|---|---|
+| `ROADMAP.md` | Phases 0–8 carry delivery notes and verified transcripts |
+| `ARCHITECTURE_PROPOSAL.md` | every ADR carries a delivery status; ADR-09 is partly done and says so |
+| `API.md` | endpoints are marked **live** or **planned** |
+| `DATABASE.md` | assessment and assignment tables match the migrations; later contexts are still design |
+| `FEATURE_MATRIX.md` | each shipped section carries a "shipped / still open" note |
+| `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅ |
+| `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is mostly still a wish list, and says so |
+| `EVENTS.md` | current — 20 events, and it says which have no listener yet |
+| `TESTING.md` | current, including the Playwright gap |
+| `TUTOR_AUDIT.md`, `KLASIO_REFERENCE.md`, `PRODUCT_VISION.md` | research and intent; unchanged by implementation |
 
 ## Reading order
 
@@ -26,15 +48,15 @@ Start here → [`MASTER_PLAN.md`](MASTER_PLAN.md)
 11. [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — tokens, components, patterns, a11y
 12. [`ROADMAP.md`](ROADMAP.md) — dependency graph and 19 phases
 
-13. [`TESTING.md`](TESTING.md) — test strategy, tooling, CI
+13. [`EVENTS.md`](EVENTS.md) — the domain event catalogue and who listens
+14. [`TESTING.md`](TESTING.md) — test strategy, tooling, CI
 
 **Before writing any code** → [`../CLAUDE.md`](../CLAUDE.md)
 
 ## Documents planned for later phases
 
 `SECURITY.md` (P19) · `PERFORMANCE.md` (P19) · `DEPLOYMENT.md` (P19) ·
-`UI_UX.md` (folded into `DESIGN_SYSTEM.md` + `FRONTEND_ARCHITECTURE.md` for now) ·
-`EVENTS.md` (P2, the domain event catalogue).
+`UI_UX.md` (folded into `DESIGN_SYSTEM.md` + `FRONTEND_ARCHITECTURE.md` for now).
 
 ## Reference installations — read only
 

@@ -7,8 +7,15 @@ A production-grade, API-first Learning Management System.
 - **`docs/`** — architecture, audit and planning documents
 - **`CLAUDE.md`** — engineering rules; read before writing code
 
-**Status:** Phase 2 (foundation) complete. Product features begin in Phase 3.
-See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+**Status:** Phases 0–8 complete — foundation, identity, catalog, curriculum, the
+learning player, quizzes and assignments. Phase 9 (enrollment and access) is
+next. [`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
+
+An instructor can build and publish a course with lessons, resources, quizzes
+and assignments, and mark everything from one grading queue. A learner can
+enrol in a free course, work through a player with video resume and notes, take
+a timed quiz and hand in written or uploaded work. Paid enrolment, drip and
+certificates are not built yet.
 
 ---
 
@@ -38,6 +45,8 @@ composer install
 cp .env.example .env      # then set DB_USERNAME / DB_PASSWORD
 php artisan key:generate
 php artisan migrate
+php artisan db:seed       # roles, permissions, categories, tags — plus six
+                          # demo accounts in local/testing only
 
 # 3. Frontend
 cd ../web
@@ -58,8 +67,26 @@ cd api && php artisan horizon
 cd web && npm run dev
 ```
 
-Then open <http://localhost:5173>. `/system` shows a live health check of the API,
-database, cache and queue — the Phase 2 exit criterion.
+Then open <http://localhost:5173>. `/system` shows a live health check of the
+API, database, cache and queue.
+
+`db:seed` is safe to re-run — everything in it is `firstOrCreate`. Outside
+`local` and `testing` it stops after roles, permissions and the catalogue
+taxonomy, so it never creates demo accounts in production.
+
+The demo accounts (local only) all use the password `password`:
+
+| Email | Role |
+|---|---|
+| `super@orbito.test` | Super Admin — the one blanket authorization bypass |
+| `admin@orbito.test` | Platform Admin |
+| `staff@orbito.test` | Support Staff |
+| `instructor@orbito.test` | Instructor, approved |
+| `applicant@orbito.test` | Student with a pending instructor application |
+| `student@orbito.test` | Student |
+
+Adding a permission key to `config/permissions.php` means running
+`php artisan permissions:sync`; nothing reads the file at runtime.
 
 ## Checks
 
