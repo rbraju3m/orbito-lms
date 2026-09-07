@@ -9,7 +9,7 @@ use App\Http\Controllers\Api\V1\Identity\InstructorApplicationController;
 use App\Http\Controllers\Api\V1\Identity\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function (): void {
 
     /* -------- The caller's own account -------- */
     Route::prefix('account')->name('account.')->group(function (): void {

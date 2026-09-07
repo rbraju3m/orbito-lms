@@ -19,5 +19,11 @@ Artisan::command('inspire', function () {
 */
 Schedule::command('quiz:sweep-expired')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('enrollment:sweep-expired')->hourly()->withoutOverlapping();
+/*
+ * Subscriptions degrade here and nowhere else, so this runs BEFORE the daily
+ * reconcilers: an academy that expired overnight should read as expired for
+ * the whole of the next day rather than for part of it.
+ */
+Schedule::command('subscriptions:expire')->dailyAt('02:30')->withoutOverlapping();
 Schedule::command('progress:reconcile')->dailyAt('03:10')->withoutOverlapping();
 Schedule::command('usage:reconcile')->dailyAt('03:30')->withoutOverlapping();

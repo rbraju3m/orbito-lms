@@ -64,8 +64,14 @@ return [
     ],
 
     /*
-    | Tenancy. Single tenant per deployment for 1.0 — see ARCHITECTURE_PROPOSAL
-    | risk R4. This flag exists so the assumption is visible in code, not implicit.
+    | Tenancy. MULTI-tenant: one MySQL schema per academy, via stancl/tenancy.
+    |
+    | This reverses the single-tenant decision recorded as risk R4 in
+    | ARCHITECTURE_PROPOSAL. The flag stays so the assumption remains visible
+    | in code rather than implicit — nothing branches on it, and nothing
+    | should: isolation here is structural, not conditional.
+    |
+    | See config/tenancy.php for the real configuration.
     */
-    'multi_tenant' => false,
+    'multi_tenant' => true,
 ];

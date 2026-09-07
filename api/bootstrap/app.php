@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\EnsureActiveSubscription;
+use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\InitializeTenancyByAuthenticatedUser;
 use App\Http\Middleware\InitializeTenancyBySignedRoute;
@@ -44,6 +46,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => InitializeTenancyByAuthenticatedUser::class,
             // ONLY behind `signed`. See the class docblock.
             'tenant.signed' => InitializeTenancyBySignedRoute::class,
+
+            // Applied after `tenant`, so the academy has resolved. Gates
+            // WRITES only — a lapsed academy keeps reading and exporting.
+            'subscription' => EnsureActiveSubscription::class,
+
+            'super_admin' => EnsureSuperAdmin::class,
         ]);
 
         $middleware->throttleApi('api');

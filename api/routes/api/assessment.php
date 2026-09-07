@@ -9,7 +9,7 @@ use App\Http\Controllers\Api\V1\Assessment\QuizBuilderController;
 use App\Http\Controllers\Api\V1\Assessment\SubmissionController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function (): void {
 
     /* -------- Authoring (returns correct answers; course-scoped authz) -------- */
     Route::prefix('studio')->name('studio.')->group(function (): void {

@@ -33,7 +33,7 @@ Route::get('media/{media}/download', [MediaController::class, 'download'])
  * therefore behind auth, and a signed-out visitor gets a login screen rather
  * than a storefront.
  */
-Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function (): void {
 
     /* -------- Catalogue -------- */
     Route::get('courses', [CourseCatalogController::class, 'index'])->name('courses.index');

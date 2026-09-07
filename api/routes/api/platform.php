@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Http\Controllers\Api\V1\Admin\TenantController;
+use Illuminate\Support\Facades\Route;
+
+/*
+ * The platform operator's surface.
+ *
+ * Central-DB only, and deliberately OUTSIDE the `tenant` middleware: these
+ * routes are about academies rather than inside one, and a suspended or
+ * lapsed academy is exactly the one an operator needs to reach. Putting them
+ * behind `tenant` would lock the operator out of the academies that need
+ * attention — and behind `subscription`, out of the very action that fixes a
+ * lapsed one.
+ */
+
+Route::middleware(['auth:sanctum', 'super_admin'])
+    ->prefix('admin')->name('admin.')
+    ->group(function (): void {
+        Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
+        Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
+        Route::get('tenants/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
+        Route::patch('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
+        Route::put('tenants/{tenant}/plan', [TenantController::class, 'assignPlan'])
+            ->name('tenants.plan');
+    });

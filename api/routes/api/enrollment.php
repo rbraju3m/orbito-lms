@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
  * learn.php — `POST /courses/{course}/enroll` and `GET /learn/courses`.
  */
 
-Route::middleware(['auth:sanctum', 'tenant'])->prefix('studio')->name('studio.')->group(function (): void {
+Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->prefix('studio')->name('studio.')->group(function (): void {
     Route::get('courses/{course}/students', [EnrollmentController::class, 'index'])
         ->name('students.index');
 

@@ -11,9 +11,16 @@ use Illuminate\Support\Facades\Route;
 /*
  * The learner surface. Every content route resolves access through the single
  * CourseAccess service (ADR-03) — never an ad-hoc enrollment check.
+ *
+ * `subscription` gates WRITES here as everywhere else, which means a lapsed
+ * academy's learners can still read every lesson they are enrolled in but
+ * cannot record progress or hand work in. That is a deliberate consequence of
+ * one platform-wide rule rather than a decision about learners, and it is the
+ * sharpest edge of the read-only model — worth revisiting if academies start
+ * lapsing with live cohorts.
  */
 
-Route::prefix('learn')->name('learn.')->middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+Route::prefix('learn')->name('learn.')->middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function (): void {
     /*
      * These two once served anonymous callers a preview and a locked outline.
      * They cannot any more: with tenancy resolved from the authenticated user,
@@ -47,6 +54,6 @@ Route::prefix('learn')->name('learn.')->middleware(['auth:sanctum', 'tenant'])->
     Route::delete('notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
 });
 
-Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function (): void {
     Route::post('courses/{course}/enroll', [EnrollmentController::class, 'store'])->name('courses.enroll');
 });

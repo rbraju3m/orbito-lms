@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Concerns;
 
+use App\Domain\Platform\Enums\SubscriptionStatus;
 use App\Domain\Platform\Enums\TenantStatus;
+use App\Domain\Platform\Models\Plan;
+use App\Domain\Platform\Models\Subscription;
 use App\Domain\Platform\Models\Tenant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\ParallelTesting;
@@ -61,12 +64,51 @@ trait UsesSharedTenant
         // fails, so clear it first rather than requiring a manual drop.
         $this->dropTenantSchema($id);
 
-        Tenant::create([
+        $tenant = Tenant::create([
             'id' => $id,
             'slug' => 'test-academy',
             'name' => 'Test Academy',
             'status' => TenantStatus::Active,
             'is_active' => true,
+        ]);
+
+        /*
+         * A live subscription, or EnsureActiveSubscription would 402 every
+         * write in the suite. Committed here with the tenant, outside any
+         * transaction, so it survives each test's rollback.
+         *
+         * Uncapped on purpose: plan limits are their own feature with their
+         * own tests, and a default cap here would make unrelated suites fail
+         * mysteriously once they created their 51st course.
+         */
+        $plan = Plan::query()->firstOrCreate(
+            ['slug' => 'test-plan'],
+            [
+                'name' => 'Test Plan',
+                'price_minor' => 0,
+                'currency' => 'USD',
+                'billing_period' => 'monthly',
+                'trial_days' => 0,
+                'grace_days' => 7,
+                'limits' => [],
+                'is_active' => true,
+                /*
+                 * Sorted LAST on purpose. ProvisionTenant picks the default
+                 * plan by position, so a harness plan at position 0 would
+                 * shadow whatever plan a test creates and silently provision
+                 * academies onto this one instead.
+                 */
+                'position' => 1000,
+            ],
+        );
+
+        Subscription::create([
+            'tenant_id' => $tenant->id,
+            'plan_id' => $plan->id,
+            'status' => SubscriptionStatus::Active,
+            'current_period_starts_at' => now(),
+            'current_period_ends_at' => now()->addYear(),
+            'grace_days' => $plan->grace_days,
         ]);
 
         self::$sharedTenantId = $id;

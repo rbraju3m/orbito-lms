@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domain\Platform\Models;
 
+use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Enums\TenantStatus;
 use Carbon\CarbonInterface;
 use Database\Factories\Platform\TenantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
@@ -28,6 +31,8 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string|null $support_email
  * @property CarbonInterface|null $approved_at
  * @property int|null $approved_by
+ * @property string|null $suspended_reason
+ * @property string|null $rejected_reason
  */
 final class Tenant extends BaseTenant implements TenantWithDatabase
 {
@@ -70,6 +75,18 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
             'is_active' => 'boolean',
             'approved_at' => 'datetime',
         ];
+    }
+
+    /** @return HasOne<Subscription, $this> */
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    /** @return HasMany<User, $this> */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
     }
 
     public function getRouteKeyName(): string
