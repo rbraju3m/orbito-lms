@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Engagement\AnnouncementController;
 use App\Http\Controllers\Api\V1\Engagement\DiscussionController;
 use App\Http\Controllers\Api\V1\Engagement\ReviewController;
+use App\Http\Controllers\Api\V1\Engagement\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -57,6 +59,34 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
 
     Route::delete('discussion-replies/{reply}', [DiscussionController::class, 'destroyReply'])
         ->name('discussions.replies.destroy');
+
+    /* ---------------------------------------------------- Announcements */
+
+    Route::get('courses/{course}/announcements', [AnnouncementController::class, 'index'])
+        ->name('announcements.index');
+    Route::post('courses/{course}/announcements', [AnnouncementController::class, 'store'])
+        ->name('announcements.store');
+    Route::patch('announcements/{announcement}', [AnnouncementController::class, 'update'])
+        ->name('announcements.update');
+    Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])
+        ->name('announcements.destroy');
+
+    /*
+     * Publishing is its own endpoint, not a field on the update. Saving a
+     * draft and sending it to a thousand people are different acts and should
+     * not be one careless boolean apart.
+     */
+    Route::post('announcements/{announcement}/publish', [AnnouncementController::class, 'publish'])
+        ->name('announcements.publish');
+    Route::delete('announcements/{announcement}/publish', [AnnouncementController::class, 'unpublish'])
+        ->name('announcements.unpublish');
+
+    /* -------------------------------------------------------- Wishlist */
+
+    Route::get('wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+    Route::post('wishlist/{course}', [WishlistController::class, 'store'])->name('wishlist.store');
+    Route::delete('wishlist/{course}', [WishlistController::class, 'destroy'])
+        ->name('wishlist.destroy');
 
     Route::get('admin/reviews', [ReviewController::class, 'queue'])
         ->name('admin.reviews.queue');

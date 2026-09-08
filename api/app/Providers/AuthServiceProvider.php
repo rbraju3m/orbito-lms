@@ -21,9 +21,11 @@ use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Curriculum\Models\Lesson;
 use App\Domain\Curriculum\Models\Resource;
 use App\Domain\Curriculum\Policies\CurriculumPolicy;
+use App\Domain\Engagement\Models\Announcement;
 use App\Domain\Engagement\Models\Discussion;
 use App\Domain\Engagement\Models\DiscussionReply;
 use App\Domain\Engagement\Models\Review;
+use App\Domain\Engagement\Policies\AnnouncementPolicy;
 use App\Domain\Engagement\Policies\DiscussionPolicy;
 use App\Domain\Engagement\Policies\ReviewPolicy;
 use App\Domain\Enrollment\Models\Enrollment;
@@ -55,6 +57,7 @@ final class AuthServiceProvider extends ServiceProvider
         Certificate::class => CertificatePolicy::class,
         Review::class => ReviewPolicy::class,
         Discussion::class => DiscussionPolicy::class,
+        Announcement::class => AnnouncementPolicy::class,
     ];
 
     public function boot(): void

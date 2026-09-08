@@ -16,6 +16,8 @@ use App\Domain\Engagement\Events\DiscussionReplied;
 use App\Domain\Engagement\Events\ReviewChanged;
 use App\Domain\Engagement\Listeners\RefreshCourseRating;
 use App\Domain\Engagement\Listeners\RefreshDiscussionCounters;
+use App\Domain\Engagement\Listeners\RemoveFromWishlistOnEnrollment;
+use App\Domain\Enrollment\Events\CourseEnrolled;
 use App\Domain\Identity\Events\InstructorReviewed;
 use App\Domain\Identity\Events\UserLoggedIn;
 use App\Domain\Identity\Events\UserRegistered;
@@ -108,6 +110,15 @@ final class EventServiceProvider extends ServiceProvider
         // "how many replies?" must not be a subquery per row.
         DiscussionReplied::class => [
             RefreshDiscussionCounters::class,
+        ],
+
+        /*
+         * Enrolling is the wish being granted, so the saved entry goes — a
+         * wishlist of things you already have is noise. Queued: nothing about
+         * the enrolment depends on it.
+         */
+        CourseEnrolled::class => [
+            RemoveFromWishlistOnEnrollment::class,
         ],
     ];
 
