@@ -239,10 +239,24 @@ instructor staff on every course. `hasScopedPermission()` /
 The regression tests are in `CourseScopedAccessTest`.
 
 ### ADR-08 — Analytics is an append-only event log + rollups
-**Status: not built (P13).**
+**Status: delivered (P13), with two documented exceptions.**
 `analytics_events` is written by queued listeners and never read by a dashboard.
-Nightly (and hourly for today) jobs build `analytics_daily_*` rollups. Dashboards read
-only rollups. This keeps the write path cheap and the read path O(rows in range).
+`analytics:rollup` builds `analytics_daily_*` nightly over yesterday and today, and
+hourly over today alone. Dashboards read only rollups. This keeps the write path
+cheap and the read path O(rows in range).
+
+Two things read something other than the log, and both are deliberate:
+
+- **Money comes from the orders ledger.** An order is not a course, so
+  splitting a payment across courses inside an event would give the platform
+  total and the per-course totals two definitions free to disagree. The ledger
+  is the one place money is already correct.
+- **The item funnel reads `item_progress`.** A funnel asks about the present
+  state of every learner rather than about a day, and that table already holds
+  exactly it, one row per learner per item.
+
+Partitioning the log by month was part of the original plan and was not built —
+see `docs/DATABASE.md` §10. Retention is `analytics:prune`, weekly, 400 days.
 
 ### ADR-09 — Media is private by default
 **Status: partly delivered (P4).** The private-by-default disk, the

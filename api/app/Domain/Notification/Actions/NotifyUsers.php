@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Notification;
  * 1. The ids are TENANT ids (an enrollment, a discussion, a course
  *    instructor) but the accounts are CENTRAL. `whereIn` on the central
  *    connection is the only way across — a `whereHas` from either side
- *    compiles to one statement spanning two databases and cannot work (§16).
+ *    compiles to one statement spanning two databases and cannot work (§ Multi-tenancy).
  * 2. Nobody is notified about their own action. The actor is excluded here
  *    rather than by each caller remembering to.
  * 3. A course announcement can address thousands of people, so recipients are

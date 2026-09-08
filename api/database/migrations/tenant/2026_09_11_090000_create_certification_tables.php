@@ -60,7 +60,7 @@ return new class extends Migration
 
             $table->foreignId('template_id')->nullable()->constrained('certificate_templates')->nullOnDelete();
 
-            // Central users table — unenforced across the schema boundary (§16).
+            // Central users table — unenforced across the schema boundary (§ Multi-tenancy).
             $table->unsignedBigInteger('user_id');
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
 

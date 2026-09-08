@@ -27,5 +27,6 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/certification.php';
     require __DIR__.'/api/engagement.php';
     require __DIR__.'/api/notification.php';
+    require __DIR__.'/api/analytics.php';
     require __DIR__.'/api/platform.php';
 });

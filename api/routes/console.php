@@ -32,3 +32,24 @@ Schedule::command('usage:reconcile')->dailyAt('03:30')->withoutOverlapping();
  * nobody knows what it should be. This is the only thing that would notice.
  */
 Schedule::command('engagement:reconcile')->dailyAt('03:50')->withoutOverlapping();
+
+/*
+ * Retention on the event log. Weekly rather than nightly: it deletes by age,
+ * so a week's worth of overdue rows is a week's worth of rows — nobody is
+ * waiting on it, and a nightly full-table scan for nothing is a nightly cost.
+ */
+Schedule::command('analytics:prune')->weeklyOn(1, '04:20')->withoutOverlapping();
+
+/*
+ * Analytics rollups (ADR-08). Dashboards read these and never the log.
+ *
+ * Nightly covers yesterday AND today: a listener that fired at 23:59 may only
+ * have been written after midnight, so a day never revisited would be
+ * permanently short. Hourly then keeps today's figures honest for anybody
+ * looking at a dashboard before tomorrow's run.
+ *
+ * After the reconcilers, because the instructor rollup snapshots `rating_avg`
+ * and should snapshot the reconciled value rather than yesterday's drift.
+ */
+Schedule::command('analytics:rollup --days=2')->dailyAt('04:00')->withoutOverlapping();
+Schedule::command('analytics:rollup --days=1 --skip-funnel')->hourly()->withoutOverlapping();

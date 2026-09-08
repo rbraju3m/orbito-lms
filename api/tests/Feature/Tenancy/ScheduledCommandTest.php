@@ -73,6 +73,17 @@ it('reconciles usage counters with no tenant open', function (): void {
     ($this->centrally)('usage:reconcile');
 });
 
+it('prunes analytics events with no tenant open', function (): void {
+    ($this->centrally)('analytics:prune');
+});
+
+it('builds analytics rollups with no tenant open', function (): void {
+    // The one command here that WRITES derived rows rather than sweeping, so
+    // a tenant-blind version would silently build them into the central
+    // database and leave every academy's dashboards empty.
+    ($this->centrally)('analytics:rollup');
+});
+
 /*
  * A broken academy must not stop the sweep. The nightly job that gives up on
  * the first bad tenant leaves every later one unswept, and nobody finds out

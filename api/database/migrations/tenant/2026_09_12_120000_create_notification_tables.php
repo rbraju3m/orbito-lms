@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
  * Notifications are per-ACADEMY, not per-account. The same person teaching in
  * one academy and learning in another has two inboxes and two sets of
  * preferences, because "email me about new questions" is a statement about a
- * role somebody holds somewhere — not about them (§16).
+ * role somebody holds somewhere — not about them (§ Multi-tenancy).
  */
 return new class extends Migration
 {

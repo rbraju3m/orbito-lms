@@ -31,6 +31,7 @@ import { Link, useParams } from 'react-router';
 import { z } from 'zod';
 
 import { categoriesQuery } from '@/features/catalog/api/queries';
+import { CourseAnalyticsPanel } from '@/features/analytics/components/CourseAnalyticsPanel';
 import { AnnouncementManager } from '@/features/engagement/components/AnnouncementManager';
 import { StudentsPanel } from '@/features/enrollment/components/StudentsPanel';
 import { CurriculumBuilder } from '@/features/curriculum/components/CurriculumBuilder';
@@ -283,6 +284,7 @@ export function CourseEditorRoute() {
             Students{data.enrollment_count > 0 ? ` (${data.enrollment_count})` : ''}
           </Tabs.Tab>
           <Tabs.Tab value="announcements">Announcements</Tabs.Tab>
+          <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
         </Tabs.List>
       </Tabs>
 
@@ -298,6 +300,10 @@ export function CourseEditorRoute() {
         // two-thirds column beside a sidebar of publish controls is a
         // newsletter squeezed into a gutter.
         <AnnouncementManager courseId={id} />
+      ) : tab === 'analytics' ? (
+        // Full-width too: the funnel is a five-column table, and the whole
+        // point of it is reading lessons against their neighbours.
+        <CourseAnalyticsPanel courseId={id} />
       ) : (
         <Grid gap="lg">
           <Grid.Col span={{ base: 12, md: 8 }}>

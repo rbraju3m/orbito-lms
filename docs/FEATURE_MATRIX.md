@@ -298,14 +298,14 @@ reads yet.
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
-| L1 | Event stream (append-only) | — | — | **P13 · M** | Foundation for everything below |
-| L2 | Admin dashboard KPIs | Pro | Yes | **P13 · M** | From rollups, never raw |
-| L3 | Enrollment & revenue trends | Pro | Yes | **P13 · M** | |
-| L4 | Course performance | Pro | Yes | **P13 · M** | |
-| L5 | Instructor performance | Pro | Yes | P13 | |
-| L6 | Student activity | Pro | Yes | P13 | |
-| L7 | Per-item drop-off / heatmap | — | Yes | P13 | Klasio-inspired |
-| L8 | Exportable reports (CSV) | Pro | Yes | P13 | |
+| L1 | Event stream (append-only) | — | — | **P13 · M** | No foreign keys: an event survives what it describes |
+| L2 | Admin dashboard KPIs | Pro | Yes | **P13 · M** | From rollups, never raw. vs-previous deltas served by the API |
+| L3 | Enrollment & revenue trends | Pro | Yes | **P13 · M** | Hand-rolled SVG; no chart library on the bundle |
+| L4 | Course performance | Pro | Yes | **P13 · M** | A studio tab, beside the curriculum it explains |
+| L5 | Instructor performance | Pro | Yes | **P13** | API only; no screen yet |
+| L6 | Student activity | Pro | Yes | P14 | Only as `active_learners`; a per-student view is not built |
+| L7 | Per-item drop-off / heatmap | — | Yes | **P13** | Klasio-inspired. Curriculum order, never sorted by severity |
+| L8 | Exportable reports (CSV) | Pro | Yes | **P13** | Streamed, BOM'd, scoped to what the caller may open |
 
 ## M. Gamification
 

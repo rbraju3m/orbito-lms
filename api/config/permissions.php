@@ -259,7 +259,10 @@ return [
                 'discussion.create', 'discussion.reply', 'discussion.moderate',
                 'announcement.manage',
                 'media.upload', 'media.delete.own',
-                'analytics.view.own',
+                // Export sits beside view, not above it. Somebody who can see
+                // a figure and not save it will copy it out by hand, and the
+                // rows are scoped to their own courses either way.
+                'analytics.view.own', 'analytics.export',
                 'ai.use',
                 'role.assign.course',
             ],
@@ -300,7 +303,7 @@ return [
                 'discussion.create', 'discussion.reply', 'discussion.moderate',
                 'announcement.manage',
                 'media.upload',
-                'analytics.view.own',
+                'analytics.view.own', 'analytics.export',
                 'ai.use',
                 'role.assign.course',
             ],

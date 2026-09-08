@@ -35,7 +35,7 @@ use Illuminate\Support\Str;
  * @property CarbonInterface|null $last_reply_at
  * @property int|null $accepted_reply_id
  *
- * `user_id` crosses the schema boundary to a table with no FK (§16).
+ * `user_id` crosses the schema boundary to a table with no FK (§ Multi-tenancy).
  * @property-read User|null $user
  * @property-read CourseItem|null $item
  */

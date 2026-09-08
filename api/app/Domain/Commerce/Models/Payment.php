@@ -6,6 +6,7 @@ namespace App\Domain\Commerce\Models;
 
 use App\Domain\Commerce\Enums\Gateway;
 use App\Domain\Commerce\Enums\PaymentStatus;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -18,6 +19,11 @@ use Illuminate\Support\Str;
  * @property PaymentStatus $status
  * @property int $amount_minor
  * @property string $currency
+ * @property CarbonInterface|null $initiated_at
+ * @property CarbonInterface|null $captured_at
+ * @property CarbonInterface|null $failed_at
+ * @property string|null $failure_reason
+ * @property int $order_id
  */
 final class Payment extends Model
 {

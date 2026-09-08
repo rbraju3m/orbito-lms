@@ -64,7 +64,7 @@ final class CertificateResource extends BaseResource
 
     /**
      * The academy id is in the path because this page has no authenticated
-     * user to resolve one from (§16), and it is the immutable uuid rather than
+     * user to resolve one from (§ Multi-tenancy), and it is the immutable uuid rather than
      * the slug because this URL gets PRINTED — an academy renaming itself must
      * not invalidate paper already in the world.
      */

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
  * Engagement. Members-only like the rest of the catalogue — there is no
- * anonymous surface (§16), so course reviews are read by people signed in to
+ * anonymous surface (§ Multi-tenancy), so course reviews are read by people signed in to
  * the academy rather than by the open internet.
  */
 Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function (): void {

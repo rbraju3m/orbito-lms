@@ -276,7 +276,7 @@ it('writes a real inbox row in the academy schema and renders a real email', fun
      * Nothing faked but the clock: this is the one test that proves the
      * database channel writes to the TENANT connection — User is pinned
      * central, and without LivesInTenantSchema this looks for `notifications`
-     * in the wrong schema (§16).
+     * in the wrong schema (§ Multi-tenancy).
      */
     $announcement = Announcement::factory()->create([
         'course_id' => $this->course->id,

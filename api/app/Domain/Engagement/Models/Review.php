@@ -32,7 +32,7 @@ use Illuminate\Support\Str;
  * @property CarbonInterface|null $replied_at
  * @property CarbonInterface|null $published_at
  *
- * `user_id` crosses the schema boundary to a table with no foreign key (§16),
+ * `user_id` crosses the schema boundary to a table with no foreign key (§ Multi-tenancy),
  * so the row it names can be gone.
  * @property-read User|null $user
  * @property-read Enrollment|null $enrollment

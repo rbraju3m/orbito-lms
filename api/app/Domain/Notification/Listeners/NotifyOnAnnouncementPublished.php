@@ -57,7 +57,7 @@ final class NotifyOnAnnouncementPublished implements ShouldQueue
         );
 
         /*
-         * Tenant ids, resolved to central accounts inside the Action (§16).
+         * Tenant ids, resolved to central accounts inside the Action (§ Multi-tenancy).
          * Suspended and revoked learners are not an audience — `active` is the
          * same scope the course itself reads, so who hears about a course and
          * who may open it cannot disagree.

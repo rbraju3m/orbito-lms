@@ -33,7 +33,7 @@ return new class extends Migration
              */
             $table->foreignId('course_item_id')->nullable()->constrained()->cascadeOnDelete();
 
-            // Central users table — unenforced across the boundary (§16).
+            // Central users table — unenforced across the boundary (§ Multi-tenancy).
             $table->unsignedBigInteger('user_id');
 
             $table->string('type', 20)->default('question');

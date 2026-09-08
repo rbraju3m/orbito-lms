@@ -368,7 +368,7 @@ Gate::authorize('publish', $course);                   // in a controller
 - **Reset clears what was DECLARED, never what was EARNED.**
   `ItemType::isSelfMarkable()` is the line: wiping a passed quiz can leave an
   item permanently uncompletable once attempts are spent.
-- **Union in SQL; resolve cross-boundary ids in PHP.** See §17 — the same
+- **Union in SQL; resolve cross-boundary ids in PHP.** See §18 — the same
   instinct that merges two paginated queries in PHP also writes a `whereHas`
   across two databases.
 - **`error.meta` carries what the caller can DO about a failure** — a date to
@@ -422,7 +422,58 @@ Gate::authorize('publish', $course);                   // in a controller
 
 ---
 
-## 17. Multi-tenancy — read this before touching a model or a query
+## 17. Patterns established in Phase 13 — reuse these
+
+- **A log is written by listeners and read by nobody but a rollup** (ADR-08).
+  Dashboards read rollups. The moment one screen queries `analytics_events`
+  directly, that metric has two definitions.
+- **An analytics write may never throw into its caller.** `RecordEvent`
+  reports and returns null. Analytics observes the system; a full disk must
+  lose a row in a traffic count, not break somebody's lesson. There is a test
+  that drops the table and asserts enrolment still works.
+- **A client may raise only what the server cannot see.**
+  `EventName::isClientRaisable()` is the whole security boundary of the ingest
+  endpoint. Adding a case there is a decision about trust, not a convenience.
+- **Clamp any timestamp a client sends.** A device with a wrong year writes
+  into next month's report, where nothing ever removes it.
+- **A log table gets no foreign keys.** An event is a fact about the past;
+  cascading from the thing it describes erases the history of it. Store a
+  morph-map ALIAS in `subject_type` — a report read years later must survive a
+  class moving namespace.
+- **Every rollup is an upsert on its primary key.** "Run it again" has to be
+  the recovery path for a failed night, not a corruption. A derived table that
+  cannot be dropped and rebuilt is a fact table pretending to be a cache.
+- **Pick one source per figure and say which.** Behaviour from the log, money
+  from the ledger, the funnel from `item_progress`. Two derivations of one
+  number are two numbers.
+- **Aggregate queries return `stdClass`, not models.** `->toBase()` on a
+  GROUP BY, because hydrating a model whose columns are `SUM(...)` hands every
+  caller an object that lies about its own type — and PHPStan says so.
+- **Densify a series server-side.** A day with no row must come back as zero,
+  or a chart draws a straight line across the gap and reports activity that
+  never happened.
+- **Never sum distinct people across days.** Thirty daily active counts added
+  together count a regular thirty times. Report a peak and name the field for
+  what it is.
+- **Cap any range a dashboard can ask for.** Presets, not a free date pair:
+  "since the beginning" is a table scan somebody requests by accident.
+- **A hook goes above the early returns.** React counts hooks; one placed
+  after a `return` for a pending query is a hook that sometimes does not run.
+- **Guard a fire-once effect with a ref.** React 19 runs effects twice in
+  development, which double-counts every view in exactly the environment where
+  somebody first checks the numbers.
+- **Weigh a chart library against the bundle before reaching for one.** 90–150
+  KB gzipped for the single screen that draws a line; ~90 lines of SVG did it
+  for 0.2 KB.
+
+---
+
+## 18. Multi-tenancy — read this before touching a model or a query
+
+> Code comments cite this section as **`(§ Multi-tenancy)`**, by name and not
+> by number. It has been §16, §17 and now §18 as phases added their own
+> pattern sections, and thirty comments quietly pointed at the wrong place
+> each time. Cite any section of this file by its NAME.
 
 One MySQL schema per academy, via `stancl/tenancy`. Isolation is
 **structural**: a query that forgets a filter still cannot reach another
@@ -481,11 +532,11 @@ so the action that fixes a lapse survives it.
 
 ---
 
-## 18. Current phase
+## 19. Current phase
 
-**Phases 0–12 complete** front and back, plus a **multi-tenancy retrofit**
+**Phases 0–13 complete** front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-862 backend tests / 2916 assertions · 187 frontend tests.
+915 backend tests / 3038 assertions · 198 frontend tests.
 
 **Every MVP phase has shipped, but the MVP is not signed off.** Its own
 definition (`docs/ROADMAP.md` §3) says a student "buys it with a real verified
@@ -496,7 +547,7 @@ Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
 the enrollment lifecycle, the studio roster, completion and retake.
 
 The retrofit delivered database-per-tenant, the platform admin surface, plans
-and subscriptions. **Read §17 before writing any query.**
+and subscriptions. **Read §18 before writing any query.**
 
 **Phase 10 (Commerce) is COMPLETE against `FakeGateway`, front and back** —
 the money path, the HTTP surface, and a SPA that can buy a course. But
@@ -565,9 +616,34 @@ Three things the next reader will otherwise trip on:
   it through `PublishAnnouncement`, because setting `published_at` directly
   fires no event.
 
+**Phase 13 (Analytics) is COMPLETE**, front and back. ADR-08 is delivered: an
+append-only log, four rollup tables, and dashboards that read the rollups and
+never the log. The patterns are in §17; the retro is in `docs/ROADMAP.md`.
+
+Three things the next reader will otherwise trip on:
+
+- **`EventName::isClientRaisable()` is a security boundary, not a filter.**
+  Adding a case to that allowlist lets a browser assert the fact. Everything
+  currently outside it — payments, completions, passes, certificates — is
+  established by the server precisely so it cannot be forged.
+- **The rollups are keyed on UTC days and nothing converts.** A figure that
+  looks a day off in Dhaka is not a bug; `range.timezone` says UTC in every
+  response, and the fix would be an academy timezone, which does not exist.
+- **`analytics:rollup` writes derived rows, so a tenant-blind version would
+  build them into the CENTRAL database** and leave every academy's dashboards
+  empty with no error. `ScheduledCommandTest` covers it; extend that file for
+  any new scheduled command.
+
 **Known debt, deliberately left:**
 
 - Plan **limits** are stored and counted but never enforced. Phase 16.
+- Analytics has **no per-student activity view** (L6) and the instructor
+  series has **an endpoint with no screen**. Both additive.
+- **Order-level discounts will split the revenue figures.** `discount_minor`
+  is always 0 today, so per-course line totals sum exactly to the platform
+  total. When coupons land (P16), the discount has to be allocated across
+  items — largest remainder, so the parts sum to the whole — or the two will
+  disagree by the discount and a dashboard will show it.
 - A notification fan-out issues **one preference lookup per recipient** inside
   the queued job. Correct and cacheless, but a five-thousand-learner
   announcement is five thousand small queries. A batch resolver is the fix; it

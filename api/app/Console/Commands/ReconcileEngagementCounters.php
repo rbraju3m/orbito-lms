@@ -21,7 +21,7 @@ use Illuminate\Console\Command;
  * an average that is quietly wrong, and a wrong average on a course card is
  * invisible — nobody reports it, because nobody knows what it should be.
  *
- * Runs centrally with no academy open, so it must walk them (§16).
+ * Runs centrally with no academy open, so it must walk them (§ Multi-tenancy).
  */
 final class ReconcileEngagementCounters extends Command
 {

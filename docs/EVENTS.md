@@ -167,6 +167,15 @@ instructor fixing a typo must not notify a thousand people twice.
 | `AnnouncementPublished` | `NotifyOnAnnouncementPublished` | Notification | **yes** |
 | `AssignmentGraded` | `NotifyOnAssignmentGraded` | Notification | **yes** |
 | `CourseEnrolled` | `RemoveFromWishlistOnEnrollment` | Engagement | **yes** |
+| `CourseEnrolled` | `RecordEnrollmentEvents` | Analytics | **yes** |
+| `ItemCompleted` | `RecordProgressEvents@item` | Analytics | **yes** |
+| `CourseCompleted` | `RecordProgressEvents@course` | Analytics | **yes** |
+| `QuizAttemptSubmitted` | `RecordAssessmentEvents@quizSubmitted` | Analytics | **yes** |
+| `QuizAttemptGraded` | `RecordAssessmentEvents@quizGraded` | Analytics | **yes** |
+| `AssignmentSubmitted` | `RecordAssessmentEvents@assignmentSubmitted` | Analytics | **yes** |
+| `AssignmentGraded` | `RecordAssessmentEvents@assignmentGraded` | Analytics | **yes** |
+| `PaymentCaptured` | `RecordCommerceEvents` | Analytics | **yes** |
+| `CertificateIssued` | `RecordCertificationEvents` | Analytics | **yes** |
 
 `RecountEnrollmentTotals` was the first `ShouldQueue` listener: adding one
 lesson changes the denominator for every enrolled learner, and ten thousand
@@ -184,6 +193,18 @@ Notification listeners do not consult preferences. `DomainNotification::via()`
 is the single enforcement point, so a delivery raised from anywhere — a
 command, a future digest — obeys the switches without having to remember to
 ask.
+
+**Analytics listens to almost everything and changes nothing.** That is ADR-08
+working: the log is written by queued listeners and read by nobody but the
+rollup jobs. None of them may throw into the request either — `RecordEvent`
+reports and returns null rather than propagating, because a full disk must
+lose a row in a traffic count, not break somebody's lesson.
+
+Four names in the vocabulary have NO domain event and never will:
+`course_viewed`, `item_started`, `search_performed`, `cart_abandoned`. The
+server cannot see any of them, which is the entire reason
+`POST /analytics/track` exists — and the reason its allowlist is exactly those
+four.
 
 **Several events still have no listener.** That is expected, not an oversight —
 they are the seams the later phases attach to, and firing them from the start

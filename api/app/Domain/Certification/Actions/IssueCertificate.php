@@ -98,7 +98,7 @@ final class IssueCertificate
     {
         /*
          * Looked up rather than read off the relation. `user_id` crosses the
-         * schema boundary to a table with no foreign key (§16), so the row can
+         * schema boundary to a table with no foreign key (§ Multi-tenancy), so the row can
          * genuinely be absent — the relation's type says otherwise and is
          * wrong about it.
          */

@@ -4,13 +4,22 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Analytics\Listeners\RecordAssessmentEvents;
+use App\Domain\Analytics\Listeners\RecordCertificationEvents;
+use App\Domain\Analytics\Listeners\RecordCommerceEvents;
+use App\Domain\Analytics\Listeners\RecordEnrollmentEvents;
+use App\Domain\Analytics\Listeners\RecordProgressEvents;
 use App\Domain\Assessment\Events\AssignmentGraded;
+use App\Domain\Assessment\Events\AssignmentSubmitted;
+use App\Domain\Assessment\Events\QuizAttemptGraded;
+use App\Domain\Assessment\Events\QuizAttemptSubmitted;
 use App\Domain\Catalog\Events\CourseCreated;
 use App\Domain\Catalog\Events\CourseDeleted;
 use App\Domain\Catalog\Events\CourseStatusChanged;
 use App\Domain\Certification\Events\CertificateIssued;
 use App\Domain\Certification\Listeners\IssueCertificateOnCompletion;
 use App\Domain\Certification\Listeners\RenderPdfOnIssue;
+use App\Domain\Commerce\Events\PaymentCaptured;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
 use App\Domain\Engagement\Events\AnnouncementPublished;
@@ -37,6 +46,7 @@ use App\Domain\Platform\Listeners\TrackCourseUsage;
 use App\Domain\Platform\Listeners\TrackInstructorUsage;
 use App\Domain\Platform\Listeners\TrackStorageUsage;
 use App\Domain\Progress\Events\CourseCompleted;
+use App\Domain\Progress\Events\ItemCompleted;
 use App\Domain\Progress\Listeners\RecountEnrollmentTotals;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -96,6 +106,7 @@ final class EventServiceProvider extends ServiceProvider
          */
         CourseCompleted::class => [
             IssueCertificateOnCompletion::class,
+            [RecordProgressEvents::class, 'course'],
         ],
 
         // Two listeners, not one action, because minting and rendering fail
@@ -105,6 +116,7 @@ final class EventServiceProvider extends ServiceProvider
         CertificateIssued::class => [
             RenderPdfOnIssue::class,
             NotifyOnCertificateIssued::class,
+            RecordCertificationEvents::class,
         ],
 
         /*
@@ -142,10 +154,13 @@ final class EventServiceProvider extends ServiceProvider
         QuestionAsked::class => [
             NotifyStaffOnQuestionAsked::class,
         ],
+
+        // The one event with a listener from each of the last two phases: a
+        // learner is told, and the log records it.
         AssignmentGraded::class => [
             NotifyOnAssignmentGraded::class,
+            [RecordAssessmentEvents::class, 'assignmentGraded'],
         ],
-
         /*
          * Enrolling is the wish being granted, so the saved entry goes — a
          * wishlist of things you already have is noise. Queued: nothing about
@@ -153,6 +168,35 @@ final class EventServiceProvider extends ServiceProvider
          */
         CourseEnrolled::class => [
             RemoveFromWishlistOnEnrollment::class,
+            RecordEnrollmentEvents::class,
+        ],
+
+        /*
+         * The append-only log (ADR-08). Every listener here is queued and none
+         * of them may throw into the request: analytics OBSERVES the system,
+         * so a full disk must lose a row in a traffic count rather than break
+         * somebody's lesson.
+         *
+         * Note what is NOT here. `course_viewed`, `item_started`,
+         * `search_performed` and `cart_abandoned` have no domain event to hang
+         * on — the server cannot see them — which is the entire reason
+         * POST /analytics/track exists, and the reason its allowlist is
+         * exactly those four.
+         */
+        ItemCompleted::class => [
+            [RecordProgressEvents::class, 'item'],
+        ],
+        QuizAttemptSubmitted::class => [
+            [RecordAssessmentEvents::class, 'quizSubmitted'],
+        ],
+        QuizAttemptGraded::class => [
+            [RecordAssessmentEvents::class, 'quizGraded'],
+        ],
+        AssignmentSubmitted::class => [
+            [RecordAssessmentEvents::class, 'assignmentSubmitted'],
+        ],
+        PaymentCaptured::class => [
+            RecordCommerceEvents::class,
         ],
     ];
 

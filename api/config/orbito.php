@@ -59,6 +59,23 @@ return [
     | Media. Private files are delivered by a signed URL that lives only long
     | enough to start the download (ADR-09).
     */
+    /*
+     |--------------------------------------------------------------------------
+     | Analytics
+     |--------------------------------------------------------------------------
+     |
+     | The event log is personal data — `actor_id` and `ip_hash` both identify
+     | somebody — so it has a finite life. 400 days is 13 months: enough for a
+     | year-over-year comparison to have something to compare against, and no
+     | more. Rollups are NOT pruned; they are counts, not people.
+     */
+    'analytics' => [
+        'retention_days' => (int) env('ANALYTICS_RETENTION_DAYS', 400),
+        // One client request may carry a batch — a beacon fired after a spell
+        // offline. Capped so the endpoint cannot be used as a bulk writer.
+        'max_batch' => 20,
+    ],
+
     'media' => [
         'signed_url_ttl_minutes' => (int) env('MEDIA_SIGNED_URL_TTL', 15),
     ],

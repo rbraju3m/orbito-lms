@@ -538,13 +538,56 @@ Four things about this surface are decisions rather than shape:
   It is returned in the matrix as `locked: true` so the UI can render a
   disabled switch rather than a gap.
 
-### Analytics & Settings — planned
+### Analytics — live (P13)
 ```
-GET    /analytics/overview?from=&to=
-GET    /analytics/enrollments · /revenue · /courses/{id} · /instructors/{id}
-GET    /analytics/courses/{id}/funnel           per-item drop-off
-POST   /analytics/track                         client-side events, rate-limited
+POST   /analytics/track                         a BATCH of client events, rate-limited
 
+GET    /analytics/overview?from=&to=            KPIs + dense series + top courses
+GET    /analytics/courses/{course}              one course over time
+GET    /analytics/courses/{course}/funnel       per-item drop-off — no date range
+GET    /analytics/instructors/{user}            own, or anybody's for a platform reader
+
+GET    /analytics/export/platform               CSV
+GET    /analytics/export/courses                CSV, scoped to what the caller may open
+GET    /analytics/courses/{course}/export       CSV of the funnel
+```
+
+**There is deliberately no endpoint over `analytics_events`.** The log is a
+write path and a rebuild source (ADR-08); every read here comes from a rollup.
+Exposing the log would let one screen ask a question the rollups cannot
+answer, which is two definitions of one metric a release later.
+
+Six things about this surface are decisions rather than shape:
+
+- **`POST /analytics/track` accepts only four names** — `course_viewed`,
+  `item_started`, `search_performed`, `cart_abandoned` — and 422s everything
+  else. That allowlist is the security boundary of the endpoint: a client that
+  could post `payment_completed` would be writing revenue into the dashboards
+  without paying anybody. Every other name is raised by a queued listener on a
+  domain event, where it cannot be lied about.
+- **It takes a batch, always**, so a beacon fired after a spell offline can
+  carry each event's own `occurred_at`. That timestamp is **clamped**: anything
+  in the future, or older than a day, becomes now. A device with a wrong year
+  must not write into next month's report.
+- **A day is a UTC day**, and every response says so in `range.timezone`
+  rather than leaving a reader to assume their own.
+- **Series are dense.** A day with no rollup row comes back as zeros, not
+  missing, or a chart draws a straight line across the gap and reports
+  activity that never happened.
+- **`peak_daily_active` is not a sum.** Distinct people cannot be added across
+  days without counting a regular five times over, so the API reports the
+  busiest single day and names the field for what it is.
+- **The range is capped at 366 days.** A dashboard that can ask for all of
+  history can ask for a table scan, and nobody means to.
+
+The three CSV endpoints are **the only responses in the API that are not
+`{data: …}`** — a spreadsheet cannot unwrap an envelope. They stream, carry a
+UTF-8 BOM (Excel on Windows reads a BOM-less file as the local codepage, which
+turns every Bengali title into mojibake), and scope their rows to what the
+caller may open rather than to a query parameter.
+
+### Settings — planned
+```
 GET    /admin/settings · PATCH /admin/settings
 ```
 

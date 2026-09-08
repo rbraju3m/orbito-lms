@@ -15,6 +15,7 @@ import {
   IconBell,
   IconBook,
   IconBookmark,
+  IconChartBar,
   IconChalkboard,
   IconLayoutDashboard,
   IconLogout,
@@ -67,6 +68,12 @@ const NAV: NavItem[] = [
     anyOf: ['user.view', 'settings.view'],
   },
   { to: '/admin/instructors', label: 'Instructors', icon: IconUsers, anyOf: ['instructor.view'] },
+  {
+    to: '/admin/analytics',
+    label: 'Analytics',
+    icon: IconChartBar,
+    anyOf: ['analytics.view.platform'],
+  },
   {
     to: '/admin/reviews',
     label: 'Review moderation',

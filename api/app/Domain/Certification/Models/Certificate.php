@@ -38,7 +38,7 @@ use Illuminate\Support\Str;
  * Relations that can genuinely be null, which the BelongsTo generics cannot
  * express: `template_id` and `pdf_media_id` are nullable columns, and
  * `user_id` points across the schema boundary at a table with no foreign key
- * (§16), so the row it names can be gone. `course` and `enrollment` are NOT
+ * (§ Multi-tenancy), so the row it names can be gone. `course` and `enrollment` are NOT
  * listed — both cascade on delete, so a certificate cannot outlive them.
  * @property-read CertificateTemplate|null $template
  * @property-read Media|null $pdf
@@ -100,7 +100,7 @@ final class Certificate extends Model
         return $this->belongsTo(Enrollment::class);
     }
 
-    /** Central users table — no FK crosses the schema boundary (§16). */
+    /** Central users table — no FK crosses the schema boundary (§ Multi-tenancy). */
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {

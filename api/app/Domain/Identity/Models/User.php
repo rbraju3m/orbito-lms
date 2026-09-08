@@ -147,7 +147,7 @@ final class User extends Authenticatable implements MustVerifyEmail
      * `DatabaseNotification`, which has no connection of its own, so Eloquent
      * copies THIS model's central pin onto it and goes looking for a
      * `notifications` table in the central database. Our Notification lives in
-     * the academy schema and says so (§16).
+     * the academy schema and says so (§ Multi-tenancy).
      *
      * Both the read path and the WRITE path come through here — Laravel's
      * database channel routes to `notifications()` too — so replacing this one

@@ -17,6 +17,7 @@ import { useParams } from 'react-router';
 
 import { ErrorState, LoadingState } from '@/shared/ui';
 
+import { useTrackView } from '@/features/analytics/hooks/useTrackView';
 import { ReviewList } from '@/features/engagement/components/ReviewList';
 import { WishlistButton } from '@/features/engagement/components/WishlistButton';
 import { useSession } from '@/features/auth/hooks/useSession';
@@ -28,6 +29,17 @@ export function CourseDetailRoute() {
   const { slug = '' } = useParams();
   const { canAny } = useSession();
   const { data, isPending, isError, error, refetch } = useQuery(courseDetailQuery(slug));
+
+  /*
+   * The one thing the server cannot see for itself, and half the reason the
+   * ingest endpoint exists.
+   *
+   * ABOVE the early returns, because a hook after one is a hook that
+   * sometimes does not run — React counts them and this component returns
+   * early while the query is pending. The hook takes an optional key and does
+   * nothing until there is one.
+   */
+  useTrackView('course_viewed', data?.id, { courseId: data?.id });
 
   if (isPending) {
     return (

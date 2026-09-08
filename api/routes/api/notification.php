@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
  * purpose: it gates writes only, and marking a notification read is exempt
  * from nothing — a lapsed academy still lets people read and clear their own
  * inbox, because taking that away punishes the learners for the owner's
- * invoice (§16).
+ * invoice (§ Multi-tenancy).
  */
 Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function (): void {
     Route::get('notifications', [NotificationController::class, 'index'])

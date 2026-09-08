@@ -561,25 +561,63 @@ notification_preferences(id, user_id, event_key VARCHAR(64), channel VARCHAR(16)
       -- type leaves rows behind, and reading somebody's preferences must not
       -- become fatal because one names a case that no longer exists.
 
+-- TENANT, all of them. The log plus four rollups (ADR-08).
 analytics_events(id BIGINT, name VARCHAR(64), occurred_at DATETIME(3),
       actor_id NULL, session_id CHAR(36) NULL,
-      subject_type NULL, subject_id NULL,
+      subject_type VARCHAR(32) NULL, subject_id NULL,
       course_id NULL, course_item_id NULL,
-      properties JSON, ip_hash CHAR(64), source ENUM(web,mobile,api))
+      properties JSON NULL, ip_hash CHAR(64) NULL, source VARCHAR(10),
+      created_at)
       INDEX (name, occurred_at)
       INDEX (course_id, name, occurred_at)
       INDEX (actor_id, occurred_at)
-      -- PARTITION BY RANGE on occurred_at (monthly); retention policy in P13
+      INDEX (occurred_at)                              -- retention prunes by age
 
 analytics_daily_course(date, course_id, views, enrollments, completions,
       revenue_minor, currency, active_learners)        PRIMARY KEY(date, course_id)
+      INDEX (course_id, date)                          -- "this course, last 90 days"
 analytics_daily_platform(date, new_users, new_enrollments, completions,
       revenue_minor, currency, active_learners)        PRIMARY KEY(date)
 analytics_daily_instructor(date, instructor_id, enrollments, revenue_minor,
       currency, rating_avg)                            PRIMARY KEY(date, instructor_id)
+      INDEX (instructor_id, date)
 analytics_item_funnel(course_item_id, course_id, started, completed,
-      avg_seconds, drop_off_rate, computed_at)         PRIMARY KEY(course_item_id)
+      avg_seconds NULL, drop_off_rate, computed_at)    PRIMARY KEY(course_item_id)
+      INDEX (course_id, drop_off_rate)                 -- the worst item, first
 ```
+
+**`analytics_events` has NO FOREIGN KEYS, deliberately.** An event is a fact
+about the past; `ON DELETE CASCADE` from `courses` would mean deleting a
+course silently erases the history of everybody who took it, which is the one
+thing a log exists to prevent. `subject_type` is a morph in shape but not a
+relation — it stores a morph-map alias, so a report written years later still
+reads it after a class moves namespace. That also leaves the door open to
+partitioning, which MySQL forbids on a table with foreign keys.
+
+**Partitioning was planned here and NOT built.** Monthly `PARTITION BY RANGE`
+needs a DDL job adding next month's partition in every academy's schema
+forever, and at one schema per academy the table is small enough that the
+`occurred_at` index plus `analytics:prune` (weekly, 400-day window) is the
+honest answer. Revisit when one academy's log outgrows its index, not before.
+
+**A day is a UTC day.** Timestamps are stored in UTC and an academy has no
+timezone of its own, so a rollup keyed on a shifting local day could not be
+rebuilt deterministically — and rebuildability is what makes these four tables
+disposable. `occurred_at` is when it HAPPENED, not when it was written: a
+queued listener may land minutes later and a client beacon after a spell
+offline, and bucketing by `created_at` would put both in the wrong day.
+
+**The rollups read two sources, on purpose.** Behaviour comes from the log.
+**Money comes from the orders ledger** — an order is not a course, and
+splitting a payment across courses inside an event would give the platform
+total and the per-course totals two definitions free to disagree. The one
+other exception is `analytics_item_funnel`, which reads `item_progress`: a
+funnel is the present state of every learner, not a day, and that table
+already holds exactly it.
+
+**Retention applies to the log only.** `actor_id` names a person and `ip_hash`
+is a pseudonym rather than anonymisation, so both age out together. The
+rollups are counts with nobody in them and are never pruned.
 
 Canonical event names: `course_viewed`, `course_started`, `course_enrolled`,
 `item_started`, `item_completed`, `quiz_started`, `quiz_submitted`, `quiz_passed`,

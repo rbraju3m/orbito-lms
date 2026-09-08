@@ -844,9 +844,61 @@ resolving `CourseAccess`, and thirty threads would be ninety of them.
 which is cheaper than a connection per signed-in tab and is the reason this
 phase needed no infrastructure.
 
-### Phase 13 — Analytics
-Event ingestion · rollup jobs · admin/instructor/course dashboards · per-item funnel
-(the Klasio-inspired stall heatmap) · CSV export.
+### Phase 13 — Analytics ✅ complete
+
+ADR-08 delivered: an append-only log written by queued listeners, four rollup
+tables built on a schedule, and dashboards that read the rollups and never the
+log. Front and back.
+
+**The decisions worth knowing before changing any of it:**
+
+- **The client may raise exactly four event names** — `course_viewed`,
+  `item_started`, `search_performed`, `cart_abandoned` — and the endpoint 422s
+  everything else. That allowlist IS the security boundary: a browser that
+  could post `payment_completed` would write revenue into the dashboards
+  without paying anybody, and `course_completed` would let a learner report
+  finishing after one lesson. Every other name is raised by a listener on a
+  domain event, where it cannot be lied about.
+- **`analytics_events` has no foreign keys.** An event is a fact about the
+  past; cascading from `courses` would mean deleting a course erases the
+  history of everybody who took it.
+- **Nothing may throw into the request.** `RecordEvent` reports and returns
+  null. Analytics observes the system and must not be able to break it — there
+  is a test that drops the table and asserts enrolment still works.
+- **Rollups are idempotent.** Every write is an upsert on the primary key, so
+  "run it again" is the recovery path for a failed night rather than a
+  corruption. The four tables hold no facts and can be dropped and rebuilt.
+- **A day is a UTC day**, said out loud in every response, because an academy
+  has no timezone and a shifting local day could not be rebuilt
+  deterministically.
+- **Money comes from the ledger, not the log.** An order is not a course.
+  Splitting a payment inside an event would give the platform total and the
+  per-course totals two definitions free to disagree.
+- **The funnel reads `item_progress`, not the log** — it asks about the
+  present state of every learner, not about a day, and the index for it was
+  put there in Phase 6.
+- **`peak_daily_active` is not a sum.** Distinct people cannot be added across
+  days without counting a regular five times over, so the API reports the
+  busiest day and names the field for it.
+- **The heatmap stays in curriculum order.** "They drop out after the third
+  video" is the insight; sorting by severity destroys the adjacency that makes
+  it visible. Shading carries severity, order carries the course, and every
+  shaded cell prints its number because colour alone is not information.
+
+**Two costs measured rather than guessed:**
+
+- **No chart library.** Recharts and its peers are 90–150 KB gzipped for the
+  one screen in the product that draws a line. The hand-rolled SVG chart is
+  ~90 lines and the whole phase added **0.2 KB gzipped to the first-paint
+  path** (11.14 → 11.36 on the entry chunk); the dashboard itself is a 1.5 KB
+  lazy chunk.
+- **No websockets and no partitioning.** Monthly `PARTITION BY RANGE` needs a
+  DDL job in every academy's schema forever; at one schema per academy the
+  `occurred_at` index plus a weekly 400-day prune is the honest answer.
+
+**Not built:** a per-student activity view (L6). `active_learners` counts
+people but nothing shows one learner's timeline, and the instructor series has
+an endpoint with no screen. Both are additive.
 
 ### Phase 14 — Gamification
 Rule engine on the event stream · points · badges · achievements · streaks · leaderboards.

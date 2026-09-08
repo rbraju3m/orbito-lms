@@ -24,7 +24,7 @@ use Illuminate\Support\Str;
  * @property CarbonInterface|null $published_at
  * @property bool $notify
  *
- * `author_id` crosses the schema boundary to a table with no FK (§16).
+ * `author_id` crosses the schema boundary to a table with no FK (§ Multi-tenancy).
  * @property-read User|null $author
  */
 final class Announcement extends Model

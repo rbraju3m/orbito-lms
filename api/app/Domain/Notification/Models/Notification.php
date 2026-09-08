@@ -18,7 +18,7 @@ use Illuminate\Notifications\DatabaseNotification;
  * adds the one thing that matters here: this table lives in the ACADEMY's
  * schema while `User` is pinned central. Without LivesInTenantSchema,
  * `$user->notifications()` inherits the parent's pin and goes looking for a
- * `notifications` table in the central database — the §16 trap, reported as a
+ * `notifications` table in the central database — the multi-tenancy trap, reported as a
  * missing table rather than as a crossed boundary.
  *
  * @property string $id

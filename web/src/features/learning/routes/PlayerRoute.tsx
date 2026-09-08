@@ -41,6 +41,7 @@ import { AssignmentPane } from '@/features/assignment/components/AssignmentPane'
 
 import { QuizPane } from '../components/QuizPane';
 import { NotesPanel } from '../components/NotesPanel';
+import { useTrackView } from '@/features/analytics/hooks/useTrackView';
 import { AnnouncementList } from '@/features/engagement/components/AnnouncementList';
 import { DiscussionPanel } from '@/features/engagement/components/DiscussionPanel';
 
@@ -59,6 +60,19 @@ export function PlayerRoute() {
   const resolvedItemId = itemId ?? player.data?.progress?.last_item_id ?? allItems[0]?.id ?? null;
 
   const item = useQuery({ ...itemQuery(resolvedItemId ?? ''), enabled: resolvedItemId !== null });
+
+  /*
+   * Opening a lesson — the other thing the server cannot see. `item_started`
+   * is what the stall heatmap's "reached" column is really about, and the
+   * player is the only place that knows it happened.
+   *
+   * Keyed on the item, so moving between lessons raises one per lesson and a
+   * re-render raises none.
+   */
+  useTrackView('item_started', resolvedItemId, {
+    courseId,
+    ...(resolvedItemId ? { itemId: resolvedItemId } : {}),
+  });
 
   // Land on the resume point rather than leaving the URL pointing at nothing.
   useEffect(() => {

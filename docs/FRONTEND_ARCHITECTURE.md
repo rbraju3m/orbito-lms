@@ -95,7 +95,7 @@ convenience: a link in a year-old email has to still land somewhere.
     ├─ pricing          price, sale, currency, coupons scope                       P10
     ├─ students         roster, bulk enrol, suspend/extend/revoke                  ✅
     ├─ announcements    draft, publish (its own button), delete                     ✅
-    └─ analytics                                                                   P13
+    └─ analytics        trend, KPIs, the stall heatmap, CSV                         ✅
 
 Reviews and Q&A did NOT become studio tabs. Both are read where they are
 written — reviews under the course page, Q&A inside the player — and a second
@@ -128,7 +128,7 @@ through, not a panel of the editor.
 /admin/certificates · /admin/certificate-templates
 /admin/reviews                     moderation                            ✅
 /admin/media
-/admin/analytics
+/admin/analytics                   KPIs, trend, top courses, CSV           ✅
 /admin/roles · /admin/permissions
 /admin/settings/*
 ```
@@ -177,7 +177,7 @@ src/
     ├── certification/ ✅ certificates, public verification, templates
     ├── engagement/    ✅ reviews, Q&A, announcements, wishlist
     ├── notification/  ✅ the bell, the inbox, the preference matrix
-    └── analytics/     P13
+    └── analytics/     ✅ the academy dashboard, the course panel, the heatmap
 ```
 
 `notification/` is its own feature rather than a corner of `engagement/`,

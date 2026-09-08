@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Domain\Assessment\Models\Assignment;
+use App\Domain\Assessment\Models\AssignmentSubmission;
 use App\Domain\Assessment\Models\Quiz;
+use App\Domain\Assessment\Models\QuizAttempt;
 use App\Domain\Assessment\Policies\AssignmentPolicy;
 use App\Domain\Assessment\Policies\QuizPolicy;
 use App\Domain\Catalog\Models\Course;
@@ -70,6 +72,7 @@ final class AuthServiceProvider extends ServiceProvider
         $this->registerSuperAdminBypass();
         $this->registerCurriculumGates();
         $this->registerCommerceGates();
+        $this->registerAnalyticsGates();
     }
 
     /**
@@ -91,7 +94,54 @@ final class AuthServiceProvider extends ServiceProvider
             'resource' => Resource::class,
             'quiz' => Quiz::class,
             'assignment' => Assignment::class,
+
+            /*
+             * Analytics subjects (P13). `analytics_events.subject_type` is a
+             * morph in shape but not a relation — there are deliberately no
+             * foreign keys on that table — and it is read by reports written
+             * long after somebody moves a class between namespaces. These are
+             * here for the same reason as the aliases above, and adding one is
+             * what makes a model loggable at all: `enforceMorphMap` throws on
+             * anything absent, which is a better failure than a silent FQCN.
+             */
+            'quiz_attempt' => QuizAttempt::class,
+            'assignment_submission' => AssignmentSubmission::class,
+            'certificate' => Certificate::class,
+            'order' => Order::class,
         ]);
+    }
+
+    /**
+     * Analytics has no model of its own — a rollup row is not a thing anybody
+     * owns — so these are Gates rather than policies.
+     *
+     * The course gate is SCOPED-ONLY for the staff half, and that is the trap
+     * §9 exists for: every instructor holds `analytics.view.own` globally, so
+     * a union check would hand any of them the revenue figures for any course
+     * in the academy. `hasAnyScopedPermission` ignores global roles and asks
+     * the narrower question — the same shape as DiscussionPolicy.
+     */
+    private function registerAnalyticsGates(): void
+    {
+        Gate::define(
+            'view-platform-analytics',
+            fn (User $user): bool => $user->hasPermission('analytics.view.platform'),
+        );
+
+        Gate::define('view-course-analytics', function (User $user, Course $course): bool {
+            if ($user->hasPermission('analytics.view.platform')) {
+                return true;
+            }
+
+            return $user->hasPermission('analytics.view.own')
+                && ($course->isStaffedBy($user)
+                    || $user->hasAnyScopedPermission(['analytics.view.own'], $course));
+        });
+
+        Gate::define(
+            'export-analytics',
+            fn (User $user): bool => $user->hasPermission('analytics.export'),
+        );
     }
 
     /**
