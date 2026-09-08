@@ -46,6 +46,19 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      /*
+       * The certificate verification page — the ONLY genuinely public route
+       * in the SPA. Its reader is a stranger holding a printed certificate
+       * who has no account and never will, so it sits outside RequireAuth.
+       * The academy is in the path because there is no user to resolve one
+       * from, and the token is the credential (§16).
+       */
+      {
+        path: 'verify/:tenant/:token',
+        lazy: async () => ({
+          Component: (await import('@/features/certification/routes/VerifyRoute')).VerifyRoute,
+        }),
+      },
       {
         path: 'system',
         lazy: async () => ({
@@ -198,6 +211,14 @@ export const router = createBrowserRouter([
           },
 
           {
+            path: 'certificates',
+            lazy: async () => ({
+              Component: (await import('@/features/certification/routes/CertificatesRoute'))
+                .CertificatesRoute,
+            }),
+          },
+
+          {
             path: 'account/profile',
             lazy: async () => ({
               Component: (await import('@/features/account/routes/ProfileRoute')).ProfileRoute,
@@ -291,6 +312,19 @@ export const router = createBrowserRouter([
                * permission: staff run orders but move no money, so
                * `order.view.any` must not open this screen.
                */
+              {
+                element: <RequirePermission anyOf={['certificate.template.manage']} />,
+                children: [
+                  {
+                    path: 'admin/certificate-templates',
+                    lazy: async () => ({
+                      Component: (
+                        await import('@/features/certification/routes/CertificateTemplatesRoute')
+                      ).CertificateTemplatesRoute,
+                    }),
+                  },
+                ],
+              },
               {
                 element: <RequirePermission anyOf={['gateway.manage']} />,
                 children: [

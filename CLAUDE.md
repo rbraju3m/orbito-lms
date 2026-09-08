@@ -440,7 +440,7 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–9 complete** front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-707 backend tests / 2466 assertions · 151 frontend tests.
+752 backend tests / 2595 assertions · 163 frontend tests.
 
 Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
 the enrollment lifecycle, the studio roster, completion and retake.
@@ -465,6 +465,19 @@ Three decisions there are settled and load-bearing:
 
 Resume by running a real Stripe sandbox payment. That is the only thing left
 in this phase.
+
+**Phase 11 (Certificates) is COMPLETE**, front and back. Completing a course
+issues a verifiable certificate without blocking the request. Two things it
+established that the next phase needs:
+
+- **`tenant.path` is now the shared answer for a route with no user AND no
+  Laravel signature** — the payment webhook and the public verification page.
+  The academy is attacker-controllable in the path, which is safe only because
+  each route carries its own unguessable credential checked against that
+  academy's data. Unknown and closed academies 404 identically.
+- **The queue is synchronous in tests, so a listener that writes a file writes
+  a REAL one.** Faking the disk inside a test body is too late when the write
+  happens in `beforeEach`. 54 stray PDFs accumulated before this was caught.
 
 Two things the HTTP surface established that the next reader needs:
 

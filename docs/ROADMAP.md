@@ -14,9 +14,9 @@ contacted Stripe — so no real money has ever moved through this. Read the Phas
 
 | | |
 |---|---|
-| Backend | 707 Pest tests / 2,466 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 151 Vitest tests · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS 243.7 KB gzipped, against 250 KB |
+| Backend | 752 Pest tests / 2,595 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 163 Vitest tests · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS 244.2 KB gzipped, against 250 KB — see Phase 11 |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~270-430s, up from ~118s — provisioning tests build real schemas |
 
@@ -722,9 +722,65 @@ Two things the UI does that are worth keeping when it changes:
   lands out of band and nothing tells the browser, so an order in
   `awaiting_payment` refetches every 5s and a settled one never does.
 
-### Phase 11 — Certificates
-Templates · queued PDF generation · numbering · QR · public verification page · revocation.
-**Exit:** completing a course issues a verifiable certificate without blocking the request.
+### Phase 11 — Certificates ✅ complete
+
+**Exit met:** completing a course issues a verifiable certificate without
+blocking the request. `CourseCompleted` → queued `IssueCertificateOnCompletion`
+→ `CertificateIssued` → queued `RenderPdfOnIssue`. The learner's click returns
+before any of it.
+
+Delivered: `certificate_templates` and `certificates` · idempotent issuance ·
+revocation · dompdf rendering into private media · the holder's list with a
+shareable link · the **public verification page** · academy-managed templates.
+
+**Two decisions were taken and are load-bearing.**
+
+1. **The verification URL carries the tenant id** — `/verify/{tenant}/{token}`.
+   A hiring manager has no account, so this is the second route with no
+   authenticated user and no Laravel signature. The id is a uuid7 and
+   immutable; a slug could be renamed and an academy cannot reissue paper
+   already in the world. `InitializeTenancyByWebhookRoute` was generalised to
+   `InitializeTenancyByPathTenant` (`tenant.path`) because two routes now
+   need it.
+2. **dompdf, not headless Chrome.** This host cannot run Playwright and Chrome
+   is the same class of dependency. The cost is written into `CertificateHtml`:
+   no flex, no grid, so absolute positioning and tables, and DejaVu Sans is the
+   only font with the glyph coverage for a Bengali name.
+
+**The hard part was idempotency.** `CourseCompleted` is not once-per-lifetime:
+`RecalculateCourseProgress` fires it whenever the last item flips, queues
+retry, and a learner can complete → reset → complete. Somebody holding two
+certificate numbers for one course cannot prove which is real. The guarantee is
+the UNIQUE key on `enrollment_id`; the read above it is an optimisation, and
+the race it loses is caught rather than prevented.
+
+**Distinctions the whole phase turns on:**
+
+- **Revoked ≠ expired ≠ absent.** An expired certificate was genuinely earned,
+  so it stays `issued` and the page says "issued, then lapsed" — calling it
+  invalid would make an honest holder look like a forger.
+- **Revoking never deletes.** A withdrawn certificate that 404'd would be
+  indistinguishable from a forgery, which protects the forger.
+- **A 404 says "no record", never "fake".** We know we have no record; we do
+  not know what the paper in their hand is.
+- **The certificate is valid before its PDF exists.** The document is a
+  rendering of the fact, not the fact itself, so a failed render leaves a
+  valid certificate — and `certificates(status, pdf_media_id)` is indexed so a
+  sweep can find them.
+
+**What the public page refuses to say** is most of its design:
+`CertificateVerificationResource` is a separate class (ADR-06) that omits the
+token, the course slug and uuid, the PDF, and the revocation reason.
+
+**Not built:** the QR code named in the original scope. The layout carries a
+`show_qr` flag and nothing renders one — a QR encoding the verification URL is
+a small addition, but it needs a QR library and the URL is already printed.
+
+**Bundle note.** Mantine's `ColorInput` cost **5.5 KB gzipped on the
+first-paint path** for one admin field, because Mantine is a shared chunk —
+a lazy route does not keep its component imports out of it. Swapped for a
+native `<input type="color">`: 249.7 KB → 244.2 KB. Worth remembering before
+reaching for a heavy Mantine component on a rarely-visited screen.
 
 ### Phase 12 — Reviews / Discussion / Notifications
 Reviews with moderation and aggregate maintenance · threaded Q&A with resolve ·

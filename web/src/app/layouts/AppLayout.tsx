@@ -16,6 +16,8 @@ import {
   IconChalkboard,
   IconLayoutDashboard,
   IconLogout,
+  IconCertificate,
+  IconCertificate2,
   IconCreditCard,
   IconReceipt,
   IconSearch,
@@ -45,6 +47,7 @@ const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard, end: true },
   { to: '/dashboard/courses', label: 'My learning', icon: IconBook },
   { to: '/courses', label: 'Browse courses', icon: IconSearch },
+  { to: '/certificates', label: 'Certificates', icon: IconCertificate },
   { to: '/orders', label: 'Orders', icon: IconReceipt },
   {
     to: '/studio/courses',
@@ -64,6 +67,12 @@ const NAV: NavItem[] = [
     label: 'Payments',
     icon: IconCreditCard,
     anyOf: ['gateway.manage'],
+  },
+  {
+    to: '/admin/certificate-templates',
+    label: 'Certificates',
+    icon: IconCertificate2,
+    anyOf: ['certificate.template.manage'],
   },
 ];
 
