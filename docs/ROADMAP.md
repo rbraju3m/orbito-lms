@@ -6,17 +6,19 @@
 **retrofitted to multi-tenancy** — a reversal of the single-tenant decision
 recorded as risk R4.
 
-**Phase 10 (Commerce) is IN PROGRESS and was stopped part-way.** The domain
-layer exists and is static-clean; there are **no tests, no HTTP surface, and
-the migration has never been run**. Read the Phase 10 entry before touching it.
+**Phase 10 (Commerce) is IN PROGRESS.** The migration has now been run against
+real MySQL and the money path is proven against `FakeGateway` — signature,
+replay, amount and forgery. There is still **no HTTP surface and no frontend**,
+and `StripeGateway` has still never contacted Stripe. Read the Phase 10 entry
+before touching it.
 
 | | |
 |---|---|
-| Backend | 642 Pest tests / 2,204 assertions · PHPStan level 6 clean · Pint clean |
+| Backend | 659 Pest tests / 2,271 assertions · PHPStan level 6 clean · Pint clean |
 | Frontend | 138 Vitest tests · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS 240.5 KB gzipped, against 250 KB |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
-| Suite runtime | ~430s, up from ~118s — provisioning tests build real schemas |
+| Suite runtime | ~270-430s, up from ~118s — provisioning tests build real schemas |
 
 Each completed phase below carries what it delivered, the bugs it found, and a
 transcript of the exit criterion verified against a running API. Those
@@ -578,7 +580,7 @@ which removes the anonymous surface: the catalogue, course pages, previews and
 the player are members-only. A public storefront would need subdomain
 identification and is a real change, not a flag.
 
-### Phase 10 — Commerce  ⚠️ STARTED, STOPPED PART-WAY
+### Phase 10 — Commerce  ⚠️ IN PROGRESS — the money path is proven, nothing is reachable
 
 **Scope was deliberately narrowed** to the money path: products, prices, cart,
 checkout with server-side repricing, orders, one gateway, verified idempotent
@@ -603,12 +605,35 @@ and the multi-currency UI were deferred until that path is proven.
 for 9 tenant tables · enums · models · the `PaymentGateway` interface with
 `FakeGateway` and `StripeGateway` · `PaymentGatewayFactory` ·
 `SyncCourseProduct` · `PlaceOrder` · `InitiatePayment` · `HandleWebhook` ·
-`CapturePayment` · `PaymentCaptured` · factories.
+`CapturePayment` · `PaymentCaptured` · factories · `MoneyPathTest`.
 
-**What does NOT exist — assume none of it works:**
+**The migration has been run** against MySQL 8 in a real tenant schema. All 9
+tables, their indexes and their foreign keys are as written; `down()` then
+`up()` round-trips; `credentials` and `webhook_secret` are opaque at rest.
+No change to the migration was needed.
 
-- **No tests at all.** Not one line of this has ever executed.
-- **The migration has never been run.** Unverified against MySQL.
+**The money path is proven** — `tests/Feature/Commerce/MoneyPathTest.php`,
+17 tests. The four cases the design rests on:
+
+| | |
+|---|---|
+| Signature | wrong secret · absent header · body swapped after signing. Each throws, and `payment_events` stays EMPTY — an unverified delivery is not audited against a payment we have no verified reason to associate it with. |
+| Replay | the same event id three times → one event row, one enrolment, one capture. The replay RETURNS rather than throwing, because a retry must answer 2xx. Two different event ids for one payment are caught by `isOpen()` instead. |
+| Amount | a short capture fails the payment and leaves the order unpaid. An overpayment is accepted deliberately. A mismatched currency is refused. |
+| Forgery | a payment id we never issued is stored with `processed_at` null and grants nothing; one learner naming another's `external_id` gains nothing. |
+
+Also covered: the happy path end to end (enrolment lands with
+`source = purchase` and the order id), server-side repricing (editing the price
+after checkout does not move the order total), and the refusals for paying
+twice, re-buying an owned course, and an unconnected gateway.
+
+**The tests were verified by mutation, not by being green.** Removing the
+`hash_equals` check kills exactly the three signature tests; removing the
+amount comparison kills exactly the short-capture test; removing the replay
+guard kills exactly the replay test.
+
+**What still does NOT exist:**
+
 - **No controllers, routes, requests, resources or policies.** Nothing is
   reachable over HTTP, including the webhook endpoint — so the tenant-in-path
   routing a webhook needs (`/webhooks/payments/{gateway}/{tenant}`) is designed
@@ -618,19 +643,16 @@ for 9 tenant tables · enums · models · the `PaymentGateway` interface with
   API, signature check follows the documented scheme, but no sandbox
   credentials were available. Treat the first live run as the test.
 
-**The exit criterion is NOT met.** Of its two halves — "a paid enrollment
-completes through a real sandbox webhook" and "a forged client-side success
-grants nothing" — the first is untested and the second is designed for but
-unproven. The design does refuse forged success (there is no client-callable
-confirm; access is granted only inside `HandleWebhook`, after signature
-verification, and only for a payment id we issued) — but a design is not a
-test.
+**The exit criterion is HALF met.** "A forged client-side success grants
+nothing" is now proven rather than merely designed for. "A paid enrollment
+completes through a real sandbox webhook" is not: `FakeGateway` is not Stripe,
+and until sandbox credentials exist that half stays open.
 
-**Resume here.** Run the migration, then write the money-path test against
-`FakeGateway` covering the four cases the whole design rests on: signature
-rejection, replay idempotency, captured-amount mismatch, and a forged success.
-Do not add an HTTP surface until those pass — everything above them assumes
-they hold.
+**Resume here.** Build the HTTP surface on top of the proven path — cart and
+checkout endpoints, then the webhook route, which is the one route with no
+authenticated user and so must carry its tenant in the path and resolve it the
+way `tenant.signed` does for media (§16). The domain logic beneath it does not
+need revisiting; test the routing, the authorization and the 400/402/423 paths.
 
 ### Phase 11 — Certificates
 Templates · queued PDF generation · numbering · QR · public verification page · revocation.

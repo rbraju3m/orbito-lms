@@ -440,7 +440,7 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–9 complete** front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-642 backend tests / 2206 assertions · 138 frontend tests.
+659 backend tests / 2271 assertions · 138 frontend tests.
 
 Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
 the enrollment lifecycle, the studio roster, completion and retake.
@@ -448,11 +448,11 @@ the enrollment lifecycle, the studio roster, completion and retake.
 The retrofit delivered database-per-tenant, the platform admin surface, plans
 and subscriptions. **Read §16 before writing any query.**
 
-**Phase 10 (Commerce) is STARTED and STOPPED PART-WAY.** The domain layer in
-`app/Domain/Commerce/` is written and static-clean, but it has **no tests, no
-HTTP surface, and its migration has never been run**. Nothing in it has ever
-executed. Read `docs/ROADMAP.md` Phase 10 before touching it — it records what
-exists, what does not, and where to resume.
+**Phase 10 (Commerce) is IN PROGRESS.** The migration has been run against real
+MySQL and the money path is proven against `FakeGateway` by `MoneyPathTest` —
+signature rejection, replay idempotency, amount mismatch, forged success. But
+there is still **no HTTP surface and no frontend**, and `StripeGateway` has
+never contacted Stripe. Read `docs/ROADMAP.md` Phase 10 before touching it.
 
 Three decisions there are settled and load-bearing:
 
@@ -464,9 +464,9 @@ Three decisions there are settled and load-bearing:
   course checkout and shares nothing but vocabulary.
 - **Commerce is entirely tenant-side**, credentials included.
 
-Resume by running the migration and proving the money path against
-`FakeGateway` — signature rejection, replay idempotency, amount mismatch,
-forged success — BEFORE adding any HTTP surface.
+Resume by building the HTTP surface on the proven path. The webhook route is
+the hard one: it is the only route with no authenticated user, so it carries
+its tenant in the path and resolves it the way `tenant.signed` does (§16).
 
 **Known debt, deliberately left:**
 
