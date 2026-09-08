@@ -62,7 +62,17 @@ final class DiscussionController
             ->orderByDesc('id')
             ->paginate($this->perPage($request));
 
-        return ApiResponse::ok(DiscussionResource::collection($discussions));
+        /*
+         * What the reader may DO, from the same policy the write endpoints
+         * authorize against — so the panel renders an ask box or an
+         * explanation rather than a button that 403s.
+         */
+        return ApiResponse::ok(
+            DiscussionResource::collection($discussions)->additional(['meta' => [
+                'can_ask' => Gate::allows('create', [Discussion::class, $course]),
+                'can_moderate' => $moderator,
+            ]]),
+        );
     }
 
     public function show(Discussion $discussion): JsonResponse

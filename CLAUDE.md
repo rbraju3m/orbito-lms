@@ -368,7 +368,7 @@ Gate::authorize('publish', $course);                   // in a controller
 - **Reset clears what was DECLARED, never what was EARNED.**
   `ItemType::isSelfMarkable()` is the line: wiping a passed quiz can leave an
   item permanently uncompletable once attempts are spent.
-- **Union in SQL; resolve cross-boundary ids in PHP.** See §16 — the same
+- **Union in SQL; resolve cross-boundary ids in PHP.** See §17 — the same
   instinct that merges two paginated queries in PHP also writes a `whereHas`
   across two databases.
 - **`error.meta` carries what the caller can DO about a failure** — a date to
@@ -377,7 +377,52 @@ Gate::authorize('publish', $course);                   // in a controller
 
 ---
 
-## 16. Multi-tenancy — read this before touching a model or a query
+## 16. Patterns established in Phase 12 — reuse these
+
+- **A "what may this reader DO?" answer belongs in the list's `meta`**,
+  computed from the same rule the write endpoint enforces. `can_review`,
+  `can_ask`, `can_moderate`, `can_manage`. A page then renders a form or an
+  explanation, never a button that 403s — the same instinct as
+  `PublishChecklist` (§10) and `SubmissionRules` (§14), applied to a list.
+- **Per-ROW capabilities go on the detail, never in the list.** A `viewer`
+  block is emitted only when the thread's replies are loaded, because each key
+  is a policy call resolving `CourseAccess` and thirty rows would be ninety of
+  them. Same for `is_wishlisted` on the course detail but not on the card.
+- **A notification is a frozen MESSAGE, not a live view.** The payload is built
+  when the event fires and never re-read: editing an announcement afterwards
+  must not rewrite the mail already in somebody's inbox, and nothing has to be
+  re-queried in a worker.
+- **One notification class carrying a payload**, not one subclass per type.
+  Both channels render the same three fields, so the bell and the email cannot
+  drift apart. Adding a type is a `NotificationType` case plus a listener.
+- **`DomainNotification::via()` is the SINGLE enforcement point** for
+  preferences. No listener consults them, so a delivery raised from anywhere
+  obeys the switches without having to remember to ask.
+- **Store overrides, not state.** A missing `notification_preferences` row
+  means the type's default, so a new type ships without a backfill across every
+  academy and a changed default reaches whoever never touched the switch.
+- **Never notify somebody about their own action.** That is what teaches people
+  to ignore a bell.
+- **Store a RELATIVE path in anything long-lived.** `action_path` is routed on
+  internally by the SPA and rendered absolute only at send time; a stored
+  absolute URL rots the day an academy changes address.
+- **A tenant table a CENTRAL model relates to needs `LivesInTenantSchema` AND
+  the relation overridden.** `User::notifications()` replaces Laravel's, which
+  fixes the WRITE path too — the database channel routes through that same
+  relation.
+- **Declare static route segments before the dynamic one.**
+  `learn/:courseId/announcements` sits above `learn/:courseId/:itemId`, and
+  those paths are part of the notification contract rather than a convenience:
+  a link in a year-old email has to still land somewhere.
+- **A button inside an anchor is not a button.** The wishlist toggle lives on
+  the course page, not the catalogue card, because the card is one `<Link>`.
+- **Measure the first-paint cost of anything in `AppLayout`.** The bell cost
+  3.8 KB gzipped; Mantine is a shared chunk, so a lazy route does not keep its
+  imports out of it.
+
+---
+
+## 17. Multi-tenancy — read this before touching a model or a query
 
 One MySQL schema per academy, via `stancl/tenancy`. Isolation is
 **structural**: a query that forgets a filter still cannot reach another
@@ -436,17 +481,22 @@ so the action that fixes a lapse survives it.
 
 ---
 
-## 17. Current phase
+## 18. Current phase
 
-**Phases 0–9 complete** front and back, plus a **multi-tenancy retrofit**
+**Phases 0–12 complete** front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-752 backend tests / 2595 assertions · 163 frontend tests.
+862 backend tests / 2916 assertions · 187 frontend tests.
+
+**Every MVP phase has shipped, but the MVP is not signed off.** Its own
+definition (`docs/ROADMAP.md` §3) says a student "buys it with a real verified
+payment", and no real money has ever moved through `StripeGateway`. That one
+sandbox run is the last thing between here and MVP.
 
 Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
 the enrollment lifecycle, the studio roster, completion and retake.
 
 The retrofit delivered database-per-tenant, the platform admin surface, plans
-and subscriptions. **Read §16 before writing any query.**
+and subscriptions. **Read §17 before writing any query.**
 
 **Phase 10 (Commerce) is COMPLETE against `FakeGateway`, front and back** —
 the money path, the HTTP surface, and a SPA that can buy a course. But
@@ -494,12 +544,37 @@ Two things the HTTP surface established that the next reader needs:
   defaulting to USD while `orbito.currency.base` is BDT will trip up the next
   commerce test written.
 
+**Phase 12 (Reviews / Q&A / Announcements / Wishlist / Notifications) is
+COMPLETE**, front and back — the last MVP phase to land. Its exit criterion —
+rating averages are columns, never `AVG()` on a card — is met by
+`RefreshCourseRating` plus `ReconcileEngagementCounters`. The patterns worth
+carrying forward are in §16; the retro is in `docs/ROADMAP.md`.
+
+Three things the next reader will otherwise trip on:
+
+- **The in-app notification channel cannot be switched off**, by design. The
+  preferences table keys on channel because push arrives in P18, but today
+  `NotificationChannel::Database->isLocked()` is true and the API 422s a
+  request to disable it. Do not "fix" that into a silent no-op.
+- **The queue is synchronous in tests, so `Notification::fake()` and asserting
+  a database row are mutually exclusive.** Fake to assert channels; do not
+  fake to assert the row landed in the tenant schema. Both kinds of test exist
+  in `NotificationDeliveryTest`.
+- **`ProductFactory` is not the only fixture that lies about defaults.**
+  `AnnouncementFactory` makes a DRAFT; a test asserting a fan-out must publish
+  it through `PublishAnnouncement`, because setting `published_at` directly
+  fires no event.
+
 **Known debt, deliberately left:**
 
 - Plan **limits** are stored and counted but never enforced. Phase 16.
+- A notification fan-out issues **one preference lookup per recipient** inside
+  the queued job. Correct and cacheless, but a five-thousand-learner
+  announcement is five thousand small queries. A batch resolver is the fix; it
+  would be a memo with a lifetime, and §15 has been paid for that twice.
 - The roster cannot sort by learner name — a central column against tenant
   rows. The fix is denormalising the name onto `enrollments`.
-- The suite takes ~370-430s, up from ~118s, because provisioning tests build
+- The suite takes ~370-560s, up from ~118s, because provisioning tests build
   real schemas. Provision one academy per file rather than per test when it
   hurts.
 - `ItemEditorDrawer` issues two sequential writes (lesson body, then the item's

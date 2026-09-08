@@ -494,6 +494,25 @@ There is deliberately no `PATCH /reviews/{id}`: one review per learner per
 course means `POST` writes or replaces, and a second edit endpoint would be a
 second thing to keep in step with that rule.
 
+**Every engagement list says what the reader may DO with it**, computed from
+the same rule the write endpoint enforces — so a page renders a form or an
+explanation, never a button that 403s:
+
+| Endpoint | `meta` |
+|---|---|
+| `GET /courses/{id}/reviews` | `can_review` — reviews enabled, and an enrolment of any status |
+| `GET /courses/{id}/discussions` | `can_ask`, `can_moderate` |
+| `GET /courses/{id}/announcements` | `can_manage` |
+
+`GET /discussions/{id}` additionally carries a `viewer` block —
+`can_reply`, `can_accept`, `can_moderate` — on the THREAD only. Each key is a
+policy call resolving `CourseAccess`; a page of thirty threads would be ninety
+of them, which is why the list answers once in its `meta` instead.
+
+`GET /courses/{slug}` carries `is_wishlisted` for the same reason and with the
+same limit: the detail resource only. On the catalogue list it would be a
+query per card.
+
 ### Notifications — live (P12)
 ```
 GET    /notifications?unread=1                  meta.unread_count rides along

@@ -782,10 +782,67 @@ a lazy route does not keep its component imports out of it. Swapped for a
 native `<input type="color">`: 249.7 KB → 244.2 KB. Worth remembering before
 reaching for a heavy Mantine component on a rarely-visited screen.
 
-### Phase 12 — Reviews / Discussion / Notifications
-Reviews with moderation and aggregate maintenance · threaded Q&A with resolve ·
-announcements · wishlist · in-app + email notifications with preferences.
-**Exit:** rating averages are columns, not `AVG()` on every card. **MVP complete.**
+### Phase 12 — Reviews / Discussion / Notifications ✅ complete
+
+**Exit met:** `courses.rating_avg` and `rating_count` are COLUMNS, maintained
+by `RefreshCourseRating` on `ReviewChanged` and reconciled nightly by
+`ReconcileEngagementCounters`. No read path computes an average.
+
+**This is the last MVP phase to ship, but it does not close the MVP.** §3
+below says a student "buys it with a real verified payment", and Phase 10's
+second exit criterion is still open: `StripeGateway` has never contacted
+Stripe. Every feature in the MVP scope now exists; one sandbox payment is what
+signs it off.
+
+Shipped in five slices: reviews and moderation · threaded Q&A with accept and
+one level of nesting · announcements and wishlist · notifications · the
+frontend for all of it.
+
+**The decisions worth knowing before changing any of it:**
+
+- **Publishing an announcement is its own endpoint and its own button.**
+  Saving a draft and sending it to a thousand people are different acts and
+  must not be one careless boolean apart. `AnnouncementPublished` fires on the
+  TRANSITION, so a typo fix does not notify everybody a second time.
+- **One notification class, not one per type.** `DomainNotification` carries a
+  frozen `NotificationPayload`; the in-app entry and the email render the same
+  three fields, so they cannot drift. The payload is frozen at send time —
+  editing an announcement afterwards must not rewrite mail already sent.
+- **The in-app record cannot be switched off.** Silencing the inbox destroys
+  the record, not the interruption; email is what the preferences govern. The
+  matrix returns `locked: true` rather than omitting the channel, because a
+  missing switch reads as a bug and a disabled one explains itself.
+- **Preferences store OVERRIDES ONLY.** No row means the type's default, so a
+  new notification type ships without a backfill across every academy.
+- **Nothing notifies somebody about their own action.** No `quiz.graded` (the
+  learner watched it happen), no enrolment welcome, and an announcement's
+  author is excluded from its own fan-out.
+- **`action_path` is stored relative.** The SPA routes on it internally, and a
+  thousand stored absolute URLs would rot the day an academy changes address.
+
+**The frontend added one pattern the next phase should copy:** every
+engagement list carries what the reader may DO with it — `can_review`,
+`can_ask`, `can_moderate`, `can_manage` — computed from the same rule the
+write endpoint enforces. A page renders a form or an explanation, never a
+button that 403s. The per-thread version (`viewer.can_reply` and friends) is
+sent on the thread and deliberately NOT in the list: each key is a policy call
+resolving `CourseAccess`, and thirty threads would be ninety of them.
+
+**Two costs measured rather than guessed:**
+
+- The bell adds **3.8 KB gzipped to the first-paint path**, because
+  `AppLayout` is eager and Mantine is a shared chunk. Accepted for a control
+  on every signed-in page; the same arithmetic that rejected `ColorInput` in
+  Phase 11 (§ above) applies to anything heavier.
+- A fan-out issues **one indexed preference lookup per recipient** inside the
+  queued job. Correct, cacheless, and the right place for it — but a
+  five-thousand-learner announcement is five thousand small queries. The fix
+  is a batch resolver, deferred because it would be a memo with a lifetime and
+  §15 has been paid for that twice.
+
+**Not built:** websockets. The badge is one indexed count polled every 60s,
+which is cheaper than a connection per signed-in tab and is the reason this
+phase needed no infrastructure.
 
 ### Phase 13 — Analytics
 Event ingestion · rollup jobs · admin/instructor/course dashboards · per-item funnel

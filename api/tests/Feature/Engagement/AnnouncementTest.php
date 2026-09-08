@@ -160,3 +160,15 @@ it('forbids somebody with no access from reading announcements', function (): vo
         ->getJson("/api/v1/courses/{$this->course->uuid}/announcements")
         ->assertForbidden();
 });
+
+it('tells the reader whether they may write one', function (): void {
+    $this->actingAs($this->instructor)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/announcements")
+        ->assertOk()
+        ->assertJsonPath('meta.can_manage', true);
+
+    $this->actingAs($this->student)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/announcements")
+        ->assertOk()
+        ->assertJsonPath('meta.can_manage', false);
+});

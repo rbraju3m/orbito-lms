@@ -205,3 +205,30 @@ it('requires authentication', function (): void {
     $this->postJson("/api/v1/courses/{$this->course->uuid}/reviews", ['rating' => 5])
         ->assertUnauthorized();
 });
+
+it('says whether the reader may write one, by the same two rules the write enforces', function (): void {
+    /*
+     * Rendered AND enforced. A page that offers a form the server will refuse
+     * is the dead end this codebase keeps declining to ship.
+     */
+    $this->actingAs($this->student)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/reviews")
+        ->assertOk()
+        ->assertJsonPath('meta.can_review', true);
+
+    $stranger = User::factory()->withRole(RoleKey::Student)->create();
+
+    $this->actingAs($stranger)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/reviews")
+        ->assertOk()
+        ->assertJsonPath('meta.can_review', false);
+});
+
+it('says no when the course has reviews switched off, enrolled or not', function (): void {
+    $this->course->setting->update(['enable_reviews' => false]);
+
+    $this->actingAs($this->student)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/reviews")
+        ->assertOk()
+        ->assertJsonPath('meta.can_review', false);
+});

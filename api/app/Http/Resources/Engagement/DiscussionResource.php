@@ -7,6 +7,7 @@ namespace App\Http\Resources\Engagement;
 use App\Domain\Engagement\Models\Discussion;
 use App\Support\Http\Resources\BaseResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * One thread.
@@ -59,6 +60,21 @@ final class DiscussionResource extends BaseResource
             ]),
 
             'replies' => DiscussionReplyResource::collection($this->whenLoaded('replies')),
+
+            /*
+             * What this reader may DO with this thread.
+             *
+             * Emitted only when the replies are loaded — that is, on the
+             * thread view and never in a list. Each key is a policy call, and
+             * each policy call resolves CourseAccess; on a page of thirty
+             * threads that would be ninety of them. The list already says
+             * `can_ask` and `can_moderate` once, in its meta.
+             */
+            'viewer' => $this->whenLoaded('replies', fn () => [
+                'can_reply' => $viewer !== null && Gate::forUser($viewer)->allows('reply', $this->resource),
+                'can_accept' => $viewer !== null && Gate::forUser($viewer)->allows('accept', $this->resource),
+                'can_moderate' => $viewer !== null && Gate::forUser($viewer)->allows('moderate', $this->resource),
+            ]),
 
             'created_at' => $this->created_at?->toIso8601String(),
         ];

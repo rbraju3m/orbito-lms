@@ -6,6 +6,7 @@ namespace App\Http\Resources\Catalog;
 
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Support\PublishChecklist;
+use App\Domain\Engagement\Models\WishlistItem;
 use App\Domain\Enrollment\Support\PrerequisiteCheck;
 use App\Domain\Identity\Models\User;
 use App\Support\Http\Resources\BaseResource;
@@ -147,6 +148,17 @@ final class CourseResource extends BaseResource
 
             // null means uncapped, which is not the same as 0 left.
             'seats_remaining' => $this->seatsRemaining(),
+
+            /*
+             * Whether this reader has saved it. On the DETAIL resource only —
+             * one indexed exists() per page view. The catalogue list must not
+             * carry it: that would be a query per card, and the grid's cards
+             * are single links with no room for a control anyway.
+             */
+            'is_wishlisted' => $viewer !== null && WishlistItem::query()
+                ->where('user_id', $viewer->id)
+                ->where('course_id', $this->id)
+                ->exists(),
         ];
     }
 }

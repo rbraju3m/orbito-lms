@@ -11,6 +11,8 @@ use App\Domain\Engagement\Actions\SubmitReview;
 use App\Domain\Engagement\Enums\ReviewStatus;
 use App\Domain\Engagement\Events\ReviewChanged;
 use App\Domain\Engagement\Models\Review;
+use App\Domain\Enrollment\Models\Enrollment;
+use App\Domain\Identity\Models\User;
 use App\Http\Requests\Engagement\ModerateReviewRequest;
 use App\Http\Requests\Engagement\ReplyToReviewRequest;
 use App\Http\Requests\Engagement\StoreReviewRequest;
@@ -52,7 +54,16 @@ final class ReviewController
             ->orderByDesc('id')
             ->paginate($this->perPage($request));
 
-        return ApiResponse::ok(ReviewResource::collection($reviews));
+        /*
+         * Whether the reader may write one, answered by the SAME two
+         * conditions SubmitReview enforces — reviews enabled on the course,
+         * and an enrolment row of any status. Rendered here so the page shows
+         * a form or an explanation rather than a button that 422s.
+         */
+        return ApiResponse::ok(
+            ReviewResource::collection($reviews)
+                ->additional(['meta' => ['can_review' => $this->canReview($viewer, $course)]]),
+        );
     }
 
     /**
@@ -125,6 +136,25 @@ final class ReviewController
             ->paginate($this->perPage($request));
 
         return ApiResponse::ok(ReviewResource::collection($reviews));
+    }
+
+    /**
+     * Deliberately NOT `CourseAccess`: a learner whose access expired has
+     * still genuinely taken the course and may still say so. Same reasoning,
+     * and the same query, as SubmitReview.
+     */
+    private function canReview(User $viewer, Course $course): bool
+    {
+        $course->loadMissing('setting');
+
+        if (! $course->setting?->enable_reviews) {
+            return false;
+        }
+
+        return Enrollment::query()
+            ->where('course_id', $course->id)
+            ->where('user_id', $viewer->id)
+            ->exists();
     }
 
     private function perPage(Request $request): int

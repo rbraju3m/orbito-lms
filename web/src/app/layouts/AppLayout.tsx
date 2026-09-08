@@ -12,7 +12,9 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
+  IconBell,
   IconBook,
+  IconBookmark,
   IconChalkboard,
   IconLayoutDashboard,
   IconLogout,
@@ -22,12 +24,14 @@ import {
   IconReceipt,
   IconSearch,
   IconSettings,
+  IconShieldCheck,
   IconShieldLock,
   IconUser,
   IconUsers,
 } from '@tabler/icons-react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 
+import { NotificationBell } from '@/features/notification/components/NotificationBell';
 import { SubscriptionBanner } from '@/features/platform/SubscriptionBanner';
 
 import { useLogout } from '@/features/auth/api/queries';
@@ -47,6 +51,7 @@ const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard, end: true },
   { to: '/dashboard/courses', label: 'My learning', icon: IconBook },
   { to: '/courses', label: 'Browse courses', icon: IconSearch },
+  { to: '/wishlist', label: 'Saved courses', icon: IconBookmark },
   { to: '/certificates', label: 'Certificates', icon: IconCertificate },
   { to: '/orders', label: 'Orders', icon: IconReceipt },
   {
@@ -62,6 +67,12 @@ const NAV: NavItem[] = [
     anyOf: ['user.view', 'settings.view'],
   },
   { to: '/admin/instructors', label: 'Instructors', icon: IconUsers, anyOf: ['instructor.view'] },
+  {
+    to: '/admin/reviews',
+    label: 'Review moderation',
+    icon: IconShieldCheck,
+    anyOf: ['review.moderate'],
+  },
   {
     to: '/admin/payment-gateways',
     label: 'Payments',
@@ -110,6 +121,7 @@ export function AppLayout() {
           </Group>
 
           <Group gap="sm">
+            <NotificationBell />
             <ThemeToggle />
 
             <Menu position="bottom-end" width={220} withinPortal>
@@ -132,6 +144,13 @@ export function AppLayout() {
                   leftSection={<IconUser size={16} />}
                 >
                   Profile
+                </Menu.Item>
+                <Menu.Item
+                  component={NavLink}
+                  to="/account/notifications"
+                  leftSection={<IconBell size={16} />}
+                >
+                  Notifications
                 </Menu.Item>
                 <Menu.Item
                   component={NavLink}

@@ -31,6 +31,7 @@ import { Link, useParams } from 'react-router';
 import { z } from 'zod';
 
 import { categoriesQuery } from '@/features/catalog/api/queries';
+import { AnnouncementManager } from '@/features/engagement/components/AnnouncementManager';
 import { StudentsPanel } from '@/features/enrollment/components/StudentsPanel';
 import { CurriculumBuilder } from '@/features/curriculum/components/CurriculumBuilder';
 import { ItemEditorDrawer } from '@/features/curriculum/components/ItemEditorDrawer';
@@ -281,6 +282,7 @@ export function CourseEditorRoute() {
           <Tabs.Tab value="students">
             Students{data.enrollment_count > 0 ? ` (${data.enrollment_count})` : ''}
           </Tabs.Tab>
+          <Tabs.Tab value="announcements">Announcements</Tabs.Tab>
         </Tabs.List>
       </Tabs>
 
@@ -291,6 +293,11 @@ export function CourseEditorRoute() {
       */}
       {tab === 'students' ? (
         <StudentsPanel courseId={id} />
+      ) : tab === 'announcements' ? (
+        // Also full-width. Announcements are read as prose, and prose in a
+        // two-thirds column beside a sidebar of publish controls is a
+        // newsletter squeezed into a gutter.
+        <AnnouncementManager courseId={id} />
       ) : (
         <Grid gap="lg">
           <Grid.Col span={{ base: 12, md: 8 }}>

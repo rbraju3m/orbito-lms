@@ -85,3 +85,24 @@ it('requires authentication', function (): void {
     $this->getJson('/api/v1/wishlist')->assertUnauthorized();
     $this->postJson("/api/v1/wishlist/{$this->course->uuid}")->assertUnauthorized();
 });
+
+it('tells the course page whether this reader has saved it', function (): void {
+    /*
+     * On the detail resource only — one indexed exists() per page view. The
+     * catalogue grid must not carry it: a query per card, for a control the
+     * card has nowhere to put.
+     */
+    $this->actingAs($this->student)
+        ->getJson("/api/v1/courses/{$this->course->slug}")
+        ->assertOk()
+        ->assertJsonPath('data.is_wishlisted', false);
+
+    $this->actingAs($this->student)
+        ->postJson("/api/v1/wishlist/{$this->course->uuid}")
+        ->assertCreated();
+
+    $this->actingAs($this->student)
+        ->getJson("/api/v1/courses/{$this->course->slug}")
+        ->assertOk()
+        ->assertJsonPath('data.is_wishlisted', true);
+});

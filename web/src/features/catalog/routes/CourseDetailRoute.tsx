@@ -17,11 +17,16 @@ import { useParams } from 'react-router';
 
 import { ErrorState, LoadingState } from '@/shared/ui';
 
+import { ReviewList } from '@/features/engagement/components/ReviewList';
+import { WishlistButton } from '@/features/engagement/components/WishlistButton';
+import { useSession } from '@/features/auth/hooks/useSession';
+
 import { EnrolPanel } from '../components/EnrolPanel';
 import { courseDetailQuery } from '../api/queries';
 
 export function CourseDetailRoute() {
   const { slug = '' } = useParams();
+  const { canAny } = useSession();
   const { data, isPending, isError, error, refetch } = useQuery(courseDetailQuery(slug));
 
   if (isPending) {
@@ -39,6 +44,14 @@ export function CourseDetailRoute() {
       </Container>
     );
   }
+
+  /*
+   * A navigation aid only. The reply endpoint authorizes on its own, and this
+   * holds the key GLOBALLY — so it may show a Respond button to an instructor
+   * who does not staff this course, and the server will say no. Hiding it
+   * entirely would need a per-course answer the catalogue does not carry.
+   */
+  const canReply = canAny(['review.reply.own']);
 
   return (
     <Container size="lg" py="lg">
@@ -111,6 +124,15 @@ export function CourseDetailRoute() {
                 </List>
               </Stack>
             ) : null}
+
+            <Divider />
+
+            {/*
+             * The rating above is a stored COLUMN on the course; this list is
+             * the reviews behind it. `canReply` is the same question the page
+             * already asked to decide whether to show the studio link.
+             */}
+            <ReviewList courseId={data.id} canReply={canReply} />
           </Stack>
         </Grid.Col>
 
@@ -124,6 +146,13 @@ export function CourseDetailRoute() {
 
             <Stack gap="sm" p="md">
               <EnrolPanel course={data} />
+
+              {/*
+               * Saving lives here, not on the catalogue card: a card is one
+               * <Link>, and a button inside an anchor is invalid markup and
+               * hostile to a keyboard.
+               */}
+              <WishlistButton courseId={data.id} saved={data.is_wishlisted} />
 
               <Divider />
 

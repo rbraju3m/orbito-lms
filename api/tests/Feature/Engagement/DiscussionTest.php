@@ -319,3 +319,64 @@ it('sanitises bodies on write', function (): void {
 
     expect($discussion->body)->not->toContain('<script>')->toContain('Hi');
 });
+
+it('says what the reader may do with the thread list', function (): void {
+    ask($this->student, $this->course);
+
+    $this->actingAs($this->student)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/discussions")
+        ->assertOk()
+        ->assertJsonPath('meta.can_ask', true)
+        // A learner is not a moderator, and the panel must not offer hiding.
+        ->assertJsonPath('meta.can_moderate', false);
+
+    $this->actingAs($this->instructor)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/discussions")
+        ->assertOk()
+        ->assertJsonPath('meta.can_moderate', true);
+});
+
+it('says what the reader may do with ONE thread, and never in a list', function (): void {
+    $discussion = ask($this->student, $this->course);
+
+    $this->actingAs($this->student)
+        ->getJson("/api/v1/discussions/{$discussion->uuid}")
+        ->assertOk()
+        ->assertJsonPath('data.viewer.can_reply', true)
+        // The asker chooses which answer answered them.
+        ->assertJsonPath('data.viewer.can_accept', true)
+        ->assertJsonPath('data.viewer.can_moderate', false);
+
+    /*
+     * Absent from the LIST on purpose: each key is a policy call resolving
+     * CourseAccess, and thirty threads would be ninety of them. The list says
+     * it once, in its meta.
+     */
+    $this->actingAs($this->student)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/discussions")
+        ->assertOk()
+        ->assertJsonMissingPath('data.0.viewer');
+});
+
+it('lets course staff accept and moderate, and a bystander neither', function (): void {
+    $discussion = ask($this->student, $this->course);
+
+    $this->actingAs($this->instructor)
+        ->getJson("/api/v1/discussions/{$discussion->uuid}")
+        ->assertOk()
+        ->assertJsonPath('data.viewer.can_accept', true)
+        ->assertJsonPath('data.viewer.can_moderate', true);
+
+    $classmate = User::factory()->withRole(RoleKey::Student)->create();
+    Enrollment::factory()->create([
+        'course_id' => $this->course->id,
+        'user_id' => $classmate->id,
+    ]);
+
+    $this->actingAs($classmate)
+        ->getJson("/api/v1/discussions/{$discussion->uuid}")
+        ->assertOk()
+        ->assertJsonPath('data.viewer.can_reply', true)
+        ->assertJsonPath('data.viewer.can_accept', false)
+        ->assertJsonPath('data.viewer.can_moderate', false);
+});

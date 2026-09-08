@@ -41,6 +41,8 @@ import { AssignmentPane } from '@/features/assignment/components/AssignmentPane'
 
 import { QuizPane } from '../components/QuizPane';
 import { NotesPanel } from '../components/NotesPanel';
+import { AnnouncementList } from '@/features/engagement/components/AnnouncementList';
+import { DiscussionPanel } from '@/features/engagement/components/DiscussionPanel';
 
 export function PlayerRoute() {
   const { courseId = '', itemId } = useParams();
@@ -291,15 +293,43 @@ export function PlayerRoute() {
                   </Alert>
                 ) : null}
 
-                <Tabs defaultValue="notes">
+                <Tabs defaultValue="notes" keepMounted={false}>
                   <Tabs.List>
                     <Tabs.Tab value="notes">Notes</Tabs.Tab>
+                    <Tabs.Tab value="qa">Q&amp;A</Tabs.Tab>
+                    <Tabs.Tab value="announcements">Announcements</Tabs.Tab>
                   </Tabs.List>
+
                   <Tabs.Panel value="notes" pt="md">
                     <NotesPanel
                       itemId={item.data.id}
                       canWrite={access.granted && !access.is_staff}
                     />
+                  </Tabs.Panel>
+
+                  {/*
+                   * `keepMounted={false}` above is doing real work: without it
+                   * every tab's query fires on the first lesson anybody opens,
+                   * so watching a video costs three requests instead of one.
+                   */}
+                  <Tabs.Panel value="qa" pt="md">
+                    <DiscussionPanel courseId={courseId} itemId={item.data.id} />
+                  </Tabs.Panel>
+
+                  <Tabs.Panel value="announcements" pt="md">
+                    <Stack gap="sm">
+                      <AnnouncementList courseId={courseId} limit={3} />
+                      <Group justify="center">
+                        <Button
+                          variant="subtle"
+                          size="compact-sm"
+                          component={Link}
+                          to={`/learn/${courseId}/announcements`}
+                        >
+                          See all announcements
+                        </Button>
+                      </Group>
+                    </Stack>
                   </Tabs.Panel>
                 </Tabs>
               </>

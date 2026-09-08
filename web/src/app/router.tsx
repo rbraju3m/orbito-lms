@@ -130,6 +130,26 @@ export const router = createBrowserRouter([
           Component: (await import('@/features/learning/routes/PlayerRoute')).PlayerRoute,
         }),
       },
+      /*
+       * Two STATIC segments declared before `:itemId`, which would otherwise
+       * swallow them. They are also the `action_path` values the server
+       * freezes into a notification payload, so they are part of that
+       * contract rather than a convenience: a link in a year-old email has to
+       * still land somewhere.
+       */
+      {
+        path: 'announcements',
+        lazy: async () => ({
+          Component: (await import('@/features/engagement/routes/CourseAnnouncementsRoute'))
+            .CourseAnnouncementsRoute,
+        }),
+      },
+      {
+        path: 'discussions/:discussionId',
+        lazy: async () => ({
+          Component: (await import('@/features/engagement/routes/DiscussionRoute')).DiscussionRoute,
+        }),
+      },
       {
         path: ':itemId',
         lazy: async () => ({
@@ -215,6 +235,29 @@ export const router = createBrowserRouter([
             lazy: async () => ({
               Component: (await import('@/features/certification/routes/CertificatesRoute'))
                 .CertificatesRoute,
+            }),
+          },
+
+          {
+            path: 'wishlist',
+            lazy: async () => ({
+              Component: (await import('@/features/engagement/routes/WishlistRoute')).WishlistRoute,
+            }),
+          },
+
+          {
+            path: 'notifications',
+            lazy: async () => ({
+              Component: (await import('@/features/notification/routes/NotificationsRoute'))
+                .NotificationsRoute,
+            }),
+          },
+          {
+            path: 'account/notifications',
+            lazy: async () => ({
+              Component: (
+                await import('@/features/notification/routes/NotificationPreferencesRoute')
+              ).NotificationPreferencesRoute,
             }),
           },
 
@@ -321,6 +364,19 @@ export const router = createBrowserRouter([
                       Component: (
                         await import('@/features/certification/routes/CertificateTemplatesRoute')
                       ).CertificateTemplatesRoute,
+                    }),
+                  },
+                ],
+              },
+              {
+                element: <RequirePermission anyOf={['review.moderate']} />,
+                children: [
+                  {
+                    path: 'admin/reviews',
+                    lazy: async () => ({
+                      Component: (
+                        await import('@/features/engagement/routes/ReviewModerationRoute')
+                      ).ReviewModerationRoute,
                     }),
                   },
                 ],

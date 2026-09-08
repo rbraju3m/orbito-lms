@@ -99,6 +99,13 @@ export interface CourseSettings {
 }
 
 export interface Course extends Omit<CourseListItem, 'category' | 'thumbnail_url'> {
+  /**
+   * Whether this reader has saved it. Detail only — the catalogue grid does
+   * not carry it, because that would be a query per card and a card is a
+   * single link with nowhere to put a control.
+   */
+  is_wishlisted: boolean;
+
   description: string | null;
   completion_mode: 'flexible' | 'strict';
   thumbnail?: string | null;

@@ -38,7 +38,12 @@ final class AnnouncementController
             ->orderByDesc('id')
             ->paginate($this->perPage($request));
 
-        return ApiResponse::ok(AnnouncementResource::collection($announcements));
+        // The same Gate the write endpoints use, so the studio shows a
+        // compose box exactly when the server would accept one.
+        return ApiResponse::ok(
+            AnnouncementResource::collection($announcements)
+                ->additional(['meta' => ['can_manage' => $canManage]]),
+        );
     }
 
     /** Creates a DRAFT. Publishing is a separate, deliberate act. */

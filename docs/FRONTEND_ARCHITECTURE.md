@@ -57,23 +57,31 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
 /login · /register · /forgot-password · /reset-password · /verify-email   ✅
 
 /learn/:courseId                   → redirect to last/first item          ✅
+/learn/:courseId/announcements     every announcement in the course       ✅
+/learn/:courseId/discussions/:id   one thread                             ✅
 /learn/:courseId/:itemId           the player                             ✅
     ├─ content pane (video | text | pdf | quiz | assignment | live)
     ├─ curriculum drawer (mobile) / sidebar (desktop)
-    └─ tabs: Overview · Notes · Resources · Discussion · Announcements
+    └─ tabs: Notes · Q&A · Announcements                                  ✅
+
+The two STATIC segments are declared before `:itemId`, which would otherwise
+swallow them. They are also the `action_path` values the server freezes into a
+notification payload, so they are part of that contract rather than a
+convenience: a link in a year-old email has to still land somewhere.
 /learn/:courseId/:itemId/quiz              quiz intro: attempts used, past results   ✅
 /learn/:courseId/:itemId/quiz/:attemptUuid quiz runner (own focused layout)        ✅
 /learn/:courseId/:itemId/quiz/:attemptUuid/result                                  ✅
 
 /dashboard                         continue learning + stats              ✅
 /dashboard/courses                 enrolled (in progress | completed | all)✅
-/dashboard/certificates
-/dashboard/wishlist
-/dashboard/orders · /dashboard/orders/:uuid
+/certificates                      shipped at the root, not under /dashboard ✅
+/wishlist                          saved courses; empties itself on enrol  ✅
+/notifications                     the inbox                               ✅
+/account/notifications             the preference matrix                   ✅
+/orders · /orders/:uuid                                                    ✅
 /dashboard/quiz-attempts · /dashboard/submissions
 /dashboard/achievements                                    (P14)
-/dashboard/notifications
-/dashboard/profile · /dashboard/settings · /dashboard/security            ✅
+/account/profile · /account/security                                       ✅
 
 /studio                            instructor home (reorderable cards)    ✅
 /studio/courses                    my/managed courses                     ✅
@@ -86,8 +94,13 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
     ├─ prerequisites    whole-set picker, cycles refused server-side (sidebar)     ✅
     ├─ pricing          price, sale, currency, coupons scope                       P10
     ├─ students         roster, bulk enrol, suspend/extend/revoke                  ✅
-    ├─ reviews · discussions                                                       P12
+    ├─ announcements    draft, publish (its own button), delete                     ✅
     └─ analytics                                                                   P13
+
+Reviews and Q&A did NOT become studio tabs. Both are read where they are
+written — reviews under the course page, Q&A inside the player — and a second
+copy in the studio would be a second thing to keep in step. Moderation that
+crosses courses has its own screen instead: `/admin/reviews`.
 
 The sub-pages shipped as **tabs within one route**, not as nested routes. A
 course editor is one task with several panels, and a URL per panel would mean a
@@ -113,7 +126,7 @@ through, not a panel of the editor.
 /admin/coupons · /admin/products · /admin/tax
 /admin/payouts
 /admin/certificates · /admin/certificate-templates
-/admin/reviews                     moderation
+/admin/reviews                     moderation                            ✅
 /admin/media
 /admin/analytics
 /admin/roles · /admin/permissions
@@ -159,12 +172,19 @@ src/
     ├── quiz/          ✅ builder, runner, results
     ├── studio/        ✅ course list, course editor
     ├── system/        ✅ the health page
-    ├── enrollment/    P9
-    ├── commerce/      P10
-    ├── certification/ P11
-    ├── engagement/    P12
+    ├── enrollment/    ✅ the roster panel
+    ├── commerce/      ✅ cart, orders, gateway admin
+    ├── certification/ ✅ certificates, public verification, templates
+    ├── engagement/    ✅ reviews, Q&A, announcements, wishlist
+    ├── notification/  ✅ the bell, the inbox, the preference matrix
     └── analytics/     P13
 ```
+
+`notification/` is its own feature rather than a corner of `engagement/`,
+mirroring the backend: engagement is a thing people DO to a course, and a
+notification is a message about anything at all — a grade, a certificate, an
+announcement. Folding one into the other would have put a certificate's inbox
+entry inside the reviews feature.
 
 The plan called this folder `assessment/`; it shipped as `quiz/` and
 `assignment/` because the two have almost no shared UI — one is a timed runner,
