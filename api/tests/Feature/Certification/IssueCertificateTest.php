@@ -16,6 +16,7 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Progress\Events\CourseCompleted;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
 
 /*
  * Issuing, which has exactly one hard problem: `CourseCompleted` is not a
@@ -25,6 +26,13 @@ use Illuminate\Support\Facades\Event;
 
 beforeEach(function (): void {
     seedRegistry();
+
+    /*
+     * Issuing dispatches CertificateIssued, and the queue is synchronous in
+     * tests — so every certificate here renders a real PDF. Faked, or the
+     * suite writes files into storage/ that nobody cleans up.
+     */
+    Storage::fake('private');
 
     $this->student = User::factory()->withRole(RoleKey::Student)->create(['name' => 'Rumi Haque']);
     $this->course = courseWithCurriculum(

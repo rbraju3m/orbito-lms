@@ -12,6 +12,8 @@ use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\CourseCategory;
 use App\Domain\Catalog\Policies\CourseCategoryPolicy;
 use App\Domain\Catalog\Policies\CoursePolicy;
+use App\Domain\Certification\Models\Certificate;
+use App\Domain\Certification\Policies\CertificatePolicy;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Commerce\Policies\OrderPolicy;
 use App\Domain\Curriculum\Models\CourseItem;
@@ -45,6 +47,7 @@ final class AuthServiceProvider extends ServiceProvider
         Media::class => MediaPolicy::class,
         Enrollment::class => EnrollmentPolicy::class,
         Order::class => OrderPolicy::class,
+        Certificate::class => CertificatePolicy::class,
     ];
 
     public function boot(): void
@@ -93,6 +96,17 @@ final class AuthServiceProvider extends ServiceProvider
     private function registerCommerceGates(): void
     {
         Gate::define('manage-gateways', fn (User $user) => $user->hasPermission('gateway.manage'));
+
+        /*
+         * Academy-wide, so a Gate with no model rather than a policy method
+         * that would need something passed to it. There is deliberately no
+         * gate for the public verification page: it authorises nobody, and its
+         * credential is the token.
+         */
+        Gate::define(
+            'manage-certificate-templates',
+            fn (User $user) => $user->hasPermission('certificate.template.manage'),
+        );
     }
 
     /**

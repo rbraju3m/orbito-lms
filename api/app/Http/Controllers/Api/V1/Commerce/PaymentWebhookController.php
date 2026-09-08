@@ -21,7 +21,7 @@ use Illuminate\Http\Request;
  *  2. NO `subscription`. A lapsed academy's webhook must still be recorded —
  *     the money has already moved, and refusing it because a bill is overdue
  *     would take payment for a course and grant nothing.
- *  3. Tenancy comes from the PATH, not a user (`tenant.webhook`).
+ *  3. Tenancy comes from the PATH, not a user (`tenant.path`).
  *  4. It reports almost nothing. `WebhookRejected` is always a flat 400 with
  *     no detail, because the caller is either a provider that does not need
  *     one or somebody probing the endpoint who must not have one.

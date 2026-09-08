@@ -17,20 +17,20 @@ use Illuminate\Support\Facades\Route;
  *
  *  - no `auth:sanctum`: the caller is a payment provider with no account;
  *  - no `tenant`: with no user there is nothing to resolve an academy from,
- *    so the academy is in the PATH and `tenant.webhook` opens it;
+ *    so the academy is in the PATH and `tenant.path` opens it;
  *  - no `subscription`: the money has already moved. Refusing to record a
  *    capture because the academy's own bill is overdue would take a learner's
  *    payment and grant them nothing.
  *
  * `{tenant}` is attacker-controllable and that is fine: naming another academy
  * only means the signature is checked against a secret the caller does not
- * hold. See InitializeTenancyByWebhookRoute.
+ * hold. See InitializeTenancyByPathTenant.
  *
  * Throttled per IP. A provider retrying is normal; a stranger enumerating
  * academy ids against it is not.
  */
 Route::post('webhooks/payments/{gateway}/{tenant}', PaymentWebhookController::class)
-    ->middleware(['throttle:webhook', 'tenant.webhook'])
+    ->middleware(['throttle:webhook', 'tenant.path'])
     ->name('webhooks.payments');
 
 /*

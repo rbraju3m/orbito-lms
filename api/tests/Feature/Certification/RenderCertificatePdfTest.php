@@ -23,6 +23,14 @@ use Illuminate\Support\Facades\Storage;
 beforeEach(function (): void {
     seedRegistry();
 
+    /*
+     * BEFORE the issue below, not inside each test. Issuing dispatches
+     * CertificateIssued and the queue is synchronous here, so the render has
+     * already happened by the time a test body runs — faking the disk there
+     * is too late, and the suite writes real PDFs into storage/.
+     */
+    Storage::fake('private');
+
     $this->student = User::factory()->withRole(RoleKey::Student)->create(['name' => 'Rumi Haque']);
     $this->course = courseWithCurriculum(
         Course::factory()->published()->create(['title' => 'Modern Bengali Poetry']),
@@ -41,8 +49,6 @@ beforeEach(function (): void {
 });
 
 it('produces a real PDF and attaches it to the certificate', function (): void {
-    Storage::fake('private');
-
     $certificate = app(RenderCertificatePdf::class)->handle($this->certificate);
 
     expect($certificate->pdf_media_id)->not->toBeNull();
@@ -63,7 +69,6 @@ it('produces a real PDF and attaches it to the certificate', function (): void {
 
 it('stores the PDF privately, never on the public disk', function (): void {
     // A certificate names a person. A guessable public path would list them.
-    Storage::fake('private');
     Storage::fake('public');
 
     $certificate = app(RenderCertificatePdf::class)->handle($this->certificate);
@@ -132,7 +137,6 @@ it('refuses a template colour that is not a colour', function (): void {
 it('still renders when the template was deleted', function (): void {
     // A tidied-up template list must not stop somebody downloading a
     // qualification they earned.
-    Storage::fake('private');
     CertificateTemplate::query()->delete();
 
     $certificate = app(RenderCertificatePdf::class)->handle($this->certificate->fresh());
@@ -143,8 +147,6 @@ it('still renders when the template was deleted', function (): void {
 });
 
 it('re-renders rather than refusing, and repoints the certificate', function (): void {
-    Storage::fake('private');
-
     $first = app(RenderCertificatePdf::class)->handle($this->certificate);
     $firstMediaId = $first->pdf_media_id;
 

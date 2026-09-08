@@ -7,8 +7,8 @@ use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\InitializeTenancyByAuthenticatedUser;
+use App\Http\Middleware\InitializeTenancyByPathTenant;
 use App\Http\Middleware\InitializeTenancyBySignedRoute;
-use App\Http\Middleware\InitializeTenancyByWebhookRoute;
 use App\Support\Exceptions\ApiExceptionRenderer;
 use App\Support\Http\RequestId;
 use Illuminate\Foundation\Application;
@@ -47,9 +47,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => InitializeTenancyByAuthenticatedUser::class,
             // ONLY behind `signed`. See the class docblock.
             'tenant.signed' => InitializeTenancyBySignedRoute::class,
-            // The webhook's academy comes from the PATH and is untrusted until
-            // the gateway signature verifies against that academy's secret.
-            'tenant.webhook' => InitializeTenancyByWebhookRoute::class,
+            // For routes with no user AND no Laravel signature: the payment
+            // webhook and the public certificate verification page. The
+            // academy comes from the PATH and is untrusted until that route's
+            // own credential checks out. See the class docblock.
+            'tenant.path' => InitializeTenancyByPathTenant::class,
 
             // Applied after `tenant`, so the academy has resolved. Gates
             // WRITES only — a lapsed academy keeps reading and exporting.
