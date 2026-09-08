@@ -7,6 +7,7 @@ namespace App\Domain\Engagement\Actions;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Engagement\Enums\ReviewStatus;
 use App\Domain\Engagement\Events\ReviewChanged;
+use App\Domain\Engagement\Events\ReviewPublished;
 use App\Domain\Engagement\Exceptions\ReviewRejected;
 use App\Domain\Engagement\Models\Review;
 use App\Domain\Enrollment\Models\Enrollment;
@@ -70,6 +71,14 @@ final class SubmitReview
             'published_at' => $moderated ? null : now(),
         ];
 
+        // Read BEFORE the write, because after it there is nothing to compare
+        // against — the row already says published.
+        $wasNotPublished = ! Review::query()
+            ->where('course_id', $course->id)
+            ->where('user_id', $user->id)
+            ->where('status', ReviewStatus::Published)
+            ->exists();
+
         try {
             $review = Review::updateOrCreate(
                 ['course_id' => $course->id, 'user_id' => $user->id],
@@ -93,6 +102,22 @@ final class SubmitReview
          */
         ReviewChanged::dispatch($course->id);
 
-        return $review->refresh();
+        /*
+         * A second, narrower event for the transition itself. `ReviewChanged`
+         * fires on every write and carries only a course id because it exists
+         * to trigger a recount; this one fires once, when a review actually
+         * becomes visible, and carries the review.
+         *
+         * The guard is `wasRecentlyCreated` OR a status that just moved to
+         * published — an edit to an already-published review must not pay a
+         * learner twice for one opinion.
+         */
+        $review->refresh();
+
+        if ($review->status === ReviewStatus::Published && $wasNotPublished) {
+            ReviewPublished::dispatch($review);
+        }
+
+        return $review;
     }
 }

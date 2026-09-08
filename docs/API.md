@@ -586,6 +586,38 @@ UTF-8 BOM (Excel on Windows reads a BOM-less file as the local codepage, which
 turns every Bengali title into mojibake), and scope their rows to what the
 caller may open rather than to a query parameter.
 
+### Gamification — live (P14)
+```
+GET    /achievements                            your own points, badges, streak
+PATCH  /achievements/ranking                    {is_ranked} — leaderboard opt-out
+
+GET    /leaderboard?period=weekly|monthly|all_time
+GET    /courses/{course}/leaderboard?period=…   enrolled learners only
+```
+
+**There is deliberately no endpoint for somebody else's profile.** The
+leaderboard is the only place another person's points appear, and only for
+people who did not opt out.
+
+Five things about this surface are decisions rather than shape:
+
+- **The board is a SNAPSHOT**, rebuilt hourly. `computed_at` is in the payload
+  because a reader has to know how stale it is. Computing one on request is a
+  sum over the whole ledger per page load, and it would reshuffle under
+  somebody while they read it.
+- **`me` is returned separately**, even when the caller is off the bottom of
+  the board. "You are 137th" is the only thing on that screen useful to
+  somebody outside the top fifty, and it cannot be worked out client-side when
+  they are not in the payload.
+- **Opting out excludes at the SOURCE**, so the ranks close up. Filtering a
+  rendered board would leave a visible gap at position 4, which tells everybody
+  exactly who opted out.
+- **Weekly is the default period.** An all-time board nobody new can appear on
+  stops being a competition and becomes a list of who joined early.
+- **Unheld badges are returned with their requirement.** A shelf of only what
+  you already hold is a trophy cabinet; hiding the requirement makes it a
+  lottery.
+
 ### Settings — planned
 ```
 GET    /admin/settings · PATCH /admin/settings

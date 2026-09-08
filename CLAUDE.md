@@ -368,7 +368,7 @@ Gate::authorize('publish', $course);                   // in a controller
 - **Reset clears what was DECLARED, never what was EARNED.**
   `ItemType::isSelfMarkable()` is the line: wiping a passed quiz can leave an
   item permanently uncompletable once attempts are spent.
-- **Union in SQL; resolve cross-boundary ids in PHP.** See §18 — the same
+- **Union in SQL; resolve cross-boundary ids in PHP.** See § Multi-tenancy — the same
   instinct that merges two paginated queries in PHP also writes a `whereHas`
   across two databases.
 - **`error.meta` carries what the caller can DO about a failure** — a date to
@@ -468,10 +468,50 @@ Gate::authorize('publish', $course);                   // in a controller
 
 ---
 
-## 18. Multi-tenancy — read this before touching a model or a query
+## 18. Patterns established in Phase 14 — reuse these
+
+- **Make idempotency a CONSTRAINT, not a check.** A nullable `dedupe_key` with
+  a unique index lets one column serve both "once per source" and "repeatable"
+  rules — MySQL allows any number of NULLs — and the action CATCHES the
+  violation. A check-then-insert loses exactly the race a double click creates.
+- **Anything a user can earn, somebody will try to farm.** Ask what happens
+  when they undo and redo it. If the answer is "they earn again", the design
+  is wrong before the code is.
+- **Rules and thresholds are DATA an academy tunes; config is only the SEED.**
+  A sync that updated would make the file the truth and revert every academy's
+  tuning on deploy. Create-only.
+- **A closed set of operators beats an expression language**, and an unknown
+  one must REFUSE rather than pass. A DSL over JSON an academy can edit through
+  the API is both undebuggable and a sandbox escape somebody eventually writes.
+- **Evaluate against the event's payload, never a re-read model.** A queued
+  listener runs after the row may have changed; re-querying awards on the
+  state it finds rather than the state that earned it.
+- **Registering a model in the morph map is part of making it a source.**
+  Adding a trigger for `Review` — a model analytics had never touched — turned
+  every review in the product into a 500. That the map is ENFORCED is why it
+  failed loudly in the suite instead of storing an FQCN nobody would notice.
+- **Derived counters read the domain's OWN data.** Badges count the ledger,
+  not `item_progress`. It costs history that predates the feature and buys a
+  context with no reach into another's tables — say which you chose, in the
+  code.
+- **A number nobody can trust is worse than no number.** A streak forgives
+  nothing; a badge reads the LONGEST streak so a break never revokes one.
+- **Re-evaluate from scratch when the set is small.** Badges are recomputed on
+  every balance change, which means one added months later is earned by whoever
+  already qualifies — no backfill, no support thread. Only the UNHELD ones are
+  checked, so somebody with all of them costs one query.
+- **Anything that ranks people needs a way out.** Exclude at the SOURCE, or the
+  gap in the ranks names the person who opted out. And say plainly that opting
+  out costs them nothing else.
+- **A leaderboard is a snapshot.** Computing one per page load sums the whole
+  ledger and reshuffles under the reader. Ship `computed_at` so they know.
+
+---
+
+## 19. Multi-tenancy — read this before touching a model or a query
 
 > Code comments cite this section as **`(§ Multi-tenancy)`**, by name and not
-> by number. It has been §16, §17 and now §18 as phases added their own
+> by number. It has been §16, §17, §18 and now §19 as phases added their own
 > pattern sections, and thirty comments quietly pointed at the wrong place
 > each time. Cite any section of this file by its NAME.
 
@@ -532,11 +572,11 @@ so the action that fixes a lapse survives it.
 
 ---
 
-## 19. Current phase
+## 20. Current phase
 
-**Phases 0–13 complete** front and back, plus a **multi-tenancy retrofit**
+**Phases 0–14 complete** front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-915 backend tests / 3038 assertions · 198 frontend tests.
+955 backend tests / 3127 assertions · 209 frontend tests.
 
 **Every MVP phase has shipped, but the MVP is not signed off.** Its own
 definition (`docs/ROADMAP.md` §3) says a student "buys it with a real verified
@@ -547,7 +587,7 @@ Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
 the enrollment lifecycle, the studio roster, completion and retake.
 
 The retrofit delivered database-per-tenant, the platform admin surface, plans
-and subscriptions. **Read §18 before writing any query.**
+and subscriptions. **Read § Multi-tenancy before writing any query.**
 
 **Phase 10 (Commerce) is COMPLETE against `FakeGateway`, front and back** —
 the money path, the HTTP surface, and a SPA that can buy a course. But
@@ -634,9 +674,28 @@ Three things the next reader will otherwise trip on:
   empty with no error. `ScheduledCommandTest` covers it; extend that file for
   any new scheduled command.
 
+**Phase 14 (Gamification) is COMPLETE**, front and back: a rule engine on the
+domain events, a points ledger, badges, streaks and snapshot leaderboards. The
+patterns are in §18; the retro is in `docs/ROADMAP.md`.
+
+Three things the next reader will otherwise trip on:
+
+- **`point_transactions.dedupe_key` is the anti-farming constraint.** A
+  once-per-source rule computes `rule:source_type:source_id`; the unique index
+  refuses a second row and `AwardPoints` catches the violation rather than
+  checking. Do not "simplify" that into a check-then-insert.
+- **A new trigger source must be in the MORPH MAP.** `TriggerContext::for()`
+  calls `getMorphClass()`, the map is enforced, and adding a trigger for an
+  unregistered model is a 500 on the write path that caused it.
+- **Badges count the LEDGER, not `item_progress`.** History that predates the
+  rules earns nothing, and deactivating a rule freezes the badges that depend
+  on it. Both are the academy's choice showing through, not bugs.
+
 **Known debt, deliberately left:**
 
 - Plan **limits** are stored and counted but never enforced. Phase 16.
+- Points cannot be **spent**. They are a score, not a currency; a shop would
+  turn every rule into a pricing decision.
 - Analytics has **no per-student activity view** (L6) and the instructor
   series has **an endpoint with no screen**. Both additive.
 - **Order-level discounts will split the revenue figures.** `discount_minor`

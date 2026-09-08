@@ -627,23 +627,66 @@ Canonical event names: `course_viewed`, `course_started`, `course_enrolled`,
 
 ---
 
-## 11. Gamification (P14)
+## 11. Gamification (P14 — built)
 
 ```sql
+-- TENANT, all of them. Points earned in one academy mean nothing in another.
 gamification_rules(id, key UNIQUE, event_name, name, points INT,
       conditions JSON, is_active, cooldown_seconds, max_per_day)
+      INDEX (event_name, is_active)
+
 point_transactions(id, user_id, rule_id NULL, points INT, balance_after INT,
-      source_type, source_id, reason, awarded_at)
+      source_type, source_id, reason, course_id NULL,
+      dedupe_key NULL, awarded_at)
+      UNIQUE (user_id, dedupe_key)          -- THE anti-farming constraint
       INDEX (user_id, awarded_at)
+      INDEX (awarded_at)                    -- the leaderboard window
+      INDEX (course_id, awarded_at)         -- ...per course
+
+gamification_profiles(user_id PK, points_total INT,
+      current_streak_days INT, longest_streak_days INT, last_active_date DATE,
+      is_ranked BOOL)
+      INDEX (points_total)
+
 badges(id, key UNIQUE, name, description, icon_media_id, tier, criteria JSON, is_active)
 user_badges(id, user_id, badge_id, awarded_at, source_type, source_id)
-      UNIQUE (user_id, badge_id)
-streaks(user_id PK, current_days INT, longest_days INT, last_active_date)
-leaderboard_snapshots(id, scope ENUM(global,course,cohort), scope_id NULL,
-      period ENUM(daily,weekly,monthly,all_time), period_start DATE,
+      UNIQUE (user_id, badge_id)            -- awarded once, by constraint
+
+leaderboard_snapshots(id, scope ENUM(global,course), scope_id NULL,
+      period ENUM(weekly,monthly,all_time), period_start DATE,
       entries JSON, computed_at)
       UNIQUE (scope, scope_id, period, period_start)
 ```
+
+**`point_transactions.dedupe_key` is the anti-farming constraint.** A learner
+who un-ticks and re-ticks a lesson fires `ItemCompleted` again; a once-per-
+source rule computes `rule:source_type:source_id` and the unique index refuses
+the second row. The awarding action CATCHES that violation rather than
+checking first — a check-then-insert loses exactly the race a double click
+creates. Repeatable rules pass NULL, and MySQL allows any number of NULLs in a
+unique index, which is what lets one column serve both kinds.
+
+**`streaks` was merged into `gamification_profiles`.** It was drawn as its own
+table keyed on the same column; both are "this learner's standing", both are
+touched by the same award, and two tables keyed alike is two locks and two
+upserts in one transaction for no gain.
+
+**`is_ranked` was added.** A leaderboard nobody can leave is a hostile
+feature — not everybody wants their study habits ranked in front of
+classmates. Opting out stops the publication and nothing else, and the builder
+excludes at the SOURCE so the ranks close up rather than leaving a gap that
+names the person who opted out.
+
+**`course_id` was added to the ledger.** A course board cannot be derived from
+the source: an enrolment, a reply and a lesson are three different tables, and
+two would need a join across a morph to answer "which course?".
+
+**`daily` and `cohort` were dropped.** A daily board resets before most people
+have done anything; cohorts arrive in P15 and can add their own scope then.
+`leaderboard_snapshots.entries` holds the whole board as JSON — written once,
+read whole, never queried into — with display names FROZEN at build time,
+because they live in the central users table and a join across the boundary
+cannot work (§ Multi-tenancy).
 
 ---
 

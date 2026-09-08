@@ -23,13 +23,22 @@ use App\Domain\Commerce\Events\PaymentCaptured;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
 use App\Domain\Engagement\Events\AnnouncementPublished;
+use App\Domain\Engagement\Events\AnswerAccepted;
 use App\Domain\Engagement\Events\DiscussionReplied;
 use App\Domain\Engagement\Events\QuestionAsked;
 use App\Domain\Engagement\Events\ReviewChanged;
+use App\Domain\Engagement\Events\ReviewPublished;
 use App\Domain\Engagement\Listeners\RefreshCourseRating;
 use App\Domain\Engagement\Listeners\RefreshDiscussionCounters;
 use App\Domain\Engagement\Listeners\RemoveFromWishlistOnEnrollment;
 use App\Domain\Enrollment\Events\CourseEnrolled;
+use App\Domain\Gamification\Events\BadgeAwarded;
+use App\Domain\Gamification\Events\PointsAwarded;
+use App\Domain\Gamification\Events\StreakExtended;
+use App\Domain\Gamification\Listeners\AwardForAssessment;
+use App\Domain\Gamification\Listeners\AwardForEngagement;
+use App\Domain\Gamification\Listeners\AwardForProgress;
+use App\Domain\Gamification\Listeners\EvaluateBadges;
 use App\Domain\Identity\Events\InstructorReviewed;
 use App\Domain\Identity\Events\UserLoggedIn;
 use App\Domain\Identity\Events\UserRegistered;
@@ -39,6 +48,7 @@ use App\Domain\Media\Events\MediaDeleted;
 use App\Domain\Media\Events\MediaUploaded;
 use App\Domain\Notification\Listeners\NotifyOnAnnouncementPublished;
 use App\Domain\Notification\Listeners\NotifyOnAssignmentGraded;
+use App\Domain\Notification\Listeners\NotifyOnBadgeAwarded;
 use App\Domain\Notification\Listeners\NotifyOnCertificateIssued;
 use App\Domain\Notification\Listeners\NotifyOnDiscussionReplied;
 use App\Domain\Notification\Listeners\NotifyStaffOnQuestionAsked;
@@ -107,6 +117,7 @@ final class EventServiceProvider extends ServiceProvider
         CourseCompleted::class => [
             IssueCertificateOnCompletion::class,
             [RecordProgressEvents::class, 'course'],
+            [AwardForProgress::class, 'course'],
         ],
 
         // Two listeners, not one action, because minting and rendering fail
@@ -160,6 +171,7 @@ final class EventServiceProvider extends ServiceProvider
         AssignmentGraded::class => [
             NotifyOnAssignmentGraded::class,
             [RecordAssessmentEvents::class, 'assignmentGraded'],
+            [AwardForAssessment::class, 'assignment'],
         ],
         /*
          * Enrolling is the wish being granted, so the saved entry goes — a
@@ -185,18 +197,46 @@ final class EventServiceProvider extends ServiceProvider
          */
         ItemCompleted::class => [
             [RecordProgressEvents::class, 'item'],
+            [AwardForProgress::class, 'item'],
         ],
         QuizAttemptSubmitted::class => [
             [RecordAssessmentEvents::class, 'quizSubmitted'],
         ],
         QuizAttemptGraded::class => [
             [RecordAssessmentEvents::class, 'quizGraded'],
+            [AwardForAssessment::class, 'quiz'],
         ],
         AssignmentSubmitted::class => [
             [RecordAssessmentEvents::class, 'assignmentSubmitted'],
         ],
         PaymentCaptured::class => [
             RecordCommerceEvents::class,
+        ],
+
+        /*
+         * Gamification. Every listener queued: awarding takes a row lock on
+         * the learner's profile, and ticking a checkbox must not wait on it.
+         *
+         * Note the SHAPE. The rule engine listens to the same domain events
+         * analytics does and reads none of analytics' tables — two contexts
+         * fed by one source, neither aware of the other. And badges listen to
+         * gamification's OWN events rather than to the domain ones, so they
+         * are evaluated exactly as often as a balance actually moved.
+         */
+        PointsAwarded::class => [
+            [EvaluateBadges::class, 'points'],
+        ],
+        StreakExtended::class => [
+            [EvaluateBadges::class, 'streak'],
+        ],
+        BadgeAwarded::class => [
+            NotifyOnBadgeAwarded::class,
+        ],
+        ReviewPublished::class => [
+            [AwardForEngagement::class, 'review'],
+        ],
+        AnswerAccepted::class => [
+            [AwardForEngagement::class, 'answer'],
         ],
     ];
 

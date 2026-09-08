@@ -108,6 +108,20 @@ final class AuthServiceProvider extends ServiceProvider
             'assignment_submission' => AssignmentSubmission::class,
             'certificate' => Certificate::class,
             'order' => Order::class,
+
+            /*
+             * Gamification sources (P14). `point_transactions.source_type`
+             * names what earned the points and is read years later by a ledger
+             * nobody wants to migrate, so it holds an alias like every other
+             * stored morph.
+             *
+             * These two are why the map is ENFORCED rather than advisory:
+             * adding a trigger for a model that was absent turned every review
+             * and every accepted answer into a 500, loudly, in the suite. A
+             * silent FQCN would have shipped.
+             */
+            'review' => Review::class,
+            'discussion_reply' => DiscussionReply::class,
         ]);
     }
 

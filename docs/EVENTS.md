@@ -15,7 +15,7 @@ any event is readable in one place.
 
 ## 1. What exists today (Phase 12)
 
-Thirty-two events across eleven contexts.
+Thirty-seven events across twelve contexts.
 
 ### Identity
 
@@ -138,8 +138,35 @@ because both fire for deletions, where there is no longer a row to hand
 anybody. `QuestionAsked` and `AnnouncementPublished` carry the model, because
 by definition it is still there.
 
+| `ReviewPublished` | `Review $review` | a review becomes visible, once |
+| `AnswerAccepted` | `DiscussionReply $reply` | a reply is marked as the answer |
+
 `AnnouncementPublished` fires on the TRANSITION, not on every save: an
 instructor fixing a typo must not notify a thousand people twice.
+
+`ReviewPublished` and `AnswerAccepted` were both named in §4 and built in P14
+when they got a consumer, which is the rule this file states. `ReviewPublished`
+is narrower than `ReviewChanged`: the latter fires on every write, including
+deletions and edits that leave a review pending, and carries only a course id
+because it exists to trigger a recount. `AnswerAccepted` fires on ACCEPTING
+only — un-accepting is not an event anybody downstream wants, and a listener
+reading a flag to decide whether to do nothing should not have been called.
+
+### Gamification
+
+| Event | Payload | Fired when |
+|---|---|---|
+| `PointsAwarded` | `PointTransaction $transaction`, `int $balance` | a balance actually moved |
+| `StreakExtended` | `int $userId`, `int $currentDays`, `bool $continued` | the first activity of a UTC day |
+| `BadgeAwarded` | `int $userId`, `Badge $badge` | a badge is earned, once ever |
+
+`PointsAwarded` fires only when a row was written — a rule refused by its
+dedupe key, its cooldown or its daily cap fires nothing, because nothing
+happened. That is what lets badge evaluation listen to it rather than to the
+domain events, and run exactly as often as something changed.
+
+`StreakExtended` also fires when a streak RESTARTS (`continued` is false),
+because starting again is worth knowing too.
 
 ---
 
@@ -176,6 +203,15 @@ instructor fixing a typo must not notify a thousand people twice.
 | `AssignmentGraded` | `RecordAssessmentEvents@assignmentGraded` | Analytics | **yes** |
 | `PaymentCaptured` | `RecordCommerceEvents` | Analytics | **yes** |
 | `CertificateIssued` | `RecordCertificationEvents` | Analytics | **yes** |
+| `ItemCompleted` | `AwardForProgress@item` | Gamification | **yes** |
+| `CourseCompleted` | `AwardForProgress@course` | Gamification | **yes** |
+| `QuizAttemptGraded` | `AwardForAssessment@quiz` | Gamification | **yes** |
+| `AssignmentGraded` | `AwardForAssessment@assignment` | Gamification | **yes** |
+| `ReviewPublished` | `AwardForEngagement@review` | Gamification | **yes** |
+| `AnswerAccepted` | `AwardForEngagement@answer` | Gamification | **yes** |
+| `PointsAwarded` | `EvaluateBadges@points` | Gamification | **yes** |
+| `StreakExtended` | `EvaluateBadges@streak` | Gamification | **yes** |
+| `BadgeAwarded` | `NotifyOnBadgeAwarded` | Notification | **yes** |
 
 `RecountEnrollmentTotals` was the first `ShouldQueue` listener: adding one
 lesson changes the denominator for every enrolled learner, and ten thousand
@@ -205,6 +241,16 @@ Four names in the vocabulary have NO domain event and never will:
 server cannot see any of them, which is the entire reason
 `POST /analytics/track` exists — and the reason its allowlist is exactly those
 four.
+
+**Analytics and Gamification listen to the same domain events and read none
+of each other's tables.** Two contexts fed by one source, neither aware of the
+other — and neither of them able to break the request that fired the event,
+because every listener in both is queued.
+
+Gamification's own events are what BADGES listen to, not the domain ones. A
+rule refused by its dedupe key writes nothing and fires nothing, so badge
+evaluation runs exactly as often as a balance moved rather than as often as a
+lesson was ticked.
 
 **Several events still have no listener.** That is expected, not an oversight —
 they are the seams the later phases attach to, and firing them from the start
@@ -243,8 +289,8 @@ vocabulary for the same fact.
 | ~~`EnrollmentExpired`, `EnrollmentSuspended`, `EnrollmentRevoked`~~ | Enrollment | **shipped P9**, with `EnrollmentReinstated` and `EnrollmentExtended` |
 | `PaymentCaptured` shipped P10; `OrderPlaced` / `RefundIssued` not built | Commerce | — |
 | `CertificateIssued` shipped P11; `CertificateRevoked` not built | Certification | — |
-| ~~`ReviewPublished`, `QuestionAsked`, `QuestionAnswered`~~ | Engagement | **shipped P12** as `ReviewChanged`, `QuestionAsked`, `DiscussionReplied` and `AnnouncementPublished` |
-| `BadgeAwarded`, `StreakExtended` | Gamification | P14 |
+| ~~`ReviewPublished`, `QuestionAsked`, `QuestionAnswered`~~ | Engagement | **shipped P12** as `ReviewChanged`, `QuestionAsked`, `DiscussionReplied`, `AnnouncementPublished`; `ReviewPublished` and `AnswerAccepted` followed in P14 |
+| ~~`BadgeAwarded`, `StreakExtended`~~ | Gamification | **shipped P14**, with `PointsAwarded` |
 | `SessionScheduled`, `AttendanceRecorded` | Live | P15 |
 | `RoleAssignmentExpired` | Identity | still open — the enrolment sweeper shipped in P9 without it |
 

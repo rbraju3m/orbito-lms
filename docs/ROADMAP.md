@@ -900,8 +900,64 @@ log. Front and back.
 people but nothing shows one learner's timeline, and the instructor series has
 an endpoint with no screen. Both are additive.
 
-### Phase 14 — Gamification
-Rule engine on the event stream · points · badges · achievements · streaks · leaderboards.
+### Phase 14 — Gamification ✅ complete
+
+A rule engine on the domain events, an append-only points ledger, badges,
+streaks and snapshot leaderboards. Front and back.
+
+**The decisions worth knowing before changing any of it:**
+
+- **A scheme somebody can farm is worse than no scheme**, because it stops
+  measuring learning and starts measuring who worked out the trick. So
+  `point_transactions.dedupe_key` is a UNIQUE index, the awarding action
+  CATCHES the violation rather than checking first, and re-ticking a lesson
+  earns nothing. Repeatable rules pass NULL and are held by a cooldown and a
+  daily cap instead.
+- **Rules are DATA.** An academy retunes points, switches a rule off or adds
+  its own without a deploy, and `gamification:sync` only ever CREATES what is
+  missing — a sync that updated would make the config file the truth and
+  quietly revert every academy's tuning on the next deploy.
+- **Conditions are a closed set of six operators, and an unknown one refuses
+  the award.** A typo in an academy's rule must not silently pay everybody.
+  Badge criteria are a closed set of five shapes for the same reason: a DSL
+  that can express anything is a DSL nobody can debug when a learner asks why
+  they got nothing.
+- **Rules are evaluated against the trigger, never against a re-read model.**
+  By the time a queued listener runs the row may have changed, and a rule that
+  re-queried would award on the state it finds rather than the state that
+  earned it.
+- **Gamification is not a second progress bar.** Reviewing a course and
+  writing an answer somebody accepted are the two triggers that reward doing
+  something for other people — and the accepted-answer points go to whoever
+  WROTE it, never the asker who marked it, or the cheapest way to earn is to
+  ask yourself a question.
+- **A streak counts UTC days and forgives nothing.** A grace day makes the
+  number a lie, and somebody shown a 40-day streak they did not earn stops
+  believing any of it. Badges read the LONGEST streak, so a break never takes
+  one back.
+- **Badges are re-evaluated from scratch, not incrementally.** A badge added
+  months later is earned by everybody who already qualifies the next time they
+  do anything — no backfill job, no support thread.
+- **A leaderboard nobody can leave is hostile.** `is_ranked` opts out, and the
+  builder excludes at the SOURCE so the ranks close up rather than leaving a
+  gap that names the person who opted out. Weekly is the default, because an
+  all-time board nobody new can appear on is a list of who joined early.
+
+**Two things that surprised the work:**
+
+- Two of the new triggers point at `Review` and `DiscussionReply`, which
+  `analytics_events` had never touched — so neither was in the ENFORCED morph
+  map, and `TriggerContext::for()` turned every review in the product into a
+  500. Loudly, in the suite, which is exactly what enforcing the map is for.
+  Registering a model there is now part of making it a trigger source.
+- Badges count from gamification's OWN data, never from `item_progress`. Two
+  consequences, both deliberate: a learner who finished fifty lessons before
+  this phase has no ledger rows and no badge, and deactivating a rule freezes
+  the badges that depend on it.
+
+**Not built:** a points ledger UI beyond the last twenty entries, cohort-scoped
+boards (P15 can add the scope), and any way to spend points. Points are a score,
+not a currency — a shop would make every rule a pricing decision.
 
 ### Phase 15 — Live Learning
 Cohorts · `LiveSessionProvider` with Zoom and Google Meet · sessions as curriculum items ·

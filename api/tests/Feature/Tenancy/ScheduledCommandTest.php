@@ -77,6 +77,14 @@ it('prunes analytics events with no tenant open', function (): void {
     ($this->centrally)('analytics:prune');
 });
 
+it('syncs gamification rules with no tenant open', function (): void {
+    ($this->centrally)('gamification:sync');
+});
+
+it('builds leaderboards with no tenant open', function (): void {
+    ($this->centrally)('gamification:leaderboards');
+});
+
 it('builds analytics rollups with no tenant open', function (): void {
     // The one command here that WRITES derived rows rather than sweeping, so
     // a tenant-blind version would silently build them into the central

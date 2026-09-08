@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Engagement\Actions;
 
 use App\Domain\Engagement\Enums\DiscussionStatus;
+use App\Domain\Engagement\Events\AnswerAccepted;
 use App\Domain\Engagement\Exceptions\DiscussionRejected;
 use App\Domain\Engagement\Models\Discussion;
 use App\Domain\Engagement\Models\DiscussionReply;
@@ -44,6 +45,15 @@ final class AcceptDiscussionAnswer
                     ? DiscussionStatus::Answered
                     : DiscussionStatus::Open),
         ])->save();
+
+        /*
+         * On accepting only. Un-accepting is not an event anybody downstream
+         * wants, and a listener reading a flag to decide whether to do nothing
+         * is a listener that should not have been called.
+         */
+        if ($reply !== null) {
+            AnswerAccepted::dispatch($reply);
+        }
 
         return $discussion->refresh();
     }

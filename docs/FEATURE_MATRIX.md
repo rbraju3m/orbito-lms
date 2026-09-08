@@ -311,12 +311,12 @@ reads yet.
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
-| M1 | Points | — | Yes | P14 | Event-driven rules |
-| M2 | Badges | — | Yes | P14 | |
-| M3 | Achievements / milestones | — | Yes | P14 | |
-| M4 | Streaks | — | — | P14 | |
-| M5 | Leaderboards | — | Yes | P14 | Snapshot tables |
-| M6 | Completion rewards | — | Yes | P14 | |
+| M1 | Points | — | Yes | **P14** | Rules are data; dedupe key makes farming impossible |
+| M2 | Badges | — | Yes | **P14** | Closed criteria set; unheld ones show their requirement |
+| M3 | Achievements / milestones | — | Yes | **P14** | The badge wall at /achievements |
+| M4 | Streaks | — | — | **P14** | UTC days, no grace day |
+| M5 | Leaderboards | — | Yes | **P14** | Snapshots, hourly. Opt-out excludes at the source |
+| M6 | Completion rewards | — | Yes | **P14** | A rule on `course_completed`, retunable per academy |
 
 ## N. Live Learning
 

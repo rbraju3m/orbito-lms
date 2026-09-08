@@ -53,3 +53,14 @@ Schedule::command('analytics:prune')->weeklyOn(1, '04:20')->withoutOverlapping()
  */
 Schedule::command('analytics:rollup --days=2')->dailyAt('04:00')->withoutOverlapping();
 Schedule::command('analytics:rollup --days=1 --skip-funnel')->hourly()->withoutOverlapping();
+
+/*
+ * Gamification. Boards are snapshots (see BuildLeaderboards); an hour old is
+ * the price of not summing the whole ledger on every page load.
+ */
+Schedule::command('gamification:leaderboards')->hourly()->withoutOverlapping();
+/*
+ * Creates missing rules and badges only, so this is safe to run on every
+ * deploy and safe to run twice — an academy's own tuning is never touched.
+ */
+Schedule::command('gamification:sync')->dailyAt('02:50')->withoutOverlapping();

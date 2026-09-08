@@ -12,6 +12,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
+  IconAward,
   IconBell,
   IconBook,
   IconBookmark,
@@ -27,6 +28,7 @@ import {
   IconSettings,
   IconShieldCheck,
   IconShieldLock,
+  IconTrophy,
   IconUser,
   IconUsers,
 } from '@tabler/icons-react';
@@ -53,6 +55,8 @@ const NAV: NavItem[] = [
   { to: '/dashboard/courses', label: 'My learning', icon: IconBook },
   { to: '/courses', label: 'Browse courses', icon: IconSearch },
   { to: '/wishlist', label: 'Saved courses', icon: IconBookmark },
+  { to: '/achievements', label: 'Achievements', icon: IconAward },
+  { to: '/leaderboard', label: 'Leaderboard', icon: IconTrophy },
   { to: '/certificates', label: 'Certificates', icon: IconCertificate },
   { to: '/orders', label: 'Orders', icon: IconReceipt },
   {

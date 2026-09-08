@@ -44,6 +44,7 @@ import { NotesPanel } from '../components/NotesPanel';
 import { useTrackView } from '@/features/analytics/hooks/useTrackView';
 import { AnnouncementList } from '@/features/engagement/components/AnnouncementList';
 import { DiscussionPanel } from '@/features/engagement/components/DiscussionPanel';
+import { LeaderboardTable } from '@/features/gamification/components/LeaderboardTable';
 
 export function PlayerRoute() {
   const { courseId = '', itemId } = useParams();
@@ -312,6 +313,7 @@ export function PlayerRoute() {
                     <Tabs.Tab value="notes">Notes</Tabs.Tab>
                     <Tabs.Tab value="qa">Q&amp;A</Tabs.Tab>
                     <Tabs.Tab value="announcements">Announcements</Tabs.Tab>
+                    <Tabs.Tab value="leaderboard">Leaderboard</Tabs.Tab>
                   </Tabs.List>
 
                   <Tabs.Panel value="notes" pt="md">
@@ -328,6 +330,16 @@ export function PlayerRoute() {
                    */}
                   <Tabs.Panel value="qa" pt="md">
                     <DiscussionPanel courseId={courseId} itemId={item.data.id} />
+                  </Tabs.Panel>
+
+                  {/*
+                   * The course board, not the academy one. A ranking of
+                   * everybody in the academy is won by whoever has the most
+                   * free time; a ranking of one course compares people doing
+                   * the same thing.
+                   */}
+                  <Tabs.Panel value="leaderboard" pt="md">
+                    <LeaderboardTable courseId={courseId} />
                   </Tabs.Panel>
 
                   <Tabs.Panel value="announcements" pt="md">

@@ -246,6 +246,21 @@ export const router = createBrowserRouter([
           },
 
           {
+            path: 'achievements',
+            lazy: async () => ({
+              Component: (await import('@/features/gamification/routes/AchievementsRoute'))
+                .AchievementsRoute,
+            }),
+          },
+          {
+            path: 'leaderboard',
+            lazy: async () => ({
+              Component: (await import('@/features/gamification/routes/LeaderboardRoute'))
+                .LeaderboardRoute,
+            }),
+          },
+
+          {
             path: 'notifications',
             lazy: async () => ({
               Component: (await import('@/features/notification/routes/NotificationsRoute'))
