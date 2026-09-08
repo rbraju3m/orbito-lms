@@ -31,4 +31,4 @@ Schedule::command('usage:reconcile')->dailyAt('03:30')->withoutOverlapping();
  * A wrong rating on a course card is invisible — nobody reports it, because
  * nobody knows what it should be. This is the only thing that would notice.
  */
-Schedule::command('ratings:reconcile')->dailyAt('03:50')->withoutOverlapping();
+Schedule::command('engagement:reconcile')->dailyAt('03:50')->withoutOverlapping();

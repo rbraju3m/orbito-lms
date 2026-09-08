@@ -21,7 +21,10 @@ use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Curriculum\Models\Lesson;
 use App\Domain\Curriculum\Models\Resource;
 use App\Domain\Curriculum\Policies\CurriculumPolicy;
+use App\Domain\Engagement\Models\Discussion;
+use App\Domain\Engagement\Models\DiscussionReply;
 use App\Domain\Engagement\Models\Review;
+use App\Domain\Engagement\Policies\DiscussionPolicy;
 use App\Domain\Engagement\Policies\ReviewPolicy;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Enrollment\Policies\EnrollmentPolicy;
@@ -51,6 +54,7 @@ final class AuthServiceProvider extends ServiceProvider
         Order::class => OrderPolicy::class,
         Certificate::class => CertificatePolicy::class,
         Review::class => ReviewPolicy::class,
+        Discussion::class => DiscussionPolicy::class,
     ];
 
     public function boot(): void
@@ -114,6 +118,19 @@ final class AuthServiceProvider extends ServiceProvider
         // The moderation QUEUE is a list, not a row, so it cannot be a policy
         // method — there is nothing to pass one.
         Gate::define('moderate-reviews', fn (User $user) => $user->hasPermission('review.moderate'));
+
+        /*
+         * A Gate rather than registering DiscussionPolicy for DiscussionReply
+         * as well. Two models sharing one policy would make `view` on a reply
+         * resolve to `view(User, Discussion)` and blow up on the type — a trap
+         * waiting for the next ability somebody adds. The same shape as the
+         * curriculum gates: an ability over a model the policy map does not own.
+         */
+        Gate::define(
+            'delete-discussion-reply',
+            fn (User $user, DiscussionReply $reply) => app(DiscussionPolicy::class)
+                ->deleteReply($user, $reply),
+        );
     }
 
     /**

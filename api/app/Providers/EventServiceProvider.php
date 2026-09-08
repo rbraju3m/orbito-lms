@@ -12,8 +12,10 @@ use App\Domain\Certification\Listeners\IssueCertificateOnCompletion;
 use App\Domain\Certification\Listeners\RenderPdfOnIssue;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
+use App\Domain\Engagement\Events\DiscussionReplied;
 use App\Domain\Engagement\Events\ReviewChanged;
 use App\Domain\Engagement\Listeners\RefreshCourseRating;
+use App\Domain\Engagement\Listeners\RefreshDiscussionCounters;
 use App\Domain\Identity\Events\InstructorReviewed;
 use App\Domain\Identity\Events\UserLoggedIn;
 use App\Domain\Identity\Events\UserRegistered;
@@ -100,6 +102,12 @@ final class EventServiceProvider extends ServiceProvider
          */
         ReviewChanged::class => [
             RefreshCourseRating::class,
+        ],
+
+        // Same shape, same reason: a Q&A list renders dozens of threads and
+        // "how many replies?" must not be a subquery per row.
+        DiscussionReplied::class => [
+            RefreshDiscussionCounters::class,
         ],
     ];
 

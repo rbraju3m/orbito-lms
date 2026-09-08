@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Engagement\DiscussionController;
 use App\Http\Controllers\Api\V1\Engagement\ReviewController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,35 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
 
     Route::post('reviews/{review}/reply', [ReviewController::class, 'reply'])
         ->name('reviews.reply');
+
+    /* -------------------------------------------------------------- Q&A */
+
+    Route::get('courses/{course}/discussions', [DiscussionController::class, 'index'])
+        ->name('discussions.index');
+    Route::post('courses/{course}/discussions', [DiscussionController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('discussions.store');
+
+    Route::get('discussions/{discussion}', [DiscussionController::class, 'show'])
+        ->name('discussions.show');
+    Route::post('discussions/{discussion}/replies', [DiscussionController::class, 'reply'])
+        ->middleware('throttle:30,1')
+        ->name('discussions.reply');
+
+    /*
+     * Accepting an answer. The ASKER or course staff — not any moderator:
+     * choosing which reply answered your question is a judgement only you and
+     * the people teaching the course can make.
+     */
+    Route::post('discussions/{discussion}/accept', [DiscussionController::class, 'accept'])
+        ->name('discussions.accept');
+
+    // Hiding, unhiding and pinning. One endpoint, one capability.
+    Route::patch('discussions/{discussion}/moderate', [DiscussionController::class, 'moderate'])
+        ->name('discussions.moderate');
+
+    Route::delete('discussion-replies/{reply}', [DiscussionController::class, 'destroyReply'])
+        ->name('discussions.replies.destroy');
 
     Route::get('admin/reviews', [ReviewController::class, 'queue'])
         ->name('admin.reviews.queue');

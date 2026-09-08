@@ -220,7 +220,7 @@ it('notices and corrects a rating that has drifted', function (): void {
     DB::table('courses')->where('id', $this->course->id)
         ->update(['rating_avg' => 1.0, 'rating_count' => 99]);
 
-    $this->artisan('ratings:reconcile')
+    $this->artisan('engagement:reconcile')
         ->expectsOutputToContain('drifted')
         ->assertSuccessful();
 
