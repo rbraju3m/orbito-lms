@@ -15,6 +15,22 @@ export interface CourseCategory {
 }
 
 /** The thin shape used by catalogue and Studio lists. */
+/**
+ * What a course costs, for DISPLAY only.
+ *
+ * The figure that CHARGES is re-read from `product_prices` when the order is
+ * placed (ADR-05), so this must never be sent back to the server as an input.
+ */
+export interface CoursePrice {
+  /** The id the basket speaks, so the buy button needs no second request. */
+  product_id: string;
+  currency: string;
+  amount_minor: number;
+  /** Present only during a sale, so "was 99" is a fact rather than an inference. */
+  list_amount_minor: number | null;
+  is_on_sale: boolean;
+}
+
 export interface CourseListItem {
   id: string;
   /** The numeric id. Endpoints that REFERENCE a course speak in this. */
@@ -29,6 +45,14 @@ export interface CourseListItem {
   status_label: string;
   visibility: CourseVisibility;
   pricing_model: PricingModel;
+
+  /**
+   * What it costs, for DISPLAY. Null means "not buyable right now", which is
+   * a different fact from free — a free course has no product at all, while a
+   * paid course whose product was deactivated still says `one_time` here.
+   * The figure that CHARGES is re-read at checkout (ADR-05).
+   */
+  price: CoursePrice | null;
   thumbnail_url?: string | null;
   item_count: number;
   total_duration_seconds: number;

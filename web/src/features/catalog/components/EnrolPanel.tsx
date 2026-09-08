@@ -8,6 +8,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
 
+import { BuyPanel } from '@/features/commerce/components/BuyPanel';
 import { apiPost } from '@/shared/api/client';
 import { ApiError } from '@/shared/api/errors';
 
@@ -38,13 +39,28 @@ export function EnrolPanel({ course }: { course: Course }) {
   });
 
   const error = enrol.error instanceof ApiError ? enrol.error : null;
-  const blocked = unmet.length > 0 || full || paid;
+
+  /*
+   * Being PAID is no longer a reason to block. It used to be, because there
+   * was no checkout to send anyone to; now paying is the way past a price, and
+   * only the genuine gates — an unmet prerequisite, a full course — may
+   * disable the button. Leaving `paid` in this list would have shipped a
+   * priced course with a dead buy button.
+   */
+  const gateBlocked = unmet.length > 0 || full;
+  const gateReason = full
+    ? 'Ask the course team whether more places will open.'
+    : unmet.length > 0
+      ? `Finish ${unmet.length === 1 ? `“${unmet[0]?.title}”` : `${unmet.length} courses`} first.`
+      : undefined;
 
   return (
     <Stack gap="sm">
-      <Text fw={700} size="xl">
-        {paid ? 'Paid' : 'Free'}
-      </Text>
+      {!paid && (
+        <Text fw={700} size="xl">
+          Free
+        </Text>
+      )}
 
       {course.prerequisites.length > 0 && (
         <Stack gap={4}>
@@ -97,25 +113,37 @@ export function EnrolPanel({ course }: { course: Course }) {
         </Alert>
       )}
 
-      <Button
-        fullWidth
-        disabled={blocked}
-        loading={enrol.isPending}
-        leftSection={blocked ? <IconLock size={16} /> : undefined}
-        onClick={() => enrol.mutate()}
-      >
-        {paid ? 'Buy this course' : 'Enrol for free'}
-      </Button>
+      {/*
+        * A paid course goes through the basket, never through this button:
+        * `POST /courses/{id}/enroll` refuses anything but a free course, and
+        * access is granted only by a verified webhook (ADR-05).
+        */}
+      {paid ? (
+        <BuyPanel
+          price={course.price}
+          courseTitle={course.title}
+          disabled={gateBlocked}
+          disabledReason={gateReason}
+        />
+      ) : (
+        <>
+          <Button
+            fullWidth
+            disabled={gateBlocked}
+            loading={enrol.isPending}
+            leftSection={gateBlocked ? <IconLock size={16} /> : undefined}
+            onClick={() => enrol.mutate()}
+          >
+            Enrol for free
+          </Button>
 
-      {/* The reason lives under the button, not inside a tooltip nobody opens. */}
-      {blocked && (
-        <Text size="xs" c="dimmed" ta="center">
-          {paid
-            ? 'Paid enrolment arrives with checkout.'
-            : full
-              ? 'Ask the course team whether more places will open.'
-              : `Finish ${unmet.length === 1 ? `“${unmet[0]?.title}”` : `${unmet.length} courses`} first.`}
-        </Text>
+          {/* The reason lives under the button, not inside a tooltip nobody opens. */}
+          {gateBlocked && gateReason && (
+            <Text size="xs" c="dimmed" ta="center">
+              {gateReason}
+            </Text>
+          )}
+        </>
       )}
     </Stack>
   );

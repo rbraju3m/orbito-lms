@@ -173,6 +173,30 @@ export const router = createBrowserRouter([
             }),
           },
 
+          /*
+           * Buying. Inside the signed-in shell rather than the public layout:
+           * there is no anonymous surface, and a basket belongs to a learner.
+           */
+          {
+            path: 'cart',
+            lazy: async () => ({
+              Component: (await import('@/features/commerce/routes/CartRoute')).CartRoute,
+            }),
+          },
+          {
+            path: 'orders',
+            lazy: async () => ({
+              Component: (await import('@/features/commerce/routes/OrdersRoute')).OrdersRoute,
+            }),
+          },
+          {
+            path: 'orders/:id',
+            lazy: async () => ({
+              Component: (await import('@/features/commerce/routes/OrderDetailRoute'))
+                .OrderDetailRoute,
+            }),
+          },
+
           {
             path: 'account/profile',
             lazy: async () => ({
@@ -261,6 +285,23 @@ export const router = createBrowserRouter([
                   Component: (await import('@/features/admin/routes/InstructorsRoute'))
                     .InstructorsRoute,
                 }),
+              },
+              /*
+               * Connecting the academy's own gateway (ADR-13). Its own
+               * permission: staff run orders but move no money, so
+               * `order.view.any` must not open this screen.
+               */
+              {
+                element: <RequirePermission anyOf={['gateway.manage']} />,
+                children: [
+                  {
+                    path: 'admin/payment-gateways',
+                    lazy: async () => ({
+                      Component: (await import('@/features/commerce/routes/PaymentGatewaysRoute'))
+                        .PaymentGatewaysRoute,
+                    }),
+                  },
+                ],
               },
             ],
           },

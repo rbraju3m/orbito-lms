@@ -6,17 +6,17 @@
 **retrofitted to multi-tenancy** — a reversal of the single-tenant decision
 recorded as risk R4.
 
-**Phase 10 (Commerce) is IN PROGRESS.** The money path is proven against
-`FakeGateway` — signature, replay, amount and forgery — and the HTTP surface
-is built on top of it: basket, checkout, orders, the tenant-in-path webhook,
-and gateway configuration. There is still **no frontend**, and `StripeGateway`
-has still never contacted Stripe. Read the Phase 10 entry before touching it.
+**Phase 10 (Commerce) is FEATURE-COMPLETE except for one thing.** The money
+path is proven against `FakeGateway`, the HTTP surface is built on it, and the
+SPA can buy a course end to end. What remains is that `StripeGateway` has never
+contacted Stripe — so no real money has ever moved through this. Read the Phase
+10 entry before touching it.
 
 | | |
 |---|---|
-| Backend | 701 Pest tests / 2,446 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 138 Vitest tests · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS 240.5 KB gzipped, against 250 KB |
+| Backend | 707 Pest tests / 2,466 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 151 Vitest tests · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS 243.7 KB gzipped, against 250 KB |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~270-430s, up from ~118s — provisioning tests build real schemas |
 
@@ -580,7 +580,7 @@ which removes the anonymous surface: the catalogue, course pages, previews and
 the player are members-only. A public storefront would need subdomain
 identification and is a real change, not a flag.
 
-### Phase 10 — Commerce  ⚠️ IN PROGRESS — the money path is proven and reachable; no frontend
+### Phase 10 — Commerce  ⚠️ COMPLETE against FakeGateway; never run against Stripe
 
 **Scope was deliberately narrowed** to the money path: products, prices, cart,
 checkout with server-side repricing, orders, one gateway, verified idempotent
@@ -656,12 +656,36 @@ and everything after is gated on the signature verifying against THAT
 academy's secret. Unknown and closed academies 404 identically, so the route
 cannot enumerate academy ids.
 
+**The frontend is built** — `web/src/features/commerce/`:
+
+| | |
+|---|---|
+| Buying | `BuyPanel` on the course page, `/cart`, `/orders`, `/orders/:id` |
+| Admin | `/admin/payment-gateways`, behind `gateway.manage` |
+| Shared | `shared/lib/money.ts` — minor units formatted through `Intl` |
+
+`EnrolPanel` no longer says "paid enrolment arrives with checkout". Being paid
+had been folded into the same list as an unmet prerequisite and a full course,
+which disabled the button; paying is now the way PAST a price, so only the real
+gates block it. A priced course with a dead buy button was the bug waiting
+there.
+
+**The catalogue now carries a price** (`CoursePrice`, on both course
+resources, eager-loaded via a new `Course::product()` morphOne). Without it
+a buy button could not name a figure without a second request. It is a LABEL:
+what charges is re-read at checkout, and there is a test asserting the listing
+prices five courses without an N+1.
+
 **What still does NOT exist:**
 
-- **No frontend.** Nothing in the SPA can reach any of this.
 - **The Stripe adapter has never contacted Stripe.** Written to the documented
   API, signature check follows the documented scheme, but no sandbox
-  credentials were available. Treat the first live run as the test.
+  credentials were available. Treat the first live run as the test. The SPA
+  offers Stripe in its gateway picker, so this is the one gap a user can reach.
+- **No inline-SDK payment flow.** `PaymentHandoff` can return a
+  `client_secret`, and nothing consumes it — only `redirect_url` is acted on.
+  A provider that settles inline would leave the order sitting in
+  `awaiting_payment`.
 - Coupons, refunds, tax, invoices, and the earnings/payout surface. Deferred,
   not forgotten — see the scope note at the top of this entry.
 
@@ -684,12 +708,19 @@ stays open.
   them; a partial `PUT` keeps what it does not send, so toggling test mode
   cannot silently disconnect a gateway.
 
-**Resume here.** Build the frontend: the course page's buy button, the basket,
-the checkout flow and the order history, plus the academy-admin screen for
-connecting a gateway. The API beneath is tested and does not need revisiting.
-The one thing the UI cannot be honest about without care is the gap between
-`estimated_total_minor` and what the order actually charges — the basket is
-priced live, the order is priced once.
+**Resume here.** Get Stripe sandbox credentials and run a real payment end to
+end. That is the only thing between this phase and done, and it is the half of
+the exit criterion no amount of local testing can close.
+
+Two things the UI does that are worth keeping when it changes:
+
+- **The basket calls its total an estimate**, because it is one: the basket is
+  priced live on every read, the order is priced once at checkout, and a sale
+  ending in between makes them differ honestly. There is a test asserting the
+  page says so.
+- **The order page polls only while the answer can still change.** A webhook
+  lands out of band and nothing tells the browser, so an order in
+  `awaiting_payment` refetches every 5s and a settled one never does.
 
 ### Phase 11 — Certificates
 Templates · queued PDF generation · numbering · QR · public verification page · revocation.

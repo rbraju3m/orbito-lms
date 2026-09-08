@@ -35,7 +35,9 @@ final class CourseCatalogQuery
     {
         return Course::query()
             ->listed()
-            ->with(['category', 'owner', 'thumbnail'])
+            // `product.prices` so the card can show a price without N+1 — the whole
+            // point of denormalising nothing here (CLAUDE.md §2).
+            ->with(['category', 'owner', 'thumbnail', 'product.prices'])
             ->when(
                 filled($filters['q'] ?? null),
                 fn (Builder $q) => $q->whereFullText(['title', 'subtitle'], (string) $filters['q']),

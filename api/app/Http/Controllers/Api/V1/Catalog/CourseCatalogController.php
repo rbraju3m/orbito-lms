@@ -38,7 +38,7 @@ final class CourseCatalogController
     public function show(Request $request, string $slug): JsonResponse
     {
         $course = Course::where('slug', $slug)
-            ->with(['category', 'owner', 'thumbnail', 'tags', 'detail', 'instructors.user', 'setting'])
+            ->with(['category', 'owner', 'thumbnail', 'tags', 'detail', 'instructors.user', 'setting', 'product.prices'])
             ->first();
 
         if ($course === null || $request->user()?->can('view', $course) === false) {

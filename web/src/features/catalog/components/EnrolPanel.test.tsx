@@ -1,10 +1,32 @@
 import { screen } from '@testing-library/react';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import { renderWithRouter } from '@/shared/test/renderRoute';
+import { server } from '@/shared/test/server';
 
 import type { Course } from '../api/types';
 import { EnrolPanel } from './EnrolPanel';
+
+const API = 'http://localhost:8000/api/v1';
+
+/** A paid course reads its basket, so every paid case needs one. */
+function serveEmptyCart() {
+  server.use(
+    http.get(`${API}/cart`, () =>
+      HttpResponse.json({
+        data: {
+          id: 'cart-uuid',
+          currency: 'USD',
+          item_count: 0,
+          estimated_total_minor: 0,
+          is_checkoutable: false,
+          items: [],
+        },
+      }),
+    ),
+  );
+}
 
 function course(overrides: Partial<Course> = {}): Course {
   return {
@@ -36,6 +58,7 @@ function course(overrides: Partial<Course> = {}): Course {
     updated_at: null,
     prerequisites: [],
     seats_remaining: null,
+    price: null,
     ...overrides,
   } as Course;
 }
@@ -99,11 +122,65 @@ describe('EnrolPanel', () => {
     expect(screen.getByRole('button', { name: /enrol for free/i })).toBeDisabled();
   });
 
-  /* Paid enrolment goes through checkout (ADR-05), never this button. */
-  it('does not offer free enrolment for a paid course', () => {
-    renderWithRouter(<EnrolPanel course={course({ pricing_model: 'one_time' })} />);
+  /* Paid enrolment goes through the basket (ADR-05), never the free button. */
+  it('offers the basket for a paid course, not free enrolment', async () => {
+    serveEmptyCart();
+    renderWithRouter(
+      <EnrolPanel
+        course={course({
+          pricing_model: 'one_time',
+          price: {
+            product_id: 'product-uuid',
+            currency: 'USD',
+            amount_minor: 4900,
+            list_amount_minor: null,
+            is_on_sale: false,
+          },
+        })}
+      />,
+    );
 
-    expect(screen.getByRole('button', { name: /buy this course/i })).toBeDisabled();
-    expect(screen.getByText(/arrives with checkout/i)).toBeInTheDocument();
+    /*
+     * Being paid used to DISABLE this button, because there was nowhere to
+     * send anyone. Paying is now the way past a price, so the button must be
+     * live — a priced course with a dead buy button is the bug this guards.
+     */
+    expect(await screen.findByRole('button', { name: /buy this course/i })).toBeEnabled();
+    expect(screen.getByText('$49.00')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /enrol for free/i })).not.toBeInTheDocument();
+  });
+
+  it('still blocks buying when a prerequisite is outstanding', async () => {
+    serveEmptyCart();
+    renderWithRouter(
+      <EnrolPanel
+        course={course({
+          pricing_model: 'one_time',
+          price: {
+            product_id: 'product-uuid',
+            currency: 'USD',
+            amount_minor: 4900,
+            list_amount_minor: null,
+            is_on_sale: false,
+          },
+          prerequisites: [
+            { id: 'p1', ref: 9, slug: 'intro', title: 'Intro to Metre', is_met: false },
+          ],
+        })}
+      />,
+    );
+
+    expect(await screen.findByRole('button', { name: /buy this course/i })).toBeDisabled();
+    expect(screen.getByText(/finish “intro to metre” first/i)).toBeInTheDocument();
+  });
+
+  it('does not call a paid course with no price free', async () => {
+    // Its product was deactivated. `pricing_model` still says one_time, so the
+    // page must say unavailable rather than inventing a free enrolment.
+    serveEmptyCart();
+    renderWithRouter(<EnrolPanel course={course({ pricing_model: 'one_time', price: null })} />);
+
+    expect(await screen.findByText(/not available/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /enrol for free/i })).not.toBeInTheDocument();
   });
 });

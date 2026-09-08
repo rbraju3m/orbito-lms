@@ -9,6 +9,7 @@ use App\Domain\Catalog\Enums\CourseLevel;
 use App\Domain\Catalog\Enums\CourseStatus;
 use App\Domain\Catalog\Enums\CourseVisibility;
 use App\Domain\Catalog\Enums\PricingModel;
+use App\Domain\Commerce\Models\Product;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Enrollment\Models\Enrollment;
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -202,6 +204,25 @@ final class Course extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    /**
+     * The sellable twin, if this course has one (ADR-13).
+     *
+     * A course is not a product — it is a thing a product can point at, which
+     * is what lets a bundle sell three of them through one checkout later. The
+     * relation exists so the catalogue can render a PRICE without the page
+     * making a second request, and it is `morphOne` because `products` is
+     * polymorphic from the start.
+     *
+     * Reading it is a display concern. Nothing in Catalog may act on it —
+     * pricing and selling stay in Commerce.
+     *
+     * @return MorphOne<Product, $this>
+     */
+    public function product(): MorphOne
+    {
+        return $this->morphOne(Product::class, 'purchasable');
     }
 
     /** @return HasOne<CourseDetail, $this> */

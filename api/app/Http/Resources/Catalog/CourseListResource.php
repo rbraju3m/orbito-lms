@@ -40,6 +40,15 @@ final class CourseListResource extends BaseResource
             'status_label' => $this->status->label(),
             'visibility' => $this->visibility->value,
             'pricing_model' => $this->pricing_model->value,
+
+            /*
+             * Display only. The figure that CHARGES is re-read at checkout;
+             * null means "not buyable now", which is not the same as free.
+             */
+            'price' => CoursePrice::for(
+                $this->resource,
+                strtoupper((string) config('orbito.currency.base')),
+            ),
             'thumbnail_url' => $this->whenLoaded('thumbnail', fn () => $this->thumbnail?->publicUrl()),
 
             // Denormalised columns, not computed on read.

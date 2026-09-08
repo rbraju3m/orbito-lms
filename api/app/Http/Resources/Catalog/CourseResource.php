@@ -40,6 +40,15 @@ final class CourseResource extends BaseResource
             'completion_mode' => $this->completion_mode->value,
             'pricing_model' => $this->pricing_model->value,
 
+            /*
+             * Display only. The figure that CHARGES is re-read at checkout;
+             * null means "not buyable now", which is not the same as free.
+             */
+            'price' => CoursePrice::for(
+                $this->resource,
+                strtoupper((string) config('orbito.currency.base')),
+            ),
+
             'thumbnail' => $this->whenLoaded('thumbnail', fn () => $this->thumbnail?->publicUrl()),
             'thumbnail_media_id' => $this->thumbnail_media_id,
             'intro_video_media_id' => $this->intro_video_media_id,

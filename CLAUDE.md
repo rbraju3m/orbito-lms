@@ -440,7 +440,7 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–9 complete** front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-701 backend tests / 2446 assertions · 138 frontend tests.
+707 backend tests / 2466 assertions · 151 frontend tests.
 
 Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
 the enrollment lifecycle, the studio roster, completion and retake.
@@ -448,11 +448,10 @@ the enrollment lifecycle, the studio roster, completion and retake.
 The retrofit delivered database-per-tenant, the platform admin surface, plans
 and subscriptions. **Read §16 before writing any query.**
 
-**Phase 10 (Commerce) is IN PROGRESS.** The money path is proven against
-`FakeGateway` (`MoneyPathTest`) and the HTTP surface is built on it — basket,
-checkout, orders, the webhook, gateway configuration. There is still **no
-frontend**, and `StripeGateway` has never contacted Stripe. Read
-`docs/ROADMAP.md` Phase 10 before touching it.
+**Phase 10 (Commerce) is COMPLETE against `FakeGateway`, front and back** —
+the money path, the HTTP surface, and a SPA that can buy a course. But
+`StripeGateway` has never contacted Stripe, so no real money has ever moved
+through it. Read `docs/ROADMAP.md` Phase 10 before touching it.
 
 Three decisions there are settled and load-bearing:
 
@@ -464,7 +463,8 @@ Three decisions there are settled and load-bearing:
   course checkout and shares nothing but vocabulary.
 - **Commerce is entirely tenant-side**, credentials included.
 
-Resume by building the frontend. The API beneath is tested and settled.
+Resume by running a real Stripe sandbox payment. That is the only thing left
+in this phase.
 
 Two things the HTTP surface established that the next reader needs:
 
