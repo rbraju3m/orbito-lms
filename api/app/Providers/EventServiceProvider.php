@@ -7,6 +7,9 @@ namespace App\Providers;
 use App\Domain\Catalog\Events\CourseCreated;
 use App\Domain\Catalog\Events\CourseDeleted;
 use App\Domain\Catalog\Events\CourseStatusChanged;
+use App\Domain\Certification\Events\CertificateIssued;
+use App\Domain\Certification\Listeners\IssueCertificateOnCompletion;
+use App\Domain\Certification\Listeners\RenderPdfOnIssue;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
 use App\Domain\Identity\Events\InstructorReviewed;
@@ -19,6 +22,7 @@ use App\Domain\Media\Events\MediaUploaded;
 use App\Domain\Platform\Listeners\TrackCourseUsage;
 use App\Domain\Platform\Listeners\TrackInstructorUsage;
 use App\Domain\Platform\Listeners\TrackStorageUsage;
+use App\Domain\Progress\Events\CourseCompleted;
 use App\Domain\Progress\Listeners\RecountEnrollmentTotals;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -66,6 +70,24 @@ final class EventServiceProvider extends ServiceProvider
             // Adding a lesson changes every enrolled learner's denominator.
             // Queued: 10,000 students must not make "add lesson" wait.
             RecountEnrollmentTotals::class,
+        ],
+
+        /*
+         * Finishing a course issues a certificate, off the request — the exit
+         * criterion for Phase 11 is that ticking the last lesson does not wait
+         * on a mint and a PDF render.
+         *
+         * Progress does not know Certification exists; it fires and this map
+         * connects them (CLAUDE.md §4).
+         */
+        CourseCompleted::class => [
+            IssueCertificateOnCompletion::class,
+        ],
+
+        // Two listeners, not one action, because minting and rendering fail
+        // differently: a failed render leaves a VALID certificate with no PDF.
+        CertificateIssued::class => [
+            RenderPdfOnIssue::class,
         ],
     ];
 

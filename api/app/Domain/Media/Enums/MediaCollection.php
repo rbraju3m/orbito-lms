@@ -17,11 +17,15 @@ enum MediaCollection: string
     case LessonVideo = 'lesson_video';
     case LessonAttachment = 'lesson_attachment';
     case Submission = 'submission';
+    /* Generated, never uploaded — see StoreGeneratedMedia. */
+    case Certificate = 'certificate';
 
     public function disk(): MediaDisk
     {
         return match ($this) {
             self::Avatar, self::CourseThumbnail, self::CategoryImage => MediaDisk::Public,
+            // Private, and served only through a signed URL: a certificate
+            // names a person, and a guessable public path would list them.
             default => MediaDisk::Private,
         };
     }
@@ -36,6 +40,7 @@ enum MediaCollection: string
             self::CourseIntroVideo, self::LessonVideo => [
                 'video/mp4', 'video/webm', 'video/quicktime',
             ],
+            self::Certificate => ['application/pdf'],
             self::LessonAttachment, self::Submission => [
                 'image/jpeg', 'image/png', 'image/webp',
                 'application/pdf', 'application/zip',
@@ -56,6 +61,9 @@ enum MediaCollection: string
             self::CourseIntroVideo, self::LessonVideo => 2 * 1024 * 1024 * 1024,
             self::LessonAttachment => 50 * 1024 * 1024,
             self::Submission => 25 * 1024 * 1024,
+            // We generate it, so the cap is a sanity bound rather than a
+            // defence — a certificate that large means the renderer is wrong.
+            self::Certificate => 5 * 1024 * 1024,
         };
     }
 
