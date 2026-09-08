@@ -464,22 +464,63 @@ GET    /admin/roles · GET /admin/permissions
 GET    /health
 ```
 
-### Certification, Engagement, Analytics, Settings — planned
+### Certification — live (P11)
 ```
 GET    /certificates                            mine
 GET    /certificates/{uuid}                     · /download (signed PDF URL)
-GET    /verify/{token}                          PUBLIC verification, no auth
+GET    /verify/{tenant}/{token}                 PUBLIC verification, no auth
 GET    /admin/certificate-templates · POST · PATCH
+```
 
-POST   /courses/{id}/reviews · PATCH /reviews/{id} · DELETE
-POST   /reviews/{id}/reply                      instructor
-POST   /admin/reviews/{id}/moderate             {status}
+### Engagement — live (P12)
+```
+GET    /courses/{id}/reviews · POST             one per learner: write OR replace
+DELETE /reviews/{id} · POST /reviews/{id}/reply
+GET    /admin/reviews · POST /admin/reviews/{id}/moderate
+
 GET    /courses/{id}/discussions · POST
-GET    /discussions/{id}/replies · POST
-POST   /discussions/{id}/resolve
-GET    /courses/{id}/announcements · POST (studio)
-GET    /wishlist · POST /wishlist/{courseId} · DELETE
+GET    /discussions/{id} · POST /discussions/{id}/replies
+POST   /discussions/{id}/accept                 the asker, or course staff
+PATCH  /discussions/{id}/moderate               hide · unhide · pin
+DELETE /discussion-replies/{id}
 
+GET    /courses/{id}/announcements · POST
+PATCH  /announcements/{id} · DELETE
+POST   /announcements/{id}/publish · DELETE     publishing is its own verb
+GET    /wishlist · POST /wishlist/{courseId} · DELETE
+```
+
+There is deliberately no `PATCH /reviews/{id}`: one review per learner per
+course means `POST` writes or replaces, and a second edit endpoint would be a
+second thing to keep in step with that rule.
+
+### Notifications — live (P12)
+```
+GET    /notifications?unread=1                  meta.unread_count rides along
+GET    /notifications/unread-count              the polled badge, on its own
+POST   /notifications/{uuid}/read               idempotent
+POST   /notifications/read-all
+DELETE /notifications/{uuid}
+
+GET    /notification-preferences                the whole matrix, grouped
+PUT    /notification-preferences                a LIST of changes, not the matrix
+```
+
+Four things about this surface are decisions rather than shape:
+
+- **`action_path` is relative.** The SPA routes on it internally, and a stored
+  absolute URL would rot the day an academy changes address.
+- **A stranger's notification 404s**, never 403s. Every query starts from the
+  caller's own id, so "this exists but is not yours" is a fact about somebody
+  else's inbox.
+- **`PUT /notification-preferences` takes only what moved.** Sending the whole
+  matrix back makes every save a race between two open tabs.
+- **The in-app channel cannot be switched off** — 422, not silently ignored.
+  It is returned in the matrix as `locked: true` so the UI can render a
+  disabled switch rather than a gap.
+
+### Analytics & Settings — planned
+```
 GET    /analytics/overview?from=&to=
 GET    /analytics/enrollments · /revenue · /courses/{id} · /instructors/{id}
 GET    /analytics/courses/{id}/funnel           per-item drop-off

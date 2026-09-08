@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Assessment\Events\AssignmentGraded;
 use App\Domain\Catalog\Events\CourseCreated;
 use App\Domain\Catalog\Events\CourseDeleted;
 use App\Domain\Catalog\Events\CourseStatusChanged;
@@ -12,7 +13,9 @@ use App\Domain\Certification\Listeners\IssueCertificateOnCompletion;
 use App\Domain\Certification\Listeners\RenderPdfOnIssue;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
+use App\Domain\Engagement\Events\AnnouncementPublished;
 use App\Domain\Engagement\Events\DiscussionReplied;
+use App\Domain\Engagement\Events\QuestionAsked;
 use App\Domain\Engagement\Events\ReviewChanged;
 use App\Domain\Engagement\Listeners\RefreshCourseRating;
 use App\Domain\Engagement\Listeners\RefreshDiscussionCounters;
@@ -25,6 +28,11 @@ use App\Domain\Identity\Listeners\SendEmailVerification;
 use App\Domain\Identity\Listeners\TouchLastSeen;
 use App\Domain\Media\Events\MediaDeleted;
 use App\Domain\Media\Events\MediaUploaded;
+use App\Domain\Notification\Listeners\NotifyOnAnnouncementPublished;
+use App\Domain\Notification\Listeners\NotifyOnAssignmentGraded;
+use App\Domain\Notification\Listeners\NotifyOnCertificateIssued;
+use App\Domain\Notification\Listeners\NotifyOnDiscussionReplied;
+use App\Domain\Notification\Listeners\NotifyStaffOnQuestionAsked;
 use App\Domain\Platform\Listeners\TrackCourseUsage;
 use App\Domain\Platform\Listeners\TrackInstructorUsage;
 use App\Domain\Platform\Listeners\TrackStorageUsage;
@@ -92,8 +100,11 @@ final class EventServiceProvider extends ServiceProvider
 
         // Two listeners, not one action, because minting and rendering fail
         // differently: a failed render leaves a VALID certificate with no PDF.
+        // The congratulation is a third, sent on ISSUE rather than on render,
+        // so a font that fails to load is not also a missing notification.
         CertificateIssued::class => [
             RenderPdfOnIssue::class,
+            NotifyOnCertificateIssued::class,
         ],
 
         /*
@@ -110,6 +121,29 @@ final class EventServiceProvider extends ServiceProvider
         // "how many replies?" must not be a subquery per row.
         DiscussionReplied::class => [
             RefreshDiscussionCounters::class,
+            // The two people actually addressed — the asker and whoever this
+            // reply hangs under. Queued; the counter refresh is not.
+            NotifyOnDiscussionReplied::class,
+        ],
+
+        /*
+         * Notifications. Every listener below is QUEUED, without exception:
+         * each of them can address thousands of people and each of them can
+         * send mail, and neither belongs on the request that caused it.
+         *
+         * Preferences are NOT consulted here. DomainNotification::via() is
+         * the single enforcement point, so a delivery raised from anywhere —
+         * a command, a future digest — obeys the switches without having to
+         * remember to ask.
+         */
+        AnnouncementPublished::class => [
+            NotifyOnAnnouncementPublished::class,
+        ],
+        QuestionAsked::class => [
+            NotifyStaffOnQuestionAsked::class,
+        ],
+        AssignmentGraded::class => [
+            NotifyOnAssignmentGraded::class,
         ],
 
         /*

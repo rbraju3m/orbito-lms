@@ -13,9 +13,9 @@ any event is readable in one place.
 
 ---
 
-## 1. What exists today (Phase 8)
+## 1. What exists today (Phase 12)
 
-Twenty events across seven contexts.
+Thirty-two events across eleven contexts.
 
 ### Identity
 
@@ -104,6 +104,43 @@ gradebook (P13) should be able to treat both alike.
 | `MediaUploaded` | `Media $media` | a file is stored and recorded |
 | `MediaDeleted` | `int $ownerId`, `int $sizeBytes` | a file is removed — scalars, because the row is gone |
 
+### Commerce
+
+| Event | Payload | Fired when |
+|---|---|---|
+| `PaymentCaptured` | `Payment $payment`, `Order $order` | money is confirmed by the GATEWAY, never by the client |
+
+`OrderPlaced` and `RefundIssued` are named in §4 and not built. Nothing
+listens for either yet; Phase 13's analytics is the first thing that will,
+and it should add them rather than reach into the Actions.
+
+### Certification
+
+| Event | Payload | Fired when |
+|---|---|---|
+| `CertificateIssued` | `Certificate $certificate` | a certificate exists — the PDF does not yet |
+
+There is no `CertificateRevoked` yet. `RevokeCertificate` changes a status and
+dispatches nothing, because nothing downstream reads it — worth adding with
+the first consumer, not before.
+
+### Engagement
+
+| Event | Payload | Fired when |
+|---|---|---|
+| `ReviewChanged` | `int $courseId` | a review is published, moderated or deleted |
+| `DiscussionReplied` | `int $discussionId`, `?int $replyId` | a reply is added, hidden or deleted |
+| `QuestionAsked` | `Discussion $discussion` | somebody opens a thread on a course |
+| `AnnouncementPublished` | `Announcement $announcement` | a draft announcement becomes visible |
+
+`ReviewChanged` and `DiscussionReplied` speak in IDS rather than models
+because both fire for deletions, where there is no longer a row to hand
+anybody. `QuestionAsked` and `AnnouncementPublished` carry the model, because
+by definition it is still there.
+
+`AnnouncementPublished` fires on the TRANSITION, not on every save: an
+instructor fixing a typo must not notify a thousand people twice.
+
 ---
 
 ## 2. Who listens
@@ -120,17 +157,38 @@ gradebook (P13) should be able to treat both alike.
 | `MediaDeleted` | `TrackStorageUsage@deleted` | Platform | no |
 | `CurriculumChanged` | `RefreshCourseCurriculumCounters` | Catalog | no |
 | `CurriculumChanged` | `RecountEnrollmentTotals` | Progress | **yes** |
+| `CourseCompleted` | `IssueCertificateOnCompletion` | Certification | **yes** |
+| `CertificateIssued` | `RenderPdfOnIssue` | Certification | **yes** |
+| `CertificateIssued` | `NotifyOnCertificateIssued` | Notification | **yes** |
+| `ReviewChanged` | `RefreshCourseRating` | Engagement | no |
+| `DiscussionReplied` | `RefreshDiscussionCounters` | Engagement | no |
+| `DiscussionReplied` | `NotifyOnDiscussionReplied` | Notification | **yes** |
+| `QuestionAsked` | `NotifyStaffOnQuestionAsked` | Notification | **yes** |
+| `AnnouncementPublished` | `NotifyOnAnnouncementPublished` | Notification | **yes** |
+| `AssignmentGraded` | `NotifyOnAssignmentGraded` | Notification | **yes** |
+| `CourseEnrolled` | `RemoveFromWishlistOnEnrollment` | Engagement | **yes** |
 
-`RecountEnrollmentTotals` is the only `ShouldQueue` listener: adding one lesson
-changes the denominator for every enrolled learner, and ten thousand students
-must not make "add lesson" wait. `SendEmailVerification` runs inline but the
-notification it sends is queued, so registration never waits on SMTP — the
-queueing is one layer down, which is worth knowing before you "fix" it.
+`RecountEnrollmentTotals` was the first `ShouldQueue` listener: adding one
+lesson changes the denominator for every enrolled learner, and ten thousand
+students must not make "add lesson" wait. `SendEmailVerification` runs inline
+but the notification it sends is queued, so registration never waits on SMTP —
+the queueing is one layer down, which is worth knowing before you "fix" it.
 
-**Eleven of the twenty events currently have no listener.** That is expected,
-not an oversight — they are the seams the later phases attach to, and firing
-them from the start means those phases add a listener rather than reopening the
-Action that should have fired.
+**Every notification listener is queued, without exception.** Each can address
+thousands of people and each can send mail; neither belongs on the request
+that caused it. The counter refreshes beside them are NOT queued, and the
+contrast is deliberate — a learner who publishes a review and still sees the
+old average will assume the write failed.
+
+Notification listeners do not consult preferences. `DomainNotification::via()`
+is the single enforcement point, so a delivery raised from anywhere — a
+command, a future digest — obeys the switches without having to remember to
+ask.
+
+**Several events still have no listener.** That is expected, not an oversight —
+they are the seams the later phases attach to, and firing them from the start
+means those phases add a listener rather than reopening the Action that should
+have fired.
 
 ---
 
@@ -162,9 +220,9 @@ vocabulary for the same fact.
 | Event | Context | Phase |
 |---|---|---|
 | ~~`EnrollmentExpired`, `EnrollmentSuspended`, `EnrollmentRevoked`~~ | Enrollment | **shipped P9**, with `EnrollmentReinstated` and `EnrollmentExtended` |
-| `OrderPlaced`, `PaymentCaptured`, `RefundIssued` | Commerce | P10 |
-| `CertificateIssued`, `CertificateRevoked` | Certification | P11 |
-| `ReviewPublished`, `QuestionAsked`, `QuestionAnswered` | Engagement | P12 |
+| `PaymentCaptured` shipped P10; `OrderPlaced` / `RefundIssued` not built | Commerce | — |
+| `CertificateIssued` shipped P11; `CertificateRevoked` not built | Certification | — |
+| ~~`ReviewPublished`, `QuestionAsked`, `QuestionAnswered`~~ | Engagement | **shipped P12** as `ReviewChanged`, `QuestionAsked`, `DiscussionReplied` and `AnnouncementPublished` |
 | `BadgeAwarded`, `StreakExtended` | Gamification | P14 |
 | `SessionScheduled`, `AttendanceRecorded` | Live | P15 |
 | `RoleAssignmentExpired` | Identity | still open — the enrolment sweeper shipped in P9 without it |

@@ -8,6 +8,7 @@ use App\Domain\Catalog\Models\Course;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Engagement\Enums\DiscussionStatus;
 use App\Domain\Engagement\Enums\DiscussionType;
+use App\Domain\Engagement\Events\QuestionAsked;
 use App\Domain\Engagement\Exceptions\DiscussionRejected;
 use App\Domain\Engagement\Models\Discussion;
 use App\Domain\Identity\Models\User;
@@ -44,7 +45,7 @@ final class PostDiscussion
             throw DiscussionRejected::replyNotInThread();
         }
 
-        return Discussion::create([
+        $discussion = Discussion::create([
             'course_id' => $course->id,
             'course_item_id' => $item?->id,
             'user_id' => $user->id,
@@ -55,5 +56,9 @@ final class PostDiscussion
             'status' => DiscussionStatus::Open,
             'reply_count' => 0,
         ]);
+
+        QuestionAsked::dispatch($discussion);
+
+        return $discussion;
     }
 }

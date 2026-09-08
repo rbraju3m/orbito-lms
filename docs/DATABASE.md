@@ -537,9 +537,29 @@ storage_usage(owner_id PK, bytes_used BIGINT, files_count INT, recalculated_at)
 ## 10. Notifications & Analytics
 
 ```sql
-notifications(...)                       -- Laravel's table, uuid PK, notifiable morph
-notification_preferences(id, user_id, event_key, channel ENUM(mail,database,push), enabled)
+-- TENANT. An inbox belongs to a person IN AN ACADEMY, not to an account: the
+-- same person teaching in one and learning in another has two of each.
+notifications(id CHAR(36) PK, type VARCHAR(64),
+      notifiable_type VARCHAR(32), notifiable_id BIGINT,   -- morph alias + CENTRAL user id
+      data JSON, read_at NULL, created_at, updated_at)
+      INDEX (notifiable_type, notifiable_id, created_at)   -- the inbox
+      INDEX (notifiable_type, notifiable_id, read_at)      -- the polled badge
+      -- `type` stores the NotificationType key ('announcement.published'),
+      -- not a PHP class name: a stored FQCN makes moving a class a data
+      -- migration, for the same reason the morph map is enforced.
+      -- `data` is the payload FROZEN at send time. A notification is a
+      -- message, not a live view — editing the announcement afterwards must
+      -- not rewrite the mail already sitting in somebody's inbox.
+
+notification_preferences(id, user_id, event_key VARCHAR(64), channel VARCHAR(16), enabled)
       UNIQUE (user_id, event_key, channel)
+      INDEX (user_id)
+      -- OVERRIDES ONLY. No row means the type's default, so a new
+      -- notification type ships without a backfill across every academy and
+      -- a changed default actually reaches whoever never touched the switch.
+      -- `channel` and `event_key` are plain strings, not enums: a retired
+      -- type leaves rows behind, and reading somebody's preferences must not
+      -- become fatal because one names a case that no longer exists.
 
 analytics_events(id BIGINT, name VARCHAR(64), occurred_at DATETIME(3),
       actor_id NULL, session_id CHAR(36) NULL,

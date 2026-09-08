@@ -289,9 +289,9 @@ reads yet.
 | K4 | Instructor answer + resolved state | Core | — | **P12 · M** | |
 | K5 | Announcements | Core | — | P12 | |
 | K6 | Wishlist | Core | — | P12 | |
-| K7 | Notifications (in-app) | Pro | Yes | **P12 · M** | Laravel Notifications |
-| K8 | Notifications (email, templated) | Pro | Yes | **P12 · M** | |
-| K9 | Notification preferences | Pro | — | P12 | |
+| K7 | Notifications (in-app) | Pro | Yes | **P12 · M** | Laravel Notifications; inbox is per-ACADEMY, and cannot be switched off |
+| K8 | Notifications (email, templated) | Pro | Yes | **P12 · M** | One payload renders both channels, so they cannot disagree |
+| K9 | Notification preferences | Pro | — | P12 | Overrides only; email is what the switches govern |
 | K10 | Push notifications (mobile) | — | Yes | P18 | |
 
 ## L. Analytics

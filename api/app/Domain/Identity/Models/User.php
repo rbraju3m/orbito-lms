@@ -9,6 +9,7 @@ use App\Domain\Identity\Concerns\HasRoles;
 use App\Domain\Identity\Enums\UserStatus;
 use App\Domain\Identity\Notifications\ResetPasswordNotification;
 use App\Domain\Identity\Notifications\VerifyEmailNotification;
+use App\Domain\Notification\Models\Notification;
 use App\Domain\Platform\Actions\PurgeUserFromTenant;
 use App\Domain\Platform\Models\Tenant;
 use Carbon\CarbonInterface;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -136,6 +138,26 @@ final class User extends Authenticatable implements MustVerifyEmail
     public function courses(): HasMany
     {
         return $this->hasMany(Course::class, 'owner_id');
+    }
+
+    /**
+     * The academy inbox.
+     *
+     * Overrides Laravel's `notifications()` for one reason: it returns
+     * `DatabaseNotification`, which has no connection of its own, so Eloquent
+     * copies THIS model's central pin onto it and goes looking for a
+     * `notifications` table in the central database. Our Notification lives in
+     * the academy schema and says so (§16).
+     *
+     * Both the read path and the WRITE path come through here — Laravel's
+     * database channel routes to `notifications()` too — so replacing this one
+     * relation is what puts a person's inbox in the right database.
+     *
+     * @return MorphMany<Notification, $this>
+     */
+    public function notifications(): MorphMany
+    {
+        return $this->morphMany(Notification::class, 'notifiable')->latest();
     }
 
     public function isActive(): bool
