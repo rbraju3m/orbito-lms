@@ -23,6 +23,7 @@ final class UpdateCourseSettingsRequest extends FormRequest
             'enable_reviews' => ['sometimes', 'boolean'],
             'enable_notes' => ['sometimes', 'boolean'],
             'enable_certificate' => ['sometimes', 'boolean'],
+            'moderate_reviews' => ['sometimes', 'boolean'],
             'max_students' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1000000'],
             'enrollment_expires_days' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:3650'],
             'drip_mode' => ['sometimes', Rule::enum(DripMode::class)],

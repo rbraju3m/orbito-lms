@@ -21,6 +21,8 @@ use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Curriculum\Models\Lesson;
 use App\Domain\Curriculum\Models\Resource;
 use App\Domain\Curriculum\Policies\CurriculumPolicy;
+use App\Domain\Engagement\Models\Review;
+use App\Domain\Engagement\Policies\ReviewPolicy;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Enrollment\Policies\EnrollmentPolicy;
 use App\Domain\Identity\Models\InstructorProfile;
@@ -48,6 +50,7 @@ final class AuthServiceProvider extends ServiceProvider
         Enrollment::class => EnrollmentPolicy::class,
         Order::class => OrderPolicy::class,
         Certificate::class => CertificatePolicy::class,
+        Review::class => ReviewPolicy::class,
     ];
 
     public function boot(): void
@@ -107,6 +110,10 @@ final class AuthServiceProvider extends ServiceProvider
             'manage-certificate-templates',
             fn (User $user) => $user->hasPermission('certificate.template.manage'),
         );
+
+        // The moderation QUEUE is a list, not a row, so it cannot be a policy
+        // method — there is nothing to pass one.
+        Gate::define('moderate-reviews', fn (User $user) => $user->hasPermission('review.moderate'));
     }
 
     /**

@@ -12,6 +12,8 @@ use App\Domain\Certification\Listeners\IssueCertificateOnCompletion;
 use App\Domain\Certification\Listeners\RenderPdfOnIssue;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
+use App\Domain\Engagement\Events\ReviewChanged;
+use App\Domain\Engagement\Listeners\RefreshCourseRating;
 use App\Domain\Identity\Events\InstructorReviewed;
 use App\Domain\Identity\Events\UserLoggedIn;
 use App\Domain\Identity\Events\UserRegistered;
@@ -88,6 +90,16 @@ final class EventServiceProvider extends ServiceProvider
         // differently: a failed render leaves a VALID certificate with no PDF.
         CertificateIssued::class => [
             RenderPdfOnIssue::class,
+        ],
+
+        /*
+         * The Phase 12 exit criterion: rating averages are COLUMNS, never
+         * AVG() on a card. Not queued — a learner who publishes a review and
+         * still sees the old average will assume the write failed, and the
+         * work is one indexed aggregate over one course.
+         */
+        ReviewChanged::class => [
+            RefreshCourseRating::class,
         ],
     ];
 

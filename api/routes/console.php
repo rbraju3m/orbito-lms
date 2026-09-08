@@ -27,3 +27,8 @@ Schedule::command('enrollment:sweep-expired')->hourly()->withoutOverlapping();
 Schedule::command('subscriptions:expire')->dailyAt('02:30')->withoutOverlapping();
 Schedule::command('progress:reconcile')->dailyAt('03:10')->withoutOverlapping();
 Schedule::command('usage:reconcile')->dailyAt('03:30')->withoutOverlapping();
+/*
+ * A wrong rating on a course card is invisible — nobody reports it, because
+ * nobody knows what it should be. This is the only thing that would notice.
+ */
+Schedule::command('ratings:reconcile')->dailyAt('03:50')->withoutOverlapping();

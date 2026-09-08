@@ -23,7 +23,7 @@ final class CourseSettingsController
         $setting = $action->handle($course, $request->validated());
 
         return ApiResponse::ok($setting->only([
-            'enable_qa', 'enable_reviews', 'enable_notes', 'enable_certificate',
+            'enable_qa', 'enable_reviews', 'moderate_reviews', 'enable_notes', 'enable_certificate',
             'max_students', 'enrollment_expires_days', 'drip_mode',
             'retake_allowed', 'reset_progress_allowed', 'video_completion_threshold',
         ]));

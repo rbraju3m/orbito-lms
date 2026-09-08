@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property int $course_id
  * @property bool $enable_qa
+ * @property bool $moderate_reviews
  * @property bool $enable_certificate
  * @property int|null $max_students
  * @property int|null $enrollment_expires_days
@@ -26,7 +27,7 @@ final class CourseSetting extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'course_id', 'enable_qa', 'enable_reviews', 'enable_notes', 'enable_certificate',
+        'course_id', 'enable_qa', 'enable_reviews', 'moderate_reviews', 'enable_notes', 'enable_certificate',
         'max_students', 'enrollment_expires_days', 'drip_mode',
         'retake_allowed', 'reset_progress_allowed', 'video_completion_threshold',
     ];
@@ -36,6 +37,7 @@ final class CourseSetting extends Model
     {
         return [
             'enable_qa' => 'boolean',
+            'moderate_reviews' => 'boolean',
             'enable_reviews' => 'boolean',
             'enable_notes' => 'boolean',
             'enable_certificate' => 'boolean',
