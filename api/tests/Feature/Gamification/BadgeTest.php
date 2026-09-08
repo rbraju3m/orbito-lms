@@ -22,6 +22,16 @@ use Illuminate\Support\Facades\Event;
 beforeEach(function (): void {
     seedRegistry();
 
+    /*
+     * A newly provisioned academy now SHIPS with the default rules and badges
+     * (TenantDatabaseSeeder), so an engine test that wants to control its own
+     * rules has to start from an empty table. Without this, the seeded
+     * `lesson.completed` rule pays out alongside whatever the test created —
+     * which is the correct product behaviour and the wrong test fixture.
+     */
+    GamificationRule::query()->delete();
+    Badge::query()->delete();
+
     $this->student = User::factory()->withRole(RoleKey::Student)->create();
     $this->course = courseWithCurriculum(Course::factory()->published()->create(), [3]);
 

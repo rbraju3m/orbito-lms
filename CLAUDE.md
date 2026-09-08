@@ -616,170 +616,102 @@ so the action that fixes a lapse survives it.
 
 ## 21. Current phase
 
-**Phases 0–15 complete** front and back, plus a **multi-tenancy retrofit**
+**Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-998 backend tests / 3236 assertions · 219 frontend tests.
+999 backend tests / 3,238 assertions · 219 frontend tests.
 
-**Every MVP phase has shipped, but the MVP is not signed off.** Its own
-definition (`docs/ROADMAP.md` §3) says a student "buys it with a real verified
-payment", and no real money has ever moved through `StripeGateway`. That one
-sandbox run is the last thing between here and MVP.
+Per-phase retros — what each delivered, decided, and deliberately left — are in
+`docs/ROADMAP.md`. This section is only what a new session needs before
+touching anything.
 
-Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
-the enrollment lifecycle, the studio roster, completion and retake.
+### What to do next
 
-The retrofit delivered database-per-tenant, the platform admin surface, plans
-and subscriptions. **Read § Multi-tenancy before writing any query.**
+**1. One Stripe sandbox payment.** Every MVP phase has shipped, but the MVP is
+not signed off: its own definition (`docs/ROADMAP.md` §3) says a student "buys
+it with a real verified payment", and `StripeGateway` has never contacted
+Stripe. Commerce is complete and tested against `FakeGateway`. This needs
+credentials, not code.
 
-**Phase 10 (Commerce) is COMPLETE against `FakeGateway`, front and back** —
-the money path, the HTTP surface, and a SPA that can buy a course. But
-`StripeGateway` has never contacted Stripe, so no real money has ever moved
-through it. Read `docs/ROADMAP.md` Phase 10 before touching it.
+**2. Zoom / Google Meet, likewise.** Both providers are written and have never
+been called. `ManualProvider` works and is what most academies will use.
 
-Three decisions there are settled and load-bearing:
+**3. Phase 16 (Advanced Business)** — subscriptions, bundles, downloads,
+coaching, blog, page builder, multilingual, RTL, plan limits, outbound
+webhooks. It is markedly larger than the phases before it, and it is where the
+public marketing surface finally arrives — which is what webinar registration
+and lead capture have both been waiting for.
 
-- **The academy is the merchant of record** — it connects its own gateway
-  credentials, per tenant, and the platform never touches learner money. This
-  supersedes `DATABASE.md` §6, which assumed a single merchant, and is why
-  `instructor_earnings`/`payouts` were deliberately NOT built.
-- **Platform billing stays manual** (`AssignPlan`); it is a different flow from
-  course checkout and shares nothing but vocabulary.
-- **Commerce is entirely tenant-side**, credentials included.
+### Traps that are still live
 
-Resume by running a real Stripe sandbox payment. That is the only thing left
-in this phase.
+Every one of these has already cost time at least once.
 
-**Phase 11 (Certificates) is COMPLETE**, front and back. Completing a course
-issues a verifiable certificate without blocking the request. Two things it
-established that the next phase needs:
-
-- **`tenant.path` is now the shared answer for a route with no user AND no
-  Laravel signature** — the payment webhook and the public verification page.
-  The academy is attacker-controllable in the path, which is safe only because
-  each route carries its own unguessable credential checked against that
-  academy's data. Unknown and closed academies 404 identically.
-- **The queue is synchronous in tests, so a listener that writes a file writes
-  a REAL one.** Faking the disk inside a test body is too late when the write
-  happens in `beforeEach`. 54 stray PDFs accumulated before this was caught.
-
-Two things the HTTP surface established that the next reader needs:
-
-- **The webhook is the only unauthenticated write in the system.** It sits
-  outside `auth:sanctum`, `tenant` AND `subscription`, and each omission is
-  load-bearing — see `routes/api/commerce.php`. Its academy comes from the
-  path (`tenant.webhook`) and is attacker-controllable, which is safe only
-  because nothing is trusted until the signature verifies against THAT
-  academy's secret. Unknown and closed academies 404 identically so the route
-  cannot enumerate academy ids.
-- **A basket takes the platform's BASE currency and never changes it.** A
-  product with no price in that currency cannot be added — 409, not a silent
-  conversion. Multi-currency is deferred, so `ProductFactory::pricedAt()`
-  defaulting to USD while `orbito.currency.base` is BDT will trip up the next
-  commerce test written.
-
-**Phase 12 (Reviews / Q&A / Announcements / Wishlist / Notifications) is
-COMPLETE**, front and back — the last MVP phase to land. Its exit criterion —
-rating averages are columns, never `AVG()` on a card — is met by
-`RefreshCourseRating` plus `ReconcileEngagementCounters`. The patterns worth
-carrying forward are in §16; the retro is in `docs/ROADMAP.md`.
-
-Three things the next reader will otherwise trip on:
-
+- **The `.own` permission trap, four times over.** Every instructor holds the
+  `.own` keys GLOBALLY, so `hasPermission('x.own', $course)` — global ∪ scoped
+  — is true for every course in the academy. Use `hasAnyScopedPermission()` for
+  "do they staff THIS course?". See § Authorization and `CourseScopedAccessTest`.
+- **Register a model in the MORPH MAP** when it becomes an itemable, a
+  gamification trigger source, or an analytics subject. The map is enforced, so
+  forgetting is a 500 on the write path that caused it — which is how it was
+  caught in P14 (`Review`) and P15 (`LiveSession`), both times by the suite.
+- **The queue is synchronous in tests**, so a listener that writes a file
+  writes a real one and a listener that sends mail really sends it. Fake the
+  disk in `beforeEach`, not the test body. And `Notification::fake()` and
+  asserting a database row are mutually exclusive — fake to assert channels,
+  do not fake to assert the row landed.
+- **A scheduled command runs centrally with NO academy open.** It must walk
+  them (`RunsForEveryTenant`). The harness hides this; `ScheduledCommandTest`
+  exists to defeat the harness, and every new scheduled command belongs in it.
+- **Factories lie about defaults, deliberately.** `AnnouncementFactory` makes a
+  draft, `CohortFactory` makes a draft, `WebinarFactory` makes a draft, and
+  `ProductFactory::pricedAt()` defaults to USD while `orbito.currency.base` is
+  BDT. Publishing through the Action is what fires the event.
+- **A new academy ships with default gamification rules** (`TenantDatabaseSeeder`).
+  An engine test that wants to control its own rules must clear the table
+  first — the seeded `lesson.completed` rule otherwise pays out alongside
+  whatever the test created.
+- **`EventName::isClientRaisable()` is a security boundary**, not a filter.
+  Adding a case lets a browser assert that fact.
+- **`point_transactions.dedupe_key` is the anti-farming constraint.** The
+  action CATCHES the unique violation rather than checking first. Do not
+  "simplify" it into a check-then-insert.
+- **`host_url` and gateway `credentials` must never reach a client.** Both are
+  `$hidden` and absent from every resource; there is a test asserting the
+  session start link never appears in a response.
 - **The in-app notification channel cannot be switched off**, by design. The
-  preferences table keys on channel because push arrives in P18, but today
-  `NotificationChannel::Database->isLocked()` is true and the API 422s a
-  request to disable it. Do not "fix" that into a silent no-op.
-- **The queue is synchronous in tests, so `Notification::fake()` and asserting
-  a database row are mutually exclusive.** Fake to assert channels; do not
-  fake to assert the row landed in the tenant schema. Both kinds of test exist
-  in `NotificationDeliveryTest`.
-- **`ProductFactory` is not the only fixture that lies about defaults.**
-  `AnnouncementFactory` makes a DRAFT; a test asserting a fan-out must publish
-  it through `PublishAnnouncement`, because setting `published_at` directly
-  fires no event.
+  API 422s a request to disable it. Do not turn that into a silent no-op.
+- **UTC days vs instants are both deliberate and not in conflict.** Analytics
+  rollups, streaks and leaderboards use a UTC day because a period has to be
+  rebuildable; a live session stores an instant and its scheduled zone because
+  a class happens at a moment somebody has to be awake for.
 
-**Phase 13 (Analytics) is COMPLETE**, front and back. ADR-08 is delivered: an
-append-only log, four rollup tables, and dashboards that read the rollups and
-never the log. The patterns are in §17; the retro is in `docs/ROADMAP.md`.
+### Known debt, deliberately left
 
-Three things the next reader will otherwise trip on:
-
-- **`EventName::isClientRaisable()` is a security boundary, not a filter.**
-  Adding a case to that allowlist lets a browser assert the fact. Everything
-  currently outside it — payments, completions, passes, certificates — is
-  established by the server precisely so it cannot be forged.
-- **The rollups are keyed on UTC days and nothing converts.** A figure that
-  looks a day off in Dhaka is not a bug; `range.timezone` says UTC in every
-  response, and the fix would be an academy timezone, which does not exist.
-- **`analytics:rollup` writes derived rows, so a tenant-blind version would
-  build them into the CENTRAL database** and leave every academy's dashboards
-  empty with no error. `ScheduledCommandTest` covers it; extend that file for
-  any new scheduled command.
-
-**Phase 14 (Gamification) is COMPLETE**, front and back: a rule engine on the
-domain events, a points ledger, badges, streaks and snapshot leaderboards. The
-patterns are in §18; the retro is in `docs/ROADMAP.md`.
-
-Three things the next reader will otherwise trip on:
-
-- **`point_transactions.dedupe_key` is the anti-farming constraint.** A
-  once-per-source rule computes `rule:source_type:source_id`; the unique index
-  refuses a second row and `AwardPoints` catches the violation rather than
-  checking. Do not "simplify" that into a check-then-insert.
-- **A new trigger source must be in the MORPH MAP.** `TriggerContext::for()`
-  calls `getMorphClass()`, the map is enforced, and adding a trigger for an
-  unregistered model is a 500 on the write path that caused it.
-- **Badges count the LEDGER, not `item_progress`.** History that predates the
-  rules earns nothing, and deactivating a rule freezes the badges that depend
-  on it. Both are the academy's choice showing through, not bugs.
-
-**Phase 15 (Live Learning) is COMPLETE with one honest gap.** Cohorts, a
-provider seam, sessions on the spine, attendance, webinars, reminders and a
-calendar are all built and tested. `ZoomProvider` and `GoogleMeetProvider`
-have **never contacted either service** — the same position `StripeGateway`
-is in. `ManualProvider` works and is what most academies will use. The
-patterns are in §19; the retro is in `docs/ROADMAP.md`.
-
-Three things the next reader will otherwise trip on:
-
-- **`join` is a POST because the click IS the attendance record.** It is the
-  only signal every provider has in common. Turning it into a field on a GET
-  would leave every roster empty.
-- **`host_url` must never reach a client.** On Zoom it opens the meeting AS
-  the host. It is `$hidden` and absent from every resource, and there is a
-  test asserting the string never appears in a response.
-- **A live session carries a timezone and everything derived carries a UTC
-  day.** Both are deliberate and they are not in conflict: a class happens at
-  a moment, a rollup describes a period.
-
-**Known debt, deliberately left:**
-
-- Plan **limits** are stored and counted but never enforced. Phase 16.
-- **No studio UI for scheduling.** Sessions and cohorts are creatable through
-  the API and visible everywhere they should be; the authoring screens are
-  not built.
+- Plan **limits** are stored and counted but never enforced — the oldest open
+  item in the codebase. Phase 16.
+- **Playwright covers phases 2–3 only.** Two spec files, thirteen phases ago.
+  The host cannot run it (Ubuntu 20.04); CI can.
+- **No studio UI for scheduling** live sessions or cohorts. The API is
+  complete; the authoring screens are not.
 - **No provider-reported attendance.** `session_attendance.source` and the
-  interface's deliberate silence on the subject are the seam for it.
+  interface's deliberate silence on the subject are the seam.
+- Analytics has **no per-student activity view** (L6), and the instructor
+  series has **an endpoint with no screen**.
 - Points cannot be **spent**. They are a score, not a currency; a shop would
   turn every rule into a pricing decision.
-- Analytics has **no per-student activity view** (L6) and the instructor
-  series has **an endpoint with no screen**. Both additive.
 - **Order-level discounts will split the revenue figures.** `discount_minor`
   is always 0 today, so per-course line totals sum exactly to the platform
   total. When coupons land (P16), the discount has to be allocated across
-  items — largest remainder, so the parts sum to the whole — or the two will
-  disagree by the discount and a dashboard will show it.
+  items — largest remainder — or a dashboard will show them disagreeing.
 - A notification fan-out issues **one preference lookup per recipient** inside
-  the queued job. Correct and cacheless, but a five-thousand-learner
-  announcement is five thousand small queries. A batch resolver is the fix; it
-  would be a memo with a lifetime, and §15 has been paid for that twice.
-- The roster cannot sort by learner name — a central column against tenant
+  the queued job. Correct and cacheless; a batch resolver is the fix if a
+  five-thousand-learner announcement ever hurts.
+- The roster cannot **sort by learner name** — a central column against tenant
   rows. The fix is denormalising the name onto `enrollments`.
-- The suite takes ~370-560s, up from ~118s, because provisioning tests build
-  real schemas. Provision one academy per file rather than per test when it
-  hurts.
-- `ItemEditorDrawer` issues two sequential writes (lesson body, then the item's
-  drip fields). Body first is deliberate — writing is the expensive thing to
-  lose — but a failure between them is a partial save with no test.
+- `ItemEditorDrawer` issues **two sequential writes** (lesson body, then drip
+  fields). Body first is deliberate; a failure between them is a partial save
+  with no test.
+- The suite takes **~11–13 minutes**, up from ~2, because provisioning tests
+  build real schemas. Provision one academy per FILE rather than per test
+  where it hurts.
 - A test artifact (`storage/tenanttest/…pdf`) is committed in 998ee74 and
   6423ce9. Ignored now; dropping it needs a rebase.

@@ -7,8 +7,14 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 > Mantine requires `postcss`, `postcss-preset-mantine`, `postcss-simple-vars`,
 > `@mantine/core/styles.css`, a `<MantineProvider>`, and `<ColorSchemeScript>`.
 >
-> **State at Phase 9.** The route map and directory layout below are the
-> target. What exists today is marked; unmarked entries are not built.
+> **State at Phase 15.** The route map and directory layout below are the
+> target. What exists today is marked ✅; unmarked entries are not built.
+>
+> **The bundle is watched, and the numbers are in `ROADMAP.md`.** Mantine is a
+> shared chunk, so a lazy route does NOT keep its component imports off the
+> first-paint path — that lesson cost 5.5 KB for one admin colour picker in
+> P11, and is why P13 hand-rolled an SVG chart rather than adding a charting
+> library for the one screen that draws a line.
 >
 > **Tenancy changed the contract, and the route map with it.** The catalogue,
 > course pages and the player are **members-only** — tenancy resolves from the

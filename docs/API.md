@@ -3,7 +3,10 @@
 Base: `/api/v1`. JSON only. No HTML is ever returned by the API.
 The web SPA, the future mobile app, and third-party integrators use the **same** endpoints.
 
-> **Status: proposal.** No routes exist yet.
+> **Status: mostly built (Phases 2–15).** Blocks below are marked **live** or
+> **planned**. Two live blocks carry a ⚠ — the commerce webhook and the live
+> providers are implemented and have never been exercised against Stripe,
+> Zoom or Google.
 
 ---
 
@@ -142,7 +145,7 @@ hide UI it may not use. The server still enforces every one of them independentl
 
 ## 4. Domain surface
 
-Blocks are marked **live** (implemented, tested, in the route table as of Phase 8)
+Blocks are marked **live** (implemented, tested, in the route table as of Phase 15)
 or **planned** (design intent for a later phase). A planned path is not a promise
 about its final shape — see `ROADMAP.md` for when each lands.
 

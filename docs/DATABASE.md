@@ -6,9 +6,14 @@ All tables get `id BIGINT UNSIGNED AUTO_INCREMENT`, `created_at`, `updated_at`.
 Public-facing identifiers use a separate `uuid CHAR(36)` or `ulid` where an id must not
 be guessable (certificates, orders, media).
 
-> **Status: partly built.** Phases 2–9 are migrated; later sections remain a
-> proposal. Column lists are indicative of shape and intent, not exhaustive —
-> the migrations are authoritative.
+> **Status: mostly built.** Phases 2–15 are migrated; §12's Content half and
+> §14 onward remain a proposal. Column lists are indicative of shape and
+> intent, not exhaustive — **the migrations are authoritative**.
+>
+> Where the built schema DIFFERS from the sketch below, the section says so and
+> why. Those notes are the most useful thing in this file: they record a
+> decision that was made once, under pressure, and would otherwise be
+> re-litigated by whoever reads the sketch and not the code.
 
 ---
 

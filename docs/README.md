@@ -1,17 +1,32 @@
 # Orbito LMS — Documentation
 
-**Status:** Phases 0–9 complete, plus a **multi-tenancy retrofit**. Audit,
-architecture, foundation, identity, course management, curriculum builder, the
-learning experience, the quiz engine, assignments, and enrolment & access —
-then one database per academy (ADR-13).
+**Status: Phases 0–15 complete**, front and back, plus a **multi-tenancy
+retrofit** (ADR-13) that reversed the single-tenant decision partway through.
 
-**Phase 10 (Commerce) is part-built and paused.** Its domain layer exists and
-passes the static checks, but it has no tests, no routes, and an unrun
-migration — see `ROADMAP.md` Phase 10 for exactly what is and is not there.
+999 backend tests / 3,238 assertions · 219 frontend tests · Pint, PHPStan
+level 6, oxlint, tsc and build all clean.
 
-> **If you read one thing before writing code, read `CLAUDE.md` §16.**
-> Tenancy changes how every query and every model behaves, and the mistakes it
-> produces do not look like tenancy mistakes.
+Audit, architecture, foundation, identity, course management, the curriculum
+builder, the learning experience, quizzes, assignments, enrolment & access,
+one database per academy, commerce, certificates, engagement & notifications,
+analytics, gamification, and live learning.
+
+**Two things are built but UNPROVEN against the outside world**, and both say
+so wherever they appear:
+
+- `StripeGateway` (P10) has never contacted Stripe. Commerce is complete and
+  tested against `FakeGateway`; no real money has moved.
+- `ZoomProvider` and `GoogleMeetProvider` (P15) have never contacted either
+  service. `ManualProvider` — the host pastes a link — works and is tested.
+
+Both need credentials, not code. Neither is called done.
+
+> **If you read one thing before writing code, read `CLAUDE.md` — the
+> Multi-tenancy section.** Tenancy changes how every query and every model
+> behaves, and the mistakes it produces do not look like tenancy mistakes.
+>
+> Sections in `CLAUDE.md` are cited BY NAME, not by number: the numbering has
+> shifted five times as phases added their own pattern sections.
 
 Start here → [`MASTER_PLAN.md`](MASTER_PLAN.md)
 Picking the work back up → [`ROADMAP.md`](ROADMAP.md), which opens with exactly
@@ -26,14 +41,14 @@ is worth less than one that says "this came out differently, and here is why".
 
 | Document | How much of it is built |
 |---|---|
-| `ROADMAP.md` | Phases 0–9 and Phase T carry delivery notes and verified transcripts |
+| `ROADMAP.md` | Phases 0–15 and Phase T carry delivery notes; each retro opens with what the phase decided and closes with what it deliberately left |
 | `ARCHITECTURE_PROPOSAL.md` | every ADR carries a delivery status; ADR-13 records the tenancy reversal, and risk R4 says why its own estimate was wrong |
 | `API.md` | endpoints are marked **live** or **planned**; §2a explains why nothing is public any more |
-| `DATABASE.md` | §0 is the central/tenant boundary and is authoritative; contexts through Phase 9 match the migrations; later ones are still design |
-| `FEATURE_MATRIX.md` | each shipped section carries a "shipped / still open" note |
+| `DATABASE.md` | §0 is the central/tenant boundary and is authoritative; every context through Phase 15 matches the migrations, and each records where the built schema DIFFERS from the sketch and why |
+| `FEATURE_MATRIX.md` | shipped rows are bolded and carry the decision that shaped them; ⚠ marks the two unproven integrations |
 | `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅; the header explains what tenancy removed |
-| `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is mostly still a wish list, and says so |
-| `EVENTS.md` | current, and it flags one event that cannot currently be asserted in a test |
+| `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is partly still a wish list, and says so |
+| `EVENTS.md` | current — 39 events across 13 contexts, with who listens and why |
 | `TESTING.md` | current, including the Playwright gap |
 | `TUTOR_AUDIT.md`, `KLASIO_REFERENCE.md`, `PRODUCT_VISION.md` | research and intent; unchanged by implementation |
 
@@ -55,7 +70,7 @@ is worth less than one that says "this came out differently, and here is why".
 9. [`ROLES_PERMISSIONS.md`](ROLES_PERMISSIONS.md) — roles, permissions, policies
 10. [`FRONTEND_ARCHITECTURE.md`](FRONTEND_ARCHITECTURE.md) — routes, modules, TanStack Query
 11. [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — tokens, components, patterns, a11y
-12. [`ROADMAP.md`](ROADMAP.md) — dependency graph and 19 phases
+12. [`ROADMAP.md`](ROADMAP.md) — dependency graph, 19 phases, and a retro per shipped phase
 
 13. [`EVENTS.md`](EVENTS.md) — the domain event catalogue and who listens
 14. [`TESTING.md`](TESTING.md) — test strategy, tooling, CI

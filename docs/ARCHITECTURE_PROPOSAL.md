@@ -3,8 +3,8 @@
 Companion documents: `DATABASE.md`, `API.md`, `ROLES_PERMISSIONS.md`,
 `FRONTEND_ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `ROADMAP.md`.
 
-> **The name is now half wrong.** Phases 0–9 are built, plus a multi-tenancy
-> retrofit, so most of this is a record rather than a proposal. Each ADR below carries its delivery status;
+> **The name is now mostly wrong.** Phases 0–15 are built, plus a
+> multi-tenancy retrofit, so this is a record rather than a proposal. Each ADR below carries its delivery status;
 > where the shipped code differs from the original decision, the difference is
 > stated rather than quietly edited away.
 
@@ -53,21 +53,32 @@ Events in **bold** exist today; the rest arrive with their phase.
 | **Assessment** | quizzes, questions, attempts, assignments, submissions | **`QuizAttemptSubmitted`**, **`QuizAttemptGraded`**, **`AssignmentSubmitted`**, **`AssignmentGraded`**, **`AssignmentReturned`** |
 | **Enrollment** | enrollments, access grants, access resolution | **`CourseEnrolled`**, `EnrollmentRevoked` |
 | **Progress** | item_progress, course_progress, watch state | **`ItemCompleted`**, **`CourseCompleted`** |
-| **Commerce** | products, cart, orders, payments, refunds, coupons, tax | `OrderPlaced`, `PaymentCaptured`, `RefundIssued` |
-| **Certification** | templates, certificates, verification | `CertificateIssued` |
-| **Engagement** | reviews, discussions, announcements, wishlist | `ReviewPublished`, `QuestionAnswered` |
-| **Notification** | channels, preferences, delivery | — (listener-heavy) |
+| **Commerce** | products, cart, orders, payments, gateway accounts | **`PaymentCaptured`** — `OrderPlaced` / `RefundIssued` named and not built |
+| **Certification** | templates, certificates, verification | **`CertificateIssued`** — `CertificateRevoked` not built; nothing reads it yet |
+| **Engagement** | reviews, discussions, announcements, wishlist | **`ReviewChanged`**, **`DiscussionReplied`**, **`QuestionAsked`**, **`AnnouncementPublished`**, **`ReviewPublished`**, **`AnswerAccepted`** |
+| **Notification** | inbox, preferences, queued mail | — (listener-heavy; six listeners, no events of its own) |
 | **Media** | media, variants, storage accounting, signed delivery | **`MediaUploaded`**, **`MediaDeleted`**, `MediaProcessed` |
-| **Analytics** | events, rollups, reports | — (listener-heavy) |
-| **Gamification** | rules, points, badges, streaks, leaderboards | `BadgeAwarded` |
-| **Live** *(P15)* | sessions, cohorts, webinars, attendance | `SessionScheduled`, `AttendanceRecorded` |
+| **Analytics** | events, rollups, reports | — (listener-heavy; five listeners, no events of its own) |
+| **Gamification** | rules, points, badges, streaks, leaderboards | **`PointsAwarded`**, **`StreakExtended`**, **`BadgeAwarded`** |
+| **Live** | sessions, cohorts, webinars, attendance | **`SessionScheduled`**, **`AttendanceRecorded`** |
 | **Content** *(P16)* | blog, pages, blocks, leads | — |
 
 A seventeenth directory, **Platform**, was added in Phase 4 and is not a bounded
-context in the same sense: it holds the plan-limit usage counters that every
-other context increments. Every context has a directory under `app/Domain/`;
-the ones whose phase has not arrived are empty placeholders, which is
-deliberate — the shape of the system is visible before it is filled in.
+context in the same sense: it holds tenants, plans, subscriptions and the
+plan-limit usage counters that every other context increments. Every context
+has a directory under `app/Domain/`; the ones whose phase has not arrived are
+empty placeholders, which is deliberate — the shape of the system is visible
+before it is filled in.
+
+**Filled in as of Phase 15:** Identity, Catalog, Curriculum, Assessment,
+Enrollment, Progress, Media, Platform, Commerce, Certification, Engagement,
+Notification, Analytics, Gamification, Live. **Still empty:** Content (P16),
+AI (P17).
+
+**Bold events are built.** The unbolded ones are named here so the phase that
+adds them uses this vocabulary rather than inventing a second one for the same
+fact — see `EVENTS.md` §4, which also records which named events were
+deliberately never built and why.
 | **AI** *(P17)* | providers, actions, generation audit | `AiGenerationCompleted` |
 
 ### Dependency rule
@@ -138,9 +149,10 @@ app/
 ## 4. Key architectural decisions
 
 ### ADR-01 — Curriculum is a single ordered spine, not a post tree
-**Status: delivered (P5).** Four item types now hang off it — `lesson`,
-`resource`, `quiz` (P7), `assignment` (P8) — and none of them added a second
-ordering, progress or drip mechanism.
+**Status: delivered (P5).** FIVE item types now hang off it — `lesson`,
+`resource`, `quiz` (P7), `assignment` (P8), `live_session` (P15) — and none of
+them added a second ordering, progress or drip mechanism. Adding the fifth was
+one enum case, one `makeItemable` branch and a morph-map entry.
 **Problem.** Tutor stores lessons, quizzes and assignments as separate post types under
 `post_parent`, ordered by `menu_order`. Every "what is item #7", "what's next", and
 "how many items does this course have" is a heterogeneous multi-table query.
@@ -192,14 +204,22 @@ and carries the reason: 403 means "you did something wrong", 423 means "here is
 how to get in".
 
 ### ADR-04 — Money is integer minor units + currency
-**Status: not built (P10).**
+**Status: delivered (P10).** Held everywhere since, including in analytics —
+the revenue rollups sum minor units and the CSV export ships them raw with the
+currency code beside them, because a spreadsheet dividing by 100 is the
+reader's decision and a float here would already have lost.
 `amount_minor BIGINT` + `currency CHAR(3)`. Never float, never a bare decimal without a
 currency. A `Money` value object handles arithmetic and formatting; the API returns
 `{"amount_minor": 249900, "currency": "BDT", "formatted": "৳2,499.00"}` so clients never
 format money themselves and locale rules stay server-side.
 
 ### ADR-05 — Payment truth is server-side and idempotent
-**Status: not built (P10).**
+**Status: delivered (P10) against `FakeGateway`; UNPROVEN against a real
+gateway.** The shape is built and tested — including the absence of any
+`/confirm` endpoint, which `CheckoutApiTest` asserts by 404 — but
+`StripeGateway` has never contacted Stripe. The webhook is the only
+unauthenticated write in the system and each middleware it omits is
+load-bearing; see `routes/api/commerce.php`.
 The client never reports success. Flow:
 `CreateOrder` (server prices from DB) → `InitiatePayment` (gateway) → redirect →
 **webhook** → `VerifyPayment` (signature + amount + currency + order match) →
@@ -287,10 +307,18 @@ prompts and output schemas; every call recorded in `ai_generations` with tokens 
 The app boots and every feature works with **no** provider configured.
 
 ### ADR-12 — Extension without plugins
-**Status: partly delivered.** The domain-event catalogue exists and is real —
-20 events across seven contexts, and cross-context work already travels on it
-(`ItemCompleted`, `CurriculumChanged`, `QuizAttemptGraded`, `AssignmentGraded`).
-Outbound webhooks and plan capability flags are not built.
+**Status: partly delivered.** The domain-event catalogue is real and load-
+bearing — **39 events across 13 contexts**, with Analytics, Gamification,
+Notification, Certification and Live all built entirely as listeners on
+events their source contexts know nothing about. Progress does not know
+certificates exist; it fires `CourseCompleted` and four contexts react.
+
+That is the seam working: five phases were added without reopening a single
+Action that should have fired.
+
+**Outbound webhooks and plan capability flags are still not built** (P16).
+Webhooks subscribe to this same catalogue rather than to anything new, which
+is the whole reason extension does not need a plugin loader.
 Three seams: (1) a documented domain-event catalogue, (2) outbound webhooks subscribing to
 those events, (3) capability flags per plan. No PHP plugin loader — that is the complexity
 that made Tutor's codebase what it is.
@@ -450,9 +478,9 @@ serves traffic; all migrations must be backward-compatible for one release.
 | # | Risk / decision | Recommendation |
 |---|---|---|
 | ~~R1~~ | Laravel version | **CLOSED (Phase 2).** Building on **Laravel 13.30.1**, PHP 8.4. |
-| R2 | Course versioning (edit a published course safely) | Excluded from MVP. Mitigation held: `course_items` are soft-deleted rows, so a snapshot model can be added without reshaping progress. Sharper now that assessment is built — editing a live quiz cannot change a score in flight, because an attempt freezes its question order and point total at start. Revisit before Phase 10. |
-| R3 | Video hosting cost/complexity | **Default applied (P6), and the mitigation came out weaker than planned.** Self-hosted upload + YouTube/Vimeo ship today, but `VideoProvider` landed as an **enum**, not an interface: the player branches on it to build an embed URL. Adding Bunny/Mux therefore means a new case plus a URL builder, not a config change. Cheap to fix, and worth doing before P16 rather than after. |
+| R2 | Course versioning (edit a published course safely) | Excluded from MVP. Mitigation held: `course_items` are soft-deleted rows, so a snapshot model can be added without reshaping progress. Sharper now that assessment is built — editing a live quiz cannot change a score in flight, because an attempt freezes its question order and point total at start. Revisit before Phase 16, which is where course versioning would first hurt: bundles and subscriptions both assume a course is a stable thing to sell. |
+| R3 | Video hosting cost/complexity | **Default applied (P6), and the mitigation came out weaker than planned.** Self-hosted upload + YouTube/Vimeo ship today, but `VideoProvider` landed as an **enum**, not an interface: the player branches on it to build an embed URL. Adding Bunny/Mux therefore means a new case plus a URL builder, not a config change. Cheap to fix, and now overdue: P16 is next. |
 | ~~R4~~ | Multi-tenancy | **REOPENED AND CLOSED THE OTHER WAY (post-Phase 9).** **One database per academy**, via `stancl/tenancy`, matching the Orbito product. This risk warned a tenant key "cannot be added cheaply after P4" — true of a `tenant_id` COLUMN, which would have meant 44 tables, global scopes and a leak audit of every query. Schema-per-tenant cost none of that: the domain migrations moved wholesale to `migrations/tenant/`, and the models, Actions and Policies were untouched. **The estimate was wrong because it assumed the wrong mechanism.** See ADR-13. |
 | R5 | Regional gateways (bKash/Nagad/SSLCommerz) | **Deferred.** MVP ships **Stripe + PayPal** (decided Phase 2). Regional gateways become a post-MVP `PaymentGateway` implementation; start merchant-account procurement whenever that is scheduled. |
-| R6 | Real-time (live class chat, presence) | Not in scope for 1.0. Laravel Reverb is the intended path; keep it out of the MVP. |
+| R6 | Real-time (live class chat, presence) | Not in scope for 1.0, and P15 shipped live learning WITHOUT it — deliberately. The video provider owns the room; Orbito owns the schedule, roster and attendance. The one place a websocket was tempting was the leaderboard and the notification badge, and both are polled instead: one indexed count a minute is cheaper than a connection per signed-in tab. Laravel Reverb remains the path if a real-time feature ever justifies it. |
 | R7 | Search | MySQL fulltext for MVP; Meilisearch/Scout behind a `CourseSearch` interface if catalogue growth demands it. |

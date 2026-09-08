@@ -78,6 +78,7 @@ or is assigned to"; policies resolve ownership.
 `certificate.revoke`, `certificate.template.manage`
 **engagement** — `review.create`, `review.moderate`, `review.reply.own`, `review.delete`,
 `discussion.create`, `discussion.reply`, `discussion.moderate`, `announcement.manage`
+**live** — `live.manage.own`, `live.manage.any`, `webinar.manage`, `attendance.mark`
 **media** — `media.upload`, `media.delete.own`, `media.delete.any`, `media.library.view.any`
 **analytics** — `analytics.view.own`, `analytics.view.platform`, `analytics.export`
 **settings** — `settings.view`, `settings.update`, `settings.payment`, `settings.email`
@@ -136,8 +137,12 @@ or is assigned to"; policies resolve ownership.
 | announcement.manage | ✔ | any | — | own | — | own | — | — |
 | media.upload | ✔ | ✔ | ✔ | ✔ | ✔⁴ | ✔ | — | ✔ |
 | media.delete.any / library.view.any | ✔ | ✔ | — | — | — | — | — | — |
+| live.manage.own | ✔ | any | — | own | — | own | — | — |
+| webinar.manage | ✔ | ✔ | — | — | — | — | — | — |
+| attendance.mark | ✔ | ✔ | — | own | — | own | — | — |
 | analytics.view.own | ✔ | ✔ | — | ✔ | — | ✔ | — | — |
-| analytics.view.platform / export | ✔ | ✔ | — | — | — | — | — | — |
+| analytics.view.platform | ✔ | ✔ | — | — | — | — | — | — |
+| analytics.export | ✔ | ✔ | — | ✔⁵ | — | ✔⁵ | — | — |
 | settings.view / update | ✔ | ✔ | — | — | — | — | — | — |
 | audit.view / queue.manage / webhook.manage | ✔ | — | — | — | — | — | — | — |
 | ai.use | ✔ | ✔ | — | ✔ | — | ✔ | — | — |
@@ -148,16 +153,24 @@ or is assigned to"; policies resolve ownership.
 ² Only if the course allows self-reset.
 ³ Only for a course the student is enrolled in.
 ⁴ Only into the `submission` and `avatar` collections, with tighter size/type limits.
+⁵ Export sits beside view rather than above it: somebody who can see a figure
+and not save it will copy it out by hand. The ROWS are scoped to what the
+caller may open, so an instructor exports their own courses and nobody else's.
 
 ---
 
 ## 5. Policies
 
-**Built (Phase 8).** Nine policies, plus seven Gates for the things whose
+**Built.** Fifteen policies, plus fifteen Gates for the things whose
 authorization resolves through a parent course rather than through the model
-itself — a section, an item, a quiz and an assignment are all "may I do this to
-*this course*", so putting the logic on the Course keeps course-scoped roles
-working without duplicating it on four models.
+itself — a section, an item, a quiz, an assignment and a live session are all
+"may I do this to *this course*", so putting the logic on the Course keeps
+course-scoped roles working without duplicating it on five models.
+
+**A Gate rather than a policy when there is no model to point at.** Connecting
+a payment gateway, reading platform analytics, exporting, publishing a webinar
+and marking a roster are all academy-wide capabilities: a policy method would
+need something passed to it that does not exist.
 
 | Policy | Guards |
 |---|---|
@@ -169,6 +182,16 @@ working without duplicating it on four models.
 | `CourseCategoryPolicy` | view, create, update, delete |
 | `UserPolicy` / `RolePolicy` | view, update, assign, delete |
 | `InstructorProfilePolicy` | view, review |
+| `EnrollmentPolicy` (P9) | view, create, suspend, revoke, extend |
+| `OrderPolicy` (P10) | view, refund — plus the `manage-gateways` Gate |
+| `CertificatePolicy` (P11) | view, issue, revoke |
+| `ReviewPolicy` (P12) | delete, moderate, reply |
+| `DiscussionPolicy` (P12) | viewAny, view, create, reply, accept, moderate |
+| `AnnouncementPolicy` (P12) | viewAny, view, manage |
+
+Gates with no model: `manage-gateways`, `moderate-reviews`,
+`view-platform-analytics`, `view-course-analytics`, `export-analytics`,
+`manage-live-for-course`, `manage-webinars`, `mark-attendance`.
 
 One more Gate has no policy of its own: **`view-grading-queue`** is
 `QuizPolicy::viewAttempts ∪ AssignmentPolicy::viewSubmissions`, because the
@@ -180,8 +203,24 @@ policy**, and answers **404** rather than 403 — a policy that says "forbidden"
 confirms the row exists, which is exactly what must not leak about somebody
 else's work.
 
-**Planned:** `EnrollmentPolicy` (P9), `OrderPolicy` / `PayoutPolicy` (P10),
-`ReviewPolicy` / `DiscussionPolicy` (P12), `CertificatePolicy` (P11).
+**`PayoutPolicy` was never built and will not be**: the academy is the merchant
+of record (ADR-13), so `instructor_earnings` and `payouts` are an academy's
+internal ledger rather than a platform surface. See ROADMAP Phase 10.
+
+**THE MISTAKE THIS SECTION EXISTS TO PREVENT**, and it has now been made four
+times: every instructor holds the `.own` keys GLOBALLY, so
+`hasPermission('x.own', $course)` — which returns global ∪ scoped — is TRUE for
+every course in the academy. Use `hasAnyScopedPermission()` when the question
+is "do they staff THIS course?". It made every instructor staff on every course
+in P3, and the same shape recurred in the discussion, analytics and live gates.
+The regression tests are in `CourseScopedAccessTest`.
+
+**No policy at all is the right answer sometimes.** The wishlist, the
+notification inbox and the achievements screen have none: every query starts
+from the caller's own id, so there is no other person's row to authorize
+against. What that requires instead is that no query in those controllers ever
+starts anywhere else — an id from the request narrows a set that is already
+theirs, and never looks one up.
 
 **Rules for policy code**
 - A policy never queries a role name. It calls `$user->hasPermission($key, $resource)`.

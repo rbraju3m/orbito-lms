@@ -79,12 +79,20 @@ Design mobile-first: the 360 px layout is the primary target, not a fallback.
 
 ## 3. Component inventory (`shared/ui`)
 
-> **What actually exists at Phase 8 is five components**: `EmptyState`,
-> `ErrorState`, `LoadingState`, `PageHeader`, `ThemeToggle` — the four that
-> encode a *decision* (what an empty screen says, that an error carries a retry
-> and a request id, that a loading state matches the layout it replaces) plus
-> the theme switch. Everything else on this list is either used straight from
-> `@mantine/core` or lives in the feature that needed it.
+> **What actually exists at Phase 15 is still those same five components**:
+> `EmptyState`, `ErrorState`, `LoadingState`, `PageHeader`, `ThemeToggle` — the
+> four that encode a *decision* (what an empty screen says, that an error
+> carries a retry and a request id, that a loading state matches the layout it
+> replaces) plus the theme switch. Everything else on this list is either used
+> straight from `@mantine/core` or lives in the feature that needed it.
+>
+> **Seven more phases changed nothing here, which is the finding.** Reviews,
+> Q&A, notifications, analytics, gamification and live learning added roughly
+> forty components between them and not one belonged in `shared/ui`: a badge
+> wall, a stall heatmap, a leaderboard and a session card are all domain
+> components that happen to look alike. `TrendChart` is the closest call — it
+> is a hand-rolled SVG chart in `features/analytics`, and it stays there until
+> a second feature needs one.
 >
 > That was not the original plan, and it is worth being clear about why it held.
 > A wrapper that only re-exports a Mantine component adds an indirection and a
@@ -108,6 +116,10 @@ units), `Select`, `MultiSelect`, `Combobox`, `DatePicker`, `DateTimePicker`,
 **Data display** — `DataTable` (sort, filter, select, bulk actions, sticky header,
 virtualised over 200 rows), `DescriptionList`, `StatCard`, `ProgressRing`, `ProgressBar`,
 `RatingStars`, `Timeline`, `Chart` wrappers over `@mantine/charts`.
+**`@mantine/charts` was never installed** — P13 hand-rolled ~90 lines of SVG
+instead, because a charting library is 90–150 KB gzipped for the one screen in
+the product that draws a line, and Mantine is a shared chunk so a lazy route
+would not have kept it off the first paint.
 
 **Feedback** — `Skeleton` variants per layout (card / row / player), `EmptyState`
 (illustration + one-line explanation + primary action), `ErrorState` (message + Retry +

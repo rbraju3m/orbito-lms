@@ -93,19 +93,35 @@ certificate — on a phone, in dark mode, with a keyboard.
 
 ## 7. Current status
 
-Phases 0–9 are complete, plus a multi-tenancy retrofit. An instructor can build and publish a course, write
-quizzes across ten question types, set assignments, and work through one queue
-of everything waiting to be marked; a student can find the course, enrol, learn
-through a real player with video resume and notes, take a timed quiz, hand in
-written and uploaded work, read their feedback and hand in again — with
-progress **stored** (ADR-02), access answered by a **single service** (ADR-03),
-and correct answers that never leave the server during an attempt (ADR-06).
-**Phase 9 then shipped** — drip, prerequisites, seat limits, the enrolment
-lifecycle and the studio roster — and the system was **retrofitted to one
-database per academy** (ADR-13), which made the catalogue members-only.
-Both halves of Phase 9 are now built. **Phase 10 (commerce) was started and
-paused part-way** — the domain layer exists, nothing has been tested, and no
-HTTP surface was built. See `ROADMAP.md` Phase 10.
+**Phases 0–15 are complete, front and back**, plus a multi-tenancy retrofit.
+999 backend tests / 3,238 assertions · 219 frontend tests.
+
+An instructor can build and publish a course, write quizzes across ten
+question types, set assignments, schedule live sessions and cohorts, announce
+things, answer questions, and work through one queue of everything waiting to
+be marked. A learner can find the course, buy it, enrol, learn through a real
+player with video resume and notes, take a timed quiz, hand in written and
+uploaded work, read their feedback and hand in again, attend a live class,
+ask a question, review the course, earn points and badges, download a
+verifiable certificate — and see all of it in a calendar, an inbox and a
+dashboard. Academy staff get analytics built from an append-only event log.
+
+Underneath: progress **stored** (ADR-02), access answered by a **single
+service** (ADR-03), correct answers that never leave the server during an
+attempt (ADR-06), analytics as a log plus rollups (ADR-08), and **one database
+per academy** (ADR-13), which made the catalogue members-only.
+
+**Two integrations are written and UNPROVEN**, and neither is called done:
+`StripeGateway` has never contacted Stripe, and `ZoomProvider` /
+`GoogleMeetProvider` have never contacted either service. Both need
+credentials, not code. Commerce works end to end against `FakeGateway`; live
+learning works end to end with the manual provider.
+
+**Next: Phase 16 (Advanced Business)** — subscriptions, bundles, downloads,
+the blog and page builder, multilingual and RTL, plan limits, outbound
+webhooks. It is markedly larger than the phases before it, and it is where the
+public marketing surface finally arrives — which is what webinar registration
+and lead capture have both been waiting for.
 
 ## 8. Decisions taken
 
@@ -114,7 +130,7 @@ HTTP surface was built. See `ROADMAP.md` Phase 10.
 | 1 | Laravel 12 or 13? | **Laravel 13** (13.30.1 installed) | ✅ settled |
 | 2 | Single-tenant or multi-tenant? | ~~Single tenant per deployment.~~ **REVERSED after Phase 9: one database per academy**, via `stancl/tenancy`, matching the Orbito product. `config('orbito.multi_tenant')` is now `true`. R4 warned this could not be added cheaply after P4 — that was true of a `tenant_id` column and wrong about schema-per-tenant, which moved the migrations wholesale. See ADR-13. | ✅ settled the other way |
 | 3 | MVP payment gateways | **Stripe + PayPal** in Phase 10. Regional gateways (SSLCommerz / bKash / Nagad) deferred to a later phase. | ✅ settled |
-| 4 | Base currency and launch locales | **Base BDT, USD enabled**; locales **en + bn**. Set in `api/.env` (`ORBITO_BASE_CURRENCY`, `ORBITO_SUPPORTED_LOCALES`). Nothing prices anything yet, so this is still costless to change — but it stops being so the moment Phase 10 writes an order. | ⚠️ default still unconfirmed; **last cheap moment is before Phase 10** |
+| 4 | Base currency and launch locales | **Base BDT, USD enabled**; locales **en + bn**. Set in `api/.env` (`ORBITO_BASE_CURRENCY`, `ORBITO_SUPPORTED_LOCALES`). No longer cheap to change: a basket takes the base currency at creation and orders have been written against it. Changing it now means a data migration, not an env edit. | ✅ settled by use (P10) |
 | 6 | Who is the merchant for a course sale? | **The academy.** It connects its own gateway credentials, encrypted per tenant; the platform never touches learner money and takes on no money-transmitter exposure. Supersedes `DATABASE.md` §6, which assumed one merchant — `instructor_earnings`/`payouts` become an academy's internal ledger. | ✅ settled (P10) |
 | 7 | Does platform billing get real payments in P10? | **No.** `AssignPlan` stays the operator's manual lever; Stripe Billing is a separate integration from one-off checkout. | ✅ settled (P10) |
 | 5 | Video hosting | **Self-hosted upload + YouTube/Vimeo**, shipped in Phase 6. The planned `VideoProvider` *interface* came out as an **enum** the player branches on, so adding Bunny/Mux is a new case plus a URL builder rather than a config change (risk R3). | ✅ settled; the seam is weaker than planned |

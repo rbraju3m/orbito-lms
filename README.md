@@ -7,15 +7,31 @@ A production-grade, API-first Learning Management System.
 - **`docs/`** — architecture, audit and planning documents
 - **`CLAUDE.md`** — engineering rules; read before writing code
 
-**Status:** Phases 0–8 complete — foundation, identity, catalog, curriculum, the
-learning player, quizzes and assignments. Phase 9 (enrollment and access) is
-next. [`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
+**Status: Phases 0–15 complete**, front and back, plus a multi-tenancy
+retrofit — one database per academy.
+[`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
 
-An instructor can build and publish a course with lessons, resources, quizzes
-and assignments, and mark everything from one grading queue. A learner can
-enrol in a free course, work through a player with video resume and notes, take
-a timed quiz and hand in written or uploaded work. Paid enrolment, drip and
-certificates are not built yet.
+999 backend tests / 3,238 assertions · 219 frontend tests · PHPStan level 6.
+
+An instructor can build and publish a course with lessons, resources, quizzes,
+assignments and live sessions, price it, schedule cohorts, announce things,
+answer questions, mark everything from one grading queue, and read analytics
+built from an append-only event log.
+
+A learner can find a course, buy it, learn through a player with video resume
+and notes, take a timed quiz, hand in work and read the feedback, attend a live
+class, ask a question, review the course, earn points and badges, and download
+a verifiable certificate — with a calendar, an inbox and a dashboard tying it
+together.
+
+**Two integrations are written and unproven, and need credentials rather than
+code:** `StripeGateway` has never contacted Stripe (commerce is complete and
+tested against a fake gateway; no real money has moved), and the Zoom and
+Google Meet providers have never contacted either service (the manual
+provider — paste a link — works and is tested).
+
+**Next:** Phase 16 — subscriptions, bundles, downloads, the blog and page
+builder, multilingual and RTL, plan-limit enforcement, outbound webhooks.
 
 ---
 
@@ -86,7 +102,34 @@ The demo accounts (local only) all use the password `password`:
 | `student@orbito.test` | Student |
 
 Adding a permission key to `config/permissions.php` means running
-`php artisan permissions:sync`; nothing reads the file at runtime.
+`php artisan permissions:sync`; nothing reads the file at runtime. The same
+applies to `config/gamification.php` and `php artisan gamification:sync` —
+except that one only ever CREATES what is missing, so an academy's own tuning
+survives a re-sync. Both are seeded into a new academy at provisioning.
+
+## Scheduled work
+
+`php artisan schedule:work` in development, a cron entry in production. None of
+it is load-bearing for correctness — expiry, drip and progress are evaluated
+live on every request — but skipping it means stale rollups, no reminders and
+no leaderboards:
+
+| Command | When | What |
+|---|---|---|
+| `quiz:sweep-expired` | 5 min | Closes attempts past their deadline |
+| `live:remind` | 5 min | Reminders for sessions starting soon |
+| `gamification:leaderboards` | hourly | Rebuilds the board snapshots |
+| `analytics:rollup --days=1` | hourly | Keeps today's figures current |
+| `enrollment:sweep-expired` | hourly | Lapses expired enrolments |
+| `subscriptions:expire` | 02:30 | Degrades unpaid academies |
+| `gamification:sync` | 02:50 | Creates any missing rules and badges |
+| `progress:reconcile` · `usage:reconcile` · `engagement:reconcile` | 03:10–03:50 | Corrects drift in denormalised counters |
+| `analytics:rollup --days=2` | 04:00 | Yesterday and today, after the reconcilers |
+| `analytics:prune` | weekly | 400-day retention on the event log |
+
+Every one of these walks all academies itself — the scheduler runs centrally
+with no tenant open, which is what `RunsForEveryTenant` and
+`ScheduledCommandTest` exist for.
 
 ## Checks
 

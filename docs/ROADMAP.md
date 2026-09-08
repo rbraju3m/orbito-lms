@@ -2,38 +2,48 @@
 
 ## Where this stands
 
-**Phases 0–9 are complete**, front and back, and the system was then
-**retrofitted to multi-tenancy** — a reversal of the single-tenant decision
-recorded as risk R4.
+**Phases 0–15 are complete**, front and back, and the system was
+**retrofitted to multi-tenancy** partway through — a reversal of the
+single-tenant decision recorded as risk R4.
 
-**Phase 10 (Commerce) is FEATURE-COMPLETE except for one thing.** The money
-path is proven against `FakeGateway`, the HTTP surface is built on it, and the
-SPA can buy a course end to end. What remains is that `StripeGateway` has never
-contacted Stripe — so no real money has ever moved through this. Read the Phase
-10 entry before touching it.
+**Two integrations are written and UNPROVEN.** Neither is called done, and
+both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 752 Pest tests / 2,595 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 163 Vitest tests · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS 244.2 KB gzipped, against 250 KB — see Phase 11 |
-| E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
-| Suite runtime | ~270-430s, up from ~118s — provisioning tests build real schemas |
+| `StripeGateway` (P10) | has never contacted Stripe. Commerce is complete and tested against `FakeGateway`; no real money has moved. |
+| `ZoomProvider` / `GoogleMeetProvider` (P15) | have never contacted either service. `ManualProvider` — the host pastes a link — works and is tested, and is what most academies will use. |
 
-Each completed phase below carries what it delivered, the bugs it found, and a
-transcript of the exit criterion verified against a running API. Those
-transcripts are the record — if one contradicts the code, the code is right and
-the doc is stale.
+| | |
+|---|---|
+| Backend | 999 Pest tests / 3,238 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 219 Vitest tests across 38 files · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS ~246 KB gzipped against 250 KB — see Phase 11 and Phase 13 |
+| E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
+| Suite runtime | ~11–13 minutes, up from ~2 — provisioning tests build real schemas |
+
+Each completed phase below carries what it delivered, the decisions that shaped
+it, the bugs it found, and what it deliberately left. Where a phase's exit
+criterion was verified against a running API, the transcript is the record — if
+one contradicts the code, the code is right and the doc is stale.
 
 **What an instructor can do today:** sign up, be approved, build a course with
-lessons, resources, quizzes and assignments, publish it against an enforced
-checklist, and work through one queue of everything waiting to be marked.
-**What a learner can do:** find the course, enrol in it if it is free, learn
-through a player with video resume and notes, take a timed quiz, hand in
-written and uploaded work, read the feedback and hand in again.
+lessons, resources, quizzes, assignments and live sessions, price and publish
+it against an enforced checklist, schedule cohorts, announce things, answer
+questions, work through one queue of everything waiting to be marked, and read
+analytics built from an append-only event log.
 
-**What is conspicuously missing:** paid enrolment, drip, prerequisites, seat
-limits, certificates, reviews and discussions — Phases 9–12.
+**What a learner can do:** find the course, buy it, enrol, learn through a
+player with video resume and notes, take a timed quiz, hand in written and
+uploaded work, read the feedback and hand in again, attend a live class, ask a
+question, review the course, earn points and badges, download a verifiable
+certificate — and see all of it in a calendar, an inbox and a dashboard.
+
+**What is conspicuously missing:** everything in Phase 16 onward —
+subscriptions, bundles, downloads, the blog and page builder, multilingual and
+RTL, plan-limit enforcement, and outbound webhooks. Plus the two unproven
+integrations above, and the Playwright gap, which has now outlasted thirteen
+phases.
 
 ---
 

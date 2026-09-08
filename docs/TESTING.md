@@ -3,10 +3,18 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
-**Where it stands after Phase 9 + the tenancy retrofit:** 642 backend tests /
-2,204 assertions, 116
-frontend tests, PHPStan level 6 clean, `tsc` clean. Playwright specs exist for
-phases 2 and 3 only — see §4.
+**Where it stands after Phase 15:** 999 backend tests / 3,238 assertions across
+18 Feature suites and 8 Unit suites · 219 frontend tests across 38 files ·
+PHPStan level 6 clean · Pint, oxlint, `tsc` and `vite build` clean.
+
+**Playwright specs exist for phases 2 and 3 only** — two files, `auth.spec.ts`
+and `shell.spec.ts`. That gap has now outlasted thirteen phases and is the
+oldest untouched item in this document; see §4.
+
+**The suite takes ~11–13 minutes**, up from ~2 before tenancy. Provisioning
+tests build real schemas, and that is the price of testing the isolation
+rather than trusting it. Provision one academy per FILE rather than per test
+where it hurts.
 
 ---
 
@@ -22,6 +30,29 @@ A feature is not done without tests. Every endpoint gets **at least three**:
 
 If a test only proves the code runs, it is not pulling its weight. Test the
 decision the code makes.
+
+---
+
+## 1a. Suites, and what each is for
+
+**Feature (18 suites)** — Analytics, Api, Assessment, Auth, Catalog,
+Certification, Commerce, Curriculum, Engagement, Enrollment, Gamification,
+Identity, Learn, Live, Media, Notification, Platform, Tenancy.
+
+**Unit (8)** — Assessment, Catalog, Curriculum, Identity, Notification,
+Platform, Progress, Support. Unit tests are for non-trivial domain logic with
+no database in it: a payload DTO, a checklist, a value object. Everything that
+touches a row is a Feature test, because MySQL behaviour is the thing worth
+asserting.
+
+**Three files carry more than their own feature's weight**, and a change near
+any of them should run them:
+
+| File | Defends |
+|---|---|
+| `Tenancy/ScheduledCommandTest` | that a scheduled command walks academies. The ordinary harness leaves a tenant open, so it passes whether or not the command knows tenancy exists; this file calls `tenancy()->end()` first. **Every new scheduled command belongs here.** |
+| `Identity/CourseScopedAccessTest` | that a `.own` permission held globally does not make somebody staff on every course. Four phases have re-made that mistake. |
+| `Tenancy/CentralModelConnectionTest` | that every central model is pinned. Extend `CENTRAL_TABLES` when you add one. |
 
 ---
 
@@ -111,7 +142,11 @@ composer check       # all three, in the order CI runs them
 
 ### Static analysis
 
-Larastan at **level 6** from Phase 2, rising to **level 8** by Phase 10.
+Larastan at **level 6** from Phase 2. The plan said level 8 by Phase 10; it is
+still 6 at Phase 15, and raising it is a deliberate un-taken decision rather
+than an oversight — level 8 mostly argues with Eloquent's dynamic properties,
+and the model docblocks that would satisfy it are already written by hand for
+every model. Revisit if a real bug slips through the current level.
 `tests/` is deliberately excluded: Pest rebinds `$this` inside test closures and
 registers expectations at runtime, neither of which PHPStan can model without
 hand-written stubs that would need updating on every new expectation. Test

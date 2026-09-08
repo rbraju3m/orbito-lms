@@ -5,7 +5,12 @@ Legend
   (**not installed here — inferred**, see `TUTOR_AUDIT.md` §0) · `—` = absent
 - **Klasio**: `Yes` · `Upcoming` (vendor-stated) · `—`
 - **Orbito**: the phase it lands in. `M` = **MVP** (Phases 2–11).
+  **Bold = shipped.** `⚠` = built but unproven against the outside world.
 - Phases are defined in `ROADMAP.md`.
+
+**Everything through Phase 15 is bold.** Sections A–N carry the decision that
+shaped each row rather than a restatement of the feature; O, P and Q are still
+plan.
 
 **Multi-tenancy (ADR-13)** is not in this matrix because neither reference
 product has it: Tutor is a WordPress plugin and Klasio is closed managed-SaaS.
@@ -203,9 +208,9 @@ submission re-opens the assignment and does not consume an attempt.
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
 | G1 | Free enrollment | Core | Yes | **P9 · M** | |
-| G2 | Paid enrollment after verified payment | Core | Yes | ⚠️ P10 part-built | Path written end to end; never executed |
+| G2 | Paid enrollment after verified payment | Core | Yes | **P10 · M ⚠** | Complete against `FakeGateway`; no real gateway has run |
 | G3 | Manual enrollment (single) | Pro | Yes | **P9 · M** | |
-| G4 | Bulk enrollment / CSV | Pro | Yes | P9 | |
+| G4 | Bulk enrollment / CSV | Pro | Yes | **P9** | Bulk by user id; CSV import not built |
 | G5 | Enrollment expiry | Pro | Yes | **P9 ✅** | Suspend / reinstate / extend / revoke |
 | G6 | Suspension / revoke | Partial | Yes | **P9 · M** | |
 | G7 | Access via subscription | Pro | Yes | P16 | |
@@ -255,21 +260,21 @@ reads yet.
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
-| J1 | Product abstraction (course/bundle/download/plan/coaching) | Partial | Yes | ⚠️ P10 part-built | Model + migration only; untested |
-| J2 | Cart | Core | Yes | ⚠️ P10 part-built | Models only; no endpoints |
-| J3 | Checkout | Core | Yes | ⚠️ P10 part-built | `PlaceOrder` written, untested, unreachable |
-| J4 | Guest checkout | Core | Yes | P10 | |
-| J5 | Orders + order items with price snapshot | Core | Yes | ⚠️ P10 part-built | Snapshots designed in; untested |
-| J6 | Payments table + gateway events | Partial | Yes | ⚠️ P10 part-built | Not a LONGTEXT column; untested |
-| J7 | Server-side payment verification / webhooks | Core | Yes | ⚠️ P10 part-built | `HandleWebhook` written; NO test, NO route |
-| J8 | Refunds (full + partial) | Core | Yes | **P10 · M** | |
-| J9 | Coupons (code + automatic, scoped, limits) | Core | Yes | **P10 · M** | |
+| J1 | Product abstraction (course/bundle/download/plan/coaching) | Partial | Yes | **P10 · M** | Courses only so far; the morph is the seam for the rest |
+| J2 | Cart | Core | Yes | **P10 · M** | Takes the base currency at creation and never changes it |
+| J3 | Checkout | Core | Yes | **P10 · M** | Priced server-side from the DB; the client is never believed |
+| J4 | Guest checkout | Core | Yes | **Not possible** | Tenancy resolves from the authenticated user — there is no anonymous surface |
+| J5 | Orders + order items with price snapshot | Core | Yes | **P10 · M** | Title and price frozen per line at checkout |
+| J6 | Payments table + gateway events | Partial | Yes | **P10 · M** | Unique `(gateway, external_id)` makes a replay a no-op |
+| J7 | Server-side payment verification / webhooks | Core | Yes | **P10 · M ⚠** | The only unauthenticated write in the system; each omitted middleware is load-bearing |
+| J8 | Refunds (full + partial) | Core | Yes | P16 | Deferred: the MVP needed one money path proven, not a refund engine |
+| J9 | Coupons (code + automatic, scoped, limits) | Core | Yes | P16 | `orders.discount_minor` exists and is always 0; see the note below |
 | J10 | Tax rules by country/state | Core | Yes | P10 | |
 | J11 | Invoices (PDF, sequential numbering) | Pro | Yes | P10 | |
-| J12 | Multi-currency | — | — | **P10 · M** (model) | Integer minor units + FX; UI in P16 |
-| J13 | Stripe | Pro | Yes | ⚠️ P10 adapter written | Never contacted Stripe; unverified |
-| J14 | PayPal | Core | Yes | **P10 · M** | |
-| J15 | SSLCommerz / bKash / Nagad | — | — | P10 | **Orbito differentiator** |
+| J12 | Multi-currency | — | — | **P10 · M** (model) | Minor units everywhere; a basket takes ONE currency and refuses a product without a price in it |
+| J13 | Stripe | Pro | Yes | **P10 ⚠** | Adapter written; has never contacted Stripe |
+| J14 | PayPal | Core | Yes | Not built | Declared on the `Gateway` enum; no implementation |
+| J15 | SSLCommerz / bKash / Nagad | — | — | Post-MVP | **Orbito differentiator**; one `PaymentGateway` implementation each |
 | J16 | Instructor earnings + commission split | Core | n/a | Reconsider | Academy is the merchant, so this is an academy-internal ledger, not a platform one |
 | J17 | Withdrawals + maturity days | Core | n/a | Reconsider | See J16 — the platform holds no funds to withdraw |
 | J18 | Subscriptions / recurring | Pro | Yes | P16 | |
@@ -278,6 +283,13 @@ reads yet.
 | J21 | Digital downloads as products | — | Yes | P16 | |
 | J22 | Coaching / bookable sessions | — | Yes | P16 | |
 | J23 | Gift a course | Core | — | Post-1.0 | |
+
+**When coupons land (J9), the revenue figures need attention.** Per-course
+analytics revenue is summed from order LINE ITEMS and platform revenue from the
+ORDER TOTAL. `discount_minor` is always 0 today so the two agree exactly; an
+order-level discount has to be allocated across its items — largest remainder,
+so the parts sum to the whole — or a dashboard will show them disagreeing by
+the discount.
 
 ## K. Engagement
 
@@ -367,7 +379,7 @@ reads yet.
 | Q2 | Consistent error envelope | — | n/a | **P2 · M** | |
 | Q3 | Pagination contract (offset + cursor) | Partial | n/a | **P2 · M** | |
 | Q4 | Mobile-ready token auth | Pro | Yes | **P3 · M** | |
-| Q5 | Webhooks out (integrations) | — | Yes | P16 | |
+| Q5 | Webhooks out (integrations) | — | Yes | P16 | Subscribes to the existing 39-event catalogue; no new vocabulary (ADR-12) |
 | Q6 | Rate limiting | WP-level | Yes | **P2 · M** | |
 | Q7 | Queues + scheduler | WP-Cron + custom table | n/a | **P2 · M** | Redis + Horizon |
 | Q8 | Redis caching | Object cache | n/a | **P2 · M** | |
@@ -375,23 +387,35 @@ reads yet.
 | Q10 | Test suite (unit/feature/API) | Minimal | n/a | **P2 · M** | Pest |
 | Q11 | Static analysis | PHPCS | n/a | **P2 · M** | Larastan |
 | Q12 | CI/CD | — | n/a | P19 | |
-| Q13 | Plan limits / usage counters | — | Yes | P16 (counters **P4**) | Design early, bill later |
+| Q13 | Plan limits / usage counters | — | Yes | P16 (counters **P4**) | Counted since P4 and **never enforced** — the oldest open item in the codebase |
 | Q14 | Public roadmap / changelog | Yes | Yes | P19 | |
 
 ---
 
 ## MVP definition (Phases 2–11)
 
+**Every feature in this list is built.** The MVP is not signed off, because its
+own definition says a student buys with a *real verified payment* and
+`StripeGateway` has never contacted Stripe. One sandbox run closes it.
+
 **In:** auth + roles + course-scoped roles · course CRUD & publishing · curriculum builder
 with drag/drop and autosave · lesson player with video, progress and notes · complete quiz
 engine (10 question types) · complete assignment workflow · enrollment and a single access
-resolver · commerce with Stripe + PayPal, coupons, refunds, verified webhooks ·
-certificates with public verification · reviews and Q&A · light/dark, responsive, a11y ·
-tests + static analysis + CI-ready.
+resolver · commerce with verified webhooks · certificates with public verification ·
+reviews and Q&A · light/dark, responsive, a11y · tests + static analysis + CI-ready.
+
+**Shipped narrower than written, deliberately:** coupons and refunds are P16,
+not P10 — the MVP needed one money path proven, not a discount engine. PayPal
+is declared and unimplemented for the same reason Stripe is unproven.
 
 **Out of MVP (deliberately):** subscriptions, memberships, bundles, digital downloads,
 coaching, live classes, webinars, cohorts, gamification, AI, page builder, blog,
 content bank, interactive quiz types, certificate builder, course versioning, SSO.
+
+**Six of those have since shipped** — live classes, webinars, cohorts and
+gamification in P14–P15, on top of analytics in P13. Which is the point of the
+list: excluded from the MVP is not excluded from the product, and each arrived
+without reshaping anything, through the seams designed in Phase 1.
 
 Rationale: the MVP is the smallest product an instructor can build, sell, and deliver a
 course on, end to end, with money changing hands and a certificate at the end. Everything
