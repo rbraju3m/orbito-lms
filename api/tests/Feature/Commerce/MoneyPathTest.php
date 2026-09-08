@@ -11,6 +11,8 @@ use App\Domain\Commerce\Enums\Gateway;
 use App\Domain\Commerce\Enums\OrderStatus;
 use App\Domain\Commerce\Enums\PaymentStatus;
 use App\Domain\Commerce\Events\PaymentCaptured;
+use App\Domain\Commerce\Exceptions\CheckoutRejected;
+use App\Domain\Commerce\Exceptions\GatewayUnavailable;
 use App\Domain\Commerce\Exceptions\WebhookRejected;
 use App\Domain\Commerce\Gateways\FakeGateway;
 use App\Domain\Commerce\Models\Cart;
@@ -94,8 +96,7 @@ function webhook(array $payload, ?string $secret = WEBHOOK_SECRET): Request
 
     $server = $secret === null
         ? []
-        : ['HTTP_'.str_replace('-', '_', strtoupper(FakeGateway::SIGNATURE_HEADER))
-            => hash_hmac('sha256', $body, $secret)];
+        : ['HTTP_'.str_replace('-', '_', strtoupper(FakeGateway::SIGNATURE_HEADER)) => hash_hmac('sha256', $body, $secret)];
 
     return Request::create('/webhooks/payments/fake', 'POST', [], [], [], $server, $body);
 }
@@ -392,7 +393,7 @@ it('refuses to hand off an order that is already paid', function (): void {
     app(HandleWebhook::class)->handle(webhook(capturedPayload($payment)), Gateway::Fake);
 
     expect(fn () => app(InitiatePayment::class)->handle($payment->order->refresh(), Gateway::Fake))
-        ->toThrow(App\Domain\Commerce\Exceptions\CheckoutRejected::class);
+        ->toThrow(CheckoutRejected::class);
 });
 
 it('refuses to sell a course the learner already owns', function (): void {
@@ -400,7 +401,7 @@ it('refuses to sell a course the learner already owns', function (): void {
     app(HandleWebhook::class)->handle(webhook(capturedPayload($payment)), Gateway::Fake);
 
     expect(fn () => app(PlaceOrder::class)->handle($this->student, cartFor($this->student, $this->product)))
-        ->toThrow(App\Domain\Commerce\Exceptions\CheckoutRejected::class);
+        ->toThrow(CheckoutRejected::class);
 });
 
 it('refuses a gateway the academy has not connected', function (): void {
@@ -409,5 +410,5 @@ it('refuses a gateway the academy has not connected', function (): void {
     $order = app(PlaceOrder::class)->handle($this->student, cartFor($this->student, $this->product));
 
     expect(fn () => app(InitiatePayment::class)->handle($order, Gateway::Fake))
-        ->toThrow(App\Domain\Commerce\Exceptions\GatewayUnavailable::class);
+        ->toThrow(GatewayUnavailable::class);
 });

@@ -6,15 +6,15 @@
 **retrofitted to multi-tenancy** — a reversal of the single-tenant decision
 recorded as risk R4.
 
-**Phase 10 (Commerce) is IN PROGRESS.** The migration has now been run against
-real MySQL and the money path is proven against `FakeGateway` — signature,
-replay, amount and forgery. There is still **no HTTP surface and no frontend**,
-and `StripeGateway` has still never contacted Stripe. Read the Phase 10 entry
-before touching it.
+**Phase 10 (Commerce) is IN PROGRESS.** The money path is proven against
+`FakeGateway` — signature, replay, amount and forgery — and the HTTP surface
+is built on top of it: basket, checkout, orders, the tenant-in-path webhook,
+and gateway configuration. There is still **no frontend**, and `StripeGateway`
+has still never contacted Stripe. Read the Phase 10 entry before touching it.
 
 | | |
 |---|---|
-| Backend | 659 Pest tests / 2,271 assertions · PHPStan level 6 clean · Pint clean |
+| Backend | 701 Pest tests / 2,446 assertions · PHPStan level 6 clean · Pint clean |
 | Frontend | 138 Vitest tests · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS 240.5 KB gzipped, against 250 KB |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
@@ -580,7 +580,7 @@ which removes the anonymous surface: the catalogue, course pages, previews and
 the player are members-only. A public storefront would need subdomain
 identification and is a real change, not a flag.
 
-### Phase 10 — Commerce  ⚠️ IN PROGRESS — the money path is proven, nothing is reachable
+### Phase 10 — Commerce  ⚠️ IN PROGRESS — the money path is proven and reachable; no frontend
 
 **Scope was deliberately narrowed** to the money path: products, prices, cart,
 checkout with server-side repricing, orders, one gateway, verified idempotent
@@ -632,27 +632,64 @@ twice, re-buying an owned course, and an unconnected gateway.
 amount comparison kills exactly the short-capture test; removing the replay
 guard kills exactly the replay test.
 
+**The HTTP surface is built** — 12 routes, in `routes/api/commerce.php`:
+
+| | |
+|---|---|
+| Basket | `GET`/`DELETE /cart`, `POST /cart/items`, `DELETE /cart/items/{cartItem}` |
+| Buying | `POST /checkout`, `POST /orders/{order}/pay`, `GET /orders`, `GET /orders/{order}` |
+| Webhook | `POST /webhooks/payments/{gateway}/{tenant}` |
+| Gateways | `GET`/`PUT`/`DELETE /admin/payment-gateways[/{gateway}]` |
+
+With it: `InitializeTenancyByWebhookRoute` (registered `tenant.webhook`),
+`OrderPolicy`, a `manage-gateways` gate, the `AddToCart` and
+`ConnectPaymentGateway` actions, three form requests and three resources.
+
+**The webhook route is the only unauthenticated write in the system.** Three
+omissions from its middleware are each load-bearing — no `auth:sanctum` (the
+caller is a provider with no account), no `tenant` (nothing to resolve an
+academy from, so it is in the PATH), and no `subscription` (the money has
+already moved; refusing a capture over the academy's own overdue bill would
+take a learner's payment and grant nothing). `{tenant}` is
+attacker-controllable and that is fine: resolving it only opens a connection,
+and everything after is gated on the signature verifying against THAT
+academy's secret. Unknown and closed academies 404 identically, so the route
+cannot enumerate academy ids.
+
 **What still does NOT exist:**
 
-- **No controllers, routes, requests, resources or policies.** Nothing is
-  reachable over HTTP, including the webhook endpoint — so the tenant-in-path
-  routing a webhook needs (`/webhooks/payments/{gateway}/{tenant}`) is designed
-  but not built.
-- **No frontend.**
+- **No frontend.** Nothing in the SPA can reach any of this.
 - **The Stripe adapter has never contacted Stripe.** Written to the documented
   API, signature check follows the documented scheme, but no sandbox
   credentials were available. Treat the first live run as the test.
+- Coupons, refunds, tax, invoices, and the earnings/payout surface. Deferred,
+  not forgotten — see the scope note at the top of this entry.
 
 **The exit criterion is HALF met.** "A forged client-side success grants
-nothing" is now proven rather than merely designed for. "A paid enrollment
-completes through a real sandbox webhook" is not: `FakeGateway` is not Stripe,
-and until sandbox credentials exist that half stays open.
+nothing" is proven at both layers: the domain refuses it, and
+`CheckoutApiTest` asserts that `/confirm`, `/complete`, `/success` and
+`/capture` on an order all 404 — the absence of the endpoint IS the property.
+"A paid enrollment completes through a real sandbox webhook" is not:
+`FakeGateway` is not Stripe, and until sandbox credentials exist that half
+stays open.
 
-**Resume here.** Build the HTTP surface on top of the proven path — cart and
-checkout endpoints, then the webhook route, which is the one route with no
-authenticated user and so must carry its tenant in the path and resolve it the
-way `tenant.signed` does for media (§16). The domain logic beneath it does not
-need revisiting; test the routing, the authorization and the 400/402/423 paths.
+**Two consequences of this phase that will surprise the next reader:**
+
+- **A basket takes the platform's BASE currency at creation and never changes
+  it.** A product with no price in that currency cannot be added — a 409, not
+  a silent conversion. This follows from multi-currency being deferred, and it
+  means `ProductFactory::pricedAt()` defaulting to USD while
+  `orbito.currency.base` is BDT will trip up the next commerce test written.
+- **Gateway credentials are write-only over the API.** No response contains
+  them; a partial `PUT` keeps what it does not send, so toggling test mode
+  cannot silently disconnect a gateway.
+
+**Resume here.** Build the frontend: the course page's buy button, the basket,
+the checkout flow and the order history, plus the academy-admin screen for
+connecting a gateway. The API beneath is tested and does not need revisiting.
+The one thing the UI cannot be honest about without care is the gap between
+`estimated_total_minor` and what the order actually charges — the basket is
+priced live, the order is priced once.
 
 ### Phase 11 — Certificates
 Templates · queued PDF generation · numbering · QR · public verification page · revocation.

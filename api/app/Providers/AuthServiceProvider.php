@@ -12,6 +12,8 @@ use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\CourseCategory;
 use App\Domain\Catalog\Policies\CourseCategoryPolicy;
 use App\Domain\Catalog\Policies\CoursePolicy;
+use App\Domain\Commerce\Models\Order;
+use App\Domain\Commerce\Policies\OrderPolicy;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Curriculum\Models\Lesson;
@@ -42,6 +44,7 @@ final class AuthServiceProvider extends ServiceProvider
         CourseCategory::class => CourseCategoryPolicy::class,
         Media::class => MediaPolicy::class,
         Enrollment::class => EnrollmentPolicy::class,
+        Order::class => OrderPolicy::class,
     ];
 
     public function boot(): void
@@ -53,6 +56,7 @@ final class AuthServiceProvider extends ServiceProvider
         $this->registerMorphMap();
         $this->registerSuperAdminBypass();
         $this->registerCurriculumGates();
+        $this->registerCommerceGates();
     }
 
     /**
@@ -75,6 +79,20 @@ final class AuthServiceProvider extends ServiceProvider
             'quiz' => Quiz::class,
             'assignment' => Assignment::class,
         ]);
+    }
+
+    /**
+     * Connecting a payment provider is an academy-wide capability, not a
+     * question about any one row — so it is a Gate with no model rather than a
+     * policy method that would need something to be passed to it.
+     *
+     * There is deliberately no Gate for the webhook. It authorises nobody: its
+     * credential is the gateway's signature over the body, checked inside
+     * HandleWebhook against that academy's own secret (ADR-05).
+     */
+    private function registerCommerceGates(): void
+    {
+        Gate::define('manage-gateways', fn (User $user) => $user->hasPermission('gateway.manage'));
     }
 
     /**

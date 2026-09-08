@@ -440,7 +440,7 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–9 complete** front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-659 backend tests / 2271 assertions · 138 frontend tests.
+701 backend tests / 2446 assertions · 138 frontend tests.
 
 Phase 9 delivered enrollment and access: drip, prerequisites, seat limits,
 the enrollment lifecycle, the studio roster, completion and retake.
@@ -448,11 +448,11 @@ the enrollment lifecycle, the studio roster, completion and retake.
 The retrofit delivered database-per-tenant, the platform admin surface, plans
 and subscriptions. **Read §16 before writing any query.**
 
-**Phase 10 (Commerce) is IN PROGRESS.** The migration has been run against real
-MySQL and the money path is proven against `FakeGateway` by `MoneyPathTest` —
-signature rejection, replay idempotency, amount mismatch, forged success. But
-there is still **no HTTP surface and no frontend**, and `StripeGateway` has
-never contacted Stripe. Read `docs/ROADMAP.md` Phase 10 before touching it.
+**Phase 10 (Commerce) is IN PROGRESS.** The money path is proven against
+`FakeGateway` (`MoneyPathTest`) and the HTTP surface is built on it — basket,
+checkout, orders, the webhook, gateway configuration. There is still **no
+frontend**, and `StripeGateway` has never contacted Stripe. Read
+`docs/ROADMAP.md` Phase 10 before touching it.
 
 Three decisions there are settled and load-bearing:
 
@@ -464,9 +464,22 @@ Three decisions there are settled and load-bearing:
   course checkout and shares nothing but vocabulary.
 - **Commerce is entirely tenant-side**, credentials included.
 
-Resume by building the HTTP surface on the proven path. The webhook route is
-the hard one: it is the only route with no authenticated user, so it carries
-its tenant in the path and resolves it the way `tenant.signed` does (§16).
+Resume by building the frontend. The API beneath is tested and settled.
+
+Two things the HTTP surface established that the next reader needs:
+
+- **The webhook is the only unauthenticated write in the system.** It sits
+  outside `auth:sanctum`, `tenant` AND `subscription`, and each omission is
+  load-bearing — see `routes/api/commerce.php`. Its academy comes from the
+  path (`tenant.webhook`) and is attacker-controllable, which is safe only
+  because nothing is trusted until the signature verifies against THAT
+  academy's secret. Unknown and closed academies 404 identically so the route
+  cannot enumerate academy ids.
+- **A basket takes the platform's BASE currency and never changes it.** A
+  product with no price in that currency cannot be added — 409, not a silent
+  conversion. Multi-currency is deferred, so `ProductFactory::pricedAt()`
+  defaulting to USD while `orbito.currency.base` is BDT will trip up the next
+  commerce test written.
 
 **Known debt, deliberately left:**
 

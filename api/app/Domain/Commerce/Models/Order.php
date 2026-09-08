@@ -21,8 +21,12 @@ use Illuminate\Support\Str;
  * @property int $user_id
  * @property OrderStatus $status
  * @property string $currency
+ * @property int $subtotal_minor
+ * @property int $discount_minor
  * @property int $total_minor
+ * @property CarbonInterface|null $placed_at
  * @property CarbonInterface|null $paid_at
+ * @property CarbonInterface|null $cancelled_at
  */
 final class Order extends Model
 {

@@ -370,40 +370,72 @@ Central-DB only, behind `super_admin`, and deliberately **outside** both the
 exactly the one an operator needs to reach, and renewing is the action that
 unblocks it.
 
-### Commerce — planned (P10), domain layer part-built
+### Commerce — live (P10)
 
-**No commerce endpoint exists yet.** The domain layer is written but has no
-controllers or routes; see `ROADMAP.md` Phase 10.
-
-Two things about the eventual shape are already settled. The webhook carries
-its academy in the path — `/webhooks/payments/{gateway}/{tenant}` — because a
-webhook has no authenticated user to resolve a tenant from, the same problem
-the signed media download solved (§2a). The tenant there is untrusted until the
-signature verifies against **that academy's** secret, which is what makes it
-safe to route on.
-
-And there is deliberately **no client-callable "confirm payment" endpoint**.
-A redirect back from a provider proves nothing, so the API offers no way to
-say it happened; access is granted only by a verified webhook (ADR-05).
+The money path is reachable. Coupons, refunds, tax, invoices and the
+earnings/payout surface are **not** — see `ROADMAP.md` Phase 10 for why each
+was deferred rather than half-built.
 
 ```
+# live
+GET    /cart                                    the caller's basket; an unmade one reads as empty
+POST   /cart/items                              {product_id} (uuid)
+DELETE /cart/items/{cartItem}                   404 for a line that is not yours
+DELETE /cart                                    empties without deleting the basket
+POST   /checkout                                → order, priced by the SERVER
+POST   /orders/{order}/pay                      {gateway} → {redirect_url|client_secret}
+GET    /orders                                  own orders, or all with `order.view.any`
+GET    /orders/{order}
+POST   /webhooks/payments/{gateway}/{tenant}    unauthenticated · signature-verified · idempotent
+GET    /admin/payment-gateways                  every supported gateway, connected or not
+PUT    /admin/payment-gateways/{gateway}        partial; omitted secrets are KEPT
+DELETE /admin/payment-gateways/{gateway}        disconnect — deletes the row
 
-GET    /cart · POST /cart/items · DELETE /cart/items/{id}
+# planned
 POST   /cart/coupon · DELETE /cart/coupon
-POST   /checkout                                → order (server-priced)
-POST   /orders/{uuid}/pay                       {gateway} → {redirect_url|client_secret}
-GET    /orders · GET /orders/{uuid}
 GET    /orders/{uuid}/invoice
-POST   /webhooks/payments/{gateway}             unauthenticated, signature-verified, idempotent
 POST   /admin/orders/{uuid}/refund
 GET    /admin/coupons · POST · PATCH · DELETE
-GET    /studio/earnings · GET /studio/payouts · POST /studio/payouts
 ```
 
-**Checkout invariants.** `POST /checkout` ignores any price in the request. It reprices
-every line from `product_prices` in the cart's currency, re-evaluates the coupon,
-recomputes tax, and stores the result. `POST /orders/{uuid}/pay` never marks anything
-paid — only the webhook path does.
+**The webhook is the only unauthenticated write in the system**, and three
+omissions from its middleware are each load-bearing:
+
+- no `auth:sanctum` — the caller is a payment provider with no account;
+- no `tenant` — with no user there is nothing to resolve an academy from, so
+  the academy is in the PATH and `tenant.webhook` opens it (the same problem
+  the signed media download solved in §2a, with a different answer);
+- no `subscription` — the money has already moved. Refusing a capture because
+  the academy's own bill is overdue would take a learner's payment and grant
+  them nothing.
+
+`{tenant}` is attacker-controllable and that is fine: resolving it only opens a
+connection, and everything downstream is gated on the signature verifying
+against **that academy's** own secret. Naming somebody else's academy means
+being checked against a key you do not hold. Unknown and closed academies both
+404, identically, so the route cannot be used to enumerate academy ids.
+
+**There is deliberately no client-callable "confirm payment" endpoint.**
+A redirect back from a provider proves nothing, so the API offers no way to say
+it happened. `POST /orders/{order}/pay` moves the order to `awaiting_payment`
+and returns somewhere to send the learner; it grants nothing. Access arrives
+only through the webhook (ADR-05), and `CheckoutApiTest` asserts that
+`/confirm`, `/complete`, `/success` and `/capture` all 404.
+
+**Checkout invariants.** `POST /cart/items` and `POST /checkout` ignore any
+price in the request. Every line is re-read from `product_prices` in the
+basket's currency at the moment the order is placed — which is why `cart_items`
+stores no price. The basket's `estimated_total_minor` is labelled an estimate
+because it is: the figure that charges is the one written onto the order.
+
+**Currency.** A basket takes the platform's base currency when it is created
+and never changes it. A product with no price in that currency cannot be
+added — a 409, not a silent conversion. Multi-currency checkout is deferred.
+
+**Gateway credentials are write-only.** No response ever contains them; the API
+says only whether a gateway `is_connected` and `has_webhook_secret`. A partial
+`PUT` keeps what it does not send, so toggling test mode cannot silently
+disconnect a gateway.
 
 ### Media — live
 ```
