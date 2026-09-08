@@ -322,15 +322,15 @@ reads yet.
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
-| N1 | Live session model + schedule | Pro | Yes | P15 | Provider-agnostic |
-| N2 | Zoom integration | Pro | Yes | P15 | |
-| N3 | Google Meet integration | Pro | Yes | P15 | |
-| N4 | Cohorts (a scheduled run of a course) | — | Yes | P15 | |
-| N5 | Attendance | Pro | Yes | P15 | |
-| N6 | Webinars (standalone, registration) | — | Yes | P15 | |
-| N7 | Reminders | Pro | Yes | P15 | Scheduler + queue |
-| N8 | Recording linkage | Pro | Yes | P15 | |
-| N9 | Calendar view | Pro | Yes | P15 | |
+| N1 | Live session model + schedule | Pro | Yes | **P15** | Provider-agnostic; status derived from the clock |
+| N2 | Zoom integration | Pro | Yes | **P15 ⚠** | Written, never contacted — no credentials |
+| N3 | Google Meet integration | Pro | Yes | **P15 ⚠** | Written, never contacted — no credentials |
+| N4 | Cohorts (a scheduled run of a course) | — | Yes | **P15** | Narrows the audience; capacity locked with enrolment |
+| N5 | Attendance | Pro | Yes | **P15** | The join click is the record; `source` says which evidence |
+| N6 | Webinars (standalone, registration) | — | Yes | **P15** | Members-only until P16 gives it a public site |
+| N7 | Reminders | Pro | Yes | **P15** | Claimed before sending; window floored as well as capped |
+| N8 | Recording linkage | Pro | Yes | **P15** | A media id on the session; no upload flow yet |
+| N9 | Calendar view | Pro | Yes | **P15** | Grouped by local day; a cohort only sees its own |
 
 ## O. Content & Site
 

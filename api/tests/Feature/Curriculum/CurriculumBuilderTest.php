@@ -8,6 +8,7 @@ use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Curriculum\Models\Lesson;
 use App\Domain\Identity\Models\User;
+use App\Domain\Live\Models\LiveSession;
 use App\Domain\Media\Enums\MediaCollection;
 use App\Domain\Media\Models\Media;
 
@@ -43,19 +44,46 @@ it('adds a lesson to a section', function (): void {
 });
 
 /*
- * The spine declares every future item type, but only types whose entity
- * exists can be created. Assignment arrives in Phase 8, live_session in P15.
+ * The spine declared every future item type from Phase 5 and gated creation on
+ * `isAvailable()`. As of P15 they all exist, so what this now guards is the
+ * OTHER half of that design: a type the enum has never heard of is still
+ * refused at the edge rather than reaching the itemable factory.
  */
-it('refuses an item type that does not exist yet', function (): void {
+it('refuses an item type the spine has never heard of', function (): void {
     $section = CourseSection::factory()->create(['course_id' => $this->course->id]);
 
     expect($this->actingAs($this->instructor)
         ->postJson("/api/v1/studio/courses/{$this->course->uuid}/items", [
             'section_id' => $section->id,
-            'type' => 'live_session',
-            'title' => 'Too early',
+            'type' => 'seminar',
+            'title' => 'Not a thing',
         ])
         ->assertStatus(422))->toBeApiError('validation_failed');
+});
+
+it('creates a live session as a placeholder with no link', function (): void {
+    $section = CourseSection::factory()->create(['course_id' => $this->course->id]);
+
+    $response = $this->actingAs($this->instructor)
+        ->postJson("/api/v1/studio/courses/{$this->course->uuid}/items", [
+            'section_id' => $section->id,
+            'type' => 'live_session',
+            'title' => 'Week 1 call',
+        ])
+        ->assertCreated();
+
+    $session = LiveSession::query()->sole();
+
+    /*
+     * Deliberately no join URL. The learner's pane says the link has not been
+     * added rather than offering a dead button — the same treatment a lesson
+     * with no body gets.
+     */
+    expect($session->join_url)->toBeNull()
+        ->and($session->title)->toBe('Week 1 call')
+        // The course owner hosts by default; the author can change it.
+        ->and($session->host_id)->toBe($this->course->owner_id)
+        ->and($response->json('data.type'))->toBe('live_session');
 });
 
 it('creates an assignment item now that the assignment entity exists', function (): void {

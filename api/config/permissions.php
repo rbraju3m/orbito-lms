@@ -144,6 +144,18 @@ $permissions = [
         'media.library.view.any' => 'Browse the whole media library',
     ],
 
+    'live' => [
+        // Scheduling a class is a course-authoring act, so `.own` is the
+        // scoped key every instructor holds and the gate narrows it to the
+        // courses they actually staff.
+        'live.manage.own' => 'Schedule live sessions and cohorts in scope',
+        'live.manage.any' => 'Schedule live sessions and cohorts anywhere',
+        // A webinar belongs to no course, so there is nothing to scope it to —
+        // it is an academy-wide capability and its own key.
+        'webinar.manage' => 'Create and publish webinars',
+        'attendance.mark' => 'Mark a session roster',
+    ],
+
     'analytics' => [
         'analytics.view.own' => 'View analytics in scope',
         'analytics.view.platform' => 'View platform-wide analytics',
@@ -258,6 +270,7 @@ return [
                 'review.reply.own',
                 'discussion.create', 'discussion.reply', 'discussion.moderate',
                 'announcement.manage',
+                'live.manage.own', 'attendance.mark',
                 'media.upload', 'media.delete.own',
                 // Export sits beside view, not above it. Somebody who can see
                 // a figure and not save it will copy it out by hand, and the
@@ -302,6 +315,7 @@ return [
                 'review.reply.own',
                 'discussion.create', 'discussion.reply', 'discussion.moderate',
                 'announcement.manage',
+                'live.manage.own', 'attendance.mark',
                 'media.upload',
                 'analytics.view.own', 'analytics.export',
                 'ai.use',

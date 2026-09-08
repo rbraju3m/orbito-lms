@@ -14,6 +14,8 @@ use App\Domain\Enrollment\Exceptions\EnrollmentRejected;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Enrollment\Support\PrerequisiteCheck;
 use App\Domain\Identity\Models\User;
+use App\Domain\Live\Exceptions\LiveSessionRejected;
+use App\Domain\Live\Models\Cohort;
 use App\Domain\Progress\Actions\RecalculateCourseProgress;
 use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
@@ -97,8 +99,32 @@ final class EnrollInCourse
                     throw EnrollmentRejected::courseFull();
                 }
 
+                /*
+                 * The cohort's capacity, checked in the SAME transaction and
+                 * behind its own row lock. Two learners taking the last place
+                 * in a run is the identical race the course seat limit was
+                 * fixed for in Phase 9.
+                 */
+                if ($intent->cohortId !== null) {
+                    $cohort = Cohort::query()->lockForUpdate()->find($intent->cohortId);
+
+                    if ($cohort === null || ! $cohort->status->isEnrollable()) {
+                        throw LiveSessionRejected::cohortClosed();
+                    }
+
+                    if ($cohort->enrollment_deadline !== null && $cohort->enrollment_deadline->isPast()) {
+                        throw LiveSessionRejected::cohortClosed();
+                    }
+
+                    if ($cohort->capacity !== null
+                        && $cohort->enrollments()->count() >= $cohort->capacity) {
+                        throw LiveSessionRejected::cohortFull();
+                    }
+                }
+
                 $enrollment = Enrollment::create([
                     'course_id' => $course->id,
+                    'cohort_id' => $intent->cohortId,
                     'user_id' => $user->id,
                     'status' => EnrollmentStatus::Active,
                     'source' => $intent->source,

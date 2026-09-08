@@ -27,7 +27,30 @@ final readonly class EnrollmentIntent
         public ?CarbonInterface $expiresAt = null,
         public bool $bypassPayment = false,
         public bool $bypassPrerequisites = false,
+        /**
+         * Which RUN of the course, when the academy schedules them.
+         *
+         * It sits here rather than in a second action because the cohort's
+         * capacity has to be checked in the same transaction as the course's
+         * seat limit — two writes would let two people take one last place
+         * (§ Phase 9's lesson, applied again).
+         */
+        public ?int $cohortId = null,
     ) {}
+
+    /** The same path, aimed at one scheduled run. */
+    public function forCohort(int $cohortId): self
+    {
+        return new self(
+            source: $this->source,
+            sourceId: $this->sourceId,
+            startsAt: $this->startsAt,
+            expiresAt: $this->expiresAt,
+            bypassPayment: $this->bypassPayment,
+            bypassPrerequisites: $this->bypassPrerequisites,
+            cohortId: $cohortId,
+        );
+    }
 
     /** A learner enrolling themselves in a free course. Bypasses nothing. */
     public static function free(): self

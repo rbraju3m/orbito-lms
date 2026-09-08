@@ -246,6 +246,19 @@ export const router = createBrowserRouter([
           },
 
           {
+            path: 'calendar',
+            lazy: async () => ({
+              Component: (await import('@/features/live/routes/CalendarRoute')).CalendarRoute,
+            }),
+          },
+          {
+            path: 'webinars',
+            lazy: async () => ({
+              Component: (await import('@/features/live/routes/WebinarsRoute')).WebinarsRoute,
+            }),
+          },
+
+          {
             path: 'achievements',
             lazy: async () => ({
               Component: (await import('@/features/gamification/routes/AchievementsRoute'))

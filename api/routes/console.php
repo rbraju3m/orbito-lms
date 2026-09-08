@@ -64,3 +64,10 @@ Schedule::command('gamification:leaderboards')->hourly()->withoutOverlapping();
  * deploy and safe to run twice — an academy's own tuning is never touched.
  */
 Schedule::command('gamification:sync')->dailyAt('02:50')->withoutOverlapping();
+
+/*
+ * Live-session reminders. Every five minutes, looking thirty ahead — the
+ * window is bounded at both ends so a scheduler that was down does not send
+ * "starts in 30 minutes" about a class that has already finished.
+ */
+Schedule::command('live:remind')->everyFiveMinutes()->withoutOverlapping();

@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
  * @property int $id
  * @property string $uuid
  * @property int $course_id
+ * @property int|null $cohort_id
  * @property int $user_id
  * @property EnrollmentStatus $status
  * @property EnrollmentSource $source
@@ -41,7 +42,7 @@ final class Enrollment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'course_id', 'user_id', 'status', 'source', 'source_id',
+        'course_id', 'cohort_id', 'user_id', 'status', 'source', 'source_id',
         'enrolled_at', 'starts_at', 'expires_at', 'completed_at',
         'suspended_at', 'suspended_reason',
     ];

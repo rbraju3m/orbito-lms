@@ -618,6 +618,53 @@ Five things about this surface are decisions rather than shape:
   you already hold is a trophy cabinet; hiding the requirement makes it a
   lottery.
 
+### Live learning — live (P15)
+```
+GET    /calendar?from=&to=                      the caller's own diary
+
+GET    /courses/{course}/live-sessions · POST
+PATCH  /live-sessions/{id} · DELETE             DELETE cancels, never deletes
+POST   /live-sessions/{id}/join                 a WRITE: the click is the attendance
+POST   /live-sessions/{id}/leave
+GET    /live-sessions/{id}/attendance · POST    the roster; POST marks it
+
+GET    /courses/{course}/cohorts · POST
+PATCH  /cohorts/{id} · DELETE
+POST   /cohorts/{id}/join
+
+GET    /webinars · GET /webinars/{id}
+POST   /webinars/{id}/register · DELETE
+```
+
+Six things about this surface are decisions rather than shape:
+
+- **`POST /live-sessions/{id}/join` is a write.** Following the link is the
+  only attendance signal every provider has in common — the manual one reports
+  nothing at all — so the click is what fills the roster. Handing out the URL
+  as a field on a GET would leave every roster empty.
+- **`join_url` is present only while the session is JOINABLE and only to
+  somebody in the audience.** The window opens fifteen minutes early, because
+  people arrive early for a class. A link rendered a week ahead ends up in a
+  group chat.
+- **There is no `host_url` anywhere.** On Zoom the start link opens the meeting
+  AS the host. The model hides it and no resource names it.
+- **`status` is derived from the clock on every read**, never a swept column —
+  the same reasoning as drip and sale prices. A status that needed a cron to
+  become true would be wrong exactly when somebody is trying to join.
+- **`DELETE` on a session CANCELS it.** The attendance, the recording and the
+  fact that it was called off are all things somebody may need later.
+- **Webinar registration is members-only**, and that follows from the tenancy
+  design rather than a product choice: tenancy resolves from the authenticated
+  user, so there is no anonymous surface to register from. The public path
+  arrives with the marketing site in P16 — the registration is already keyed
+  on EMAIL so the two cannot produce two places for one person.
+
+A session carries both an instant and the IANA `timezone` it was **scheduled**
+in. That is the opposite of every other dated thing in this API — analytics
+days, streaks and leaderboards are all UTC days — because a class happens at a
+real moment somebody has to be awake for, and "Tuesdays at 7pm Dhaka time" has
+to survive a daylight-saving change somewhere else.
+
 ### Settings — planned
 ```
 GET    /admin/settings · PATCH /admin/settings

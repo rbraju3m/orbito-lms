@@ -6,6 +6,7 @@ namespace App\Domain\Curriculum\Actions;
 
 use App\Domain\Assessment\Models\Assignment;
 use App\Domain\Assessment\Models\Quiz;
+use App\Domain\Catalog\Models\Course;
 use App\Domain\Curriculum\Enums\ItemType;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Exceptions\CurriculumRejected;
@@ -13,6 +14,9 @@ use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
 use App\Domain\Curriculum\Models\Lesson;
 use App\Domain\Curriculum\Models\Resource;
+use App\Domain\Live\Enums\LiveProvider;
+use App\Domain\Live\Enums\SessionStatus;
+use App\Domain\Live\Models\LiveSession;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -27,7 +31,7 @@ final class ManageItems
         $course = $section->loadMissing('course')->course;
 
         $item = DB::transaction(function () use ($section, $course, $type, $title): CourseItem {
-            $itemable = $this->makeItemable($type);
+            $itemable = $this->makeItemable($type, $course, $title);
 
             // New items land at the end of their section, which after
             // normalisation means the correct course-global position.
@@ -98,7 +102,7 @@ final class ManageItems
             $original = $item->itemable;
             $itemable = $original !== null
                 ? tap($original->replicate())->save()
-                : $this->makeItemable($item->type);
+                : $this->makeItemable($item->type, $course, $item->title);
 
             return CourseItem::create([
                 'course_id' => $course->id,
@@ -124,14 +128,41 @@ final class ManageItems
         return $copy;
     }
 
-    private function makeItemable(ItemType $type): Model
+    private function makeItemable(ItemType $type, Course $course, string $title): Model
     {
         return match ($type) {
             ItemType::Lesson => Lesson::create([]),
             ItemType::Resource => Resource::create([]),
             ItemType::Quiz => Quiz::create([]),
             ItemType::Assignment => Assignment::create([]),
-            default => throw CurriculumRejected::typeUnavailable($type),
+            ItemType::LiveSession => $this->makeLiveSession($course, $title),
         };
+    }
+
+    /**
+     * A live session lands as a PLACEHOLDER with no join link.
+     *
+     * Every other itemable is created empty and filled in afterwards, and this
+     * follows that — but a session has required columns a bare row cannot
+     * satisfy, so it gets a time a day out and the course owner as its host.
+     * Deliberately NO `join_url`: the learner's pane says the link has not
+     * been added rather than offering a dead button, which is the same
+     * treatment a lesson with no body gets.
+     *
+     * Scheduling it properly goes through CreateLiveSession, which is where
+     * the provider call lives. This one never talks to anybody.
+     */
+    private function makeLiveSession(Course $course, string $title): LiveSession
+    {
+        return LiveSession::create([
+            'course_id' => $course->id,
+            'provider' => LiveProvider::Manual,
+            'host_id' => $course->owner_id,
+            'title' => $title,
+            'starts_at' => now()->addDay()->startOfHour(),
+            'ends_at' => now()->addDay()->startOfHour()->addHour(),
+            'timezone' => 'UTC',
+            'status' => SessionStatus::Scheduled,
+        ]);
     }
 }

@@ -62,7 +62,7 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
 /learn/:courseId/:itemId           the player                             ✅
     ├─ content pane (video | text | pdf | quiz | assignment | live)
     ├─ curriculum drawer (mobile) / sidebar (desktop)
-    └─ tabs: Notes · Q&A · Announcements · Leaderboard                    ✅
+    └─ tabs: Notes · Q&A · Announcements · Live · Leaderboard             ✅
 
 The two STATIC segments are declared before `:itemId`, which would otherwise
 swallow them. They are also the `action_path` values the server freezes into a
@@ -76,6 +76,8 @@ convenience: a link in a year-old email has to still land somewhere.
 /dashboard/courses                 enrolled (in progress | completed | all)✅
 /certificates                      shipped at the root, not under /dashboard ✅
 /wishlist                          saved courses; empties itself on enrol  ✅
+/calendar                          the next month, grouped by local day     ✅
+/webinars                          open sessions, members-only              ✅
 /achievements                      points, badges, streak, opt-out         ✅
 /leaderboard                       the academy board                       ✅
 /notifications                     the inbox                               ✅
@@ -179,7 +181,8 @@ src/
     ├── engagement/    ✅ reviews, Q&A, announcements, wishlist
     ├── notification/  ✅ the bell, the inbox, the preference matrix
     ├── analytics/     ✅ the academy dashboard, the course panel, the heatmap
-    └── gamification/  ✅ the badge wall, the boards, the opt-out
+    ├── gamification/  ✅ the badge wall, the boards, the opt-out
+    └── live/          ✅ the calendar, session cards, webinars
 ```
 
 `notification/` is its own feature rather than a corner of `engagement/`,

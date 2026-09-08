@@ -45,6 +45,7 @@ import { useTrackView } from '@/features/analytics/hooks/useTrackView';
 import { AnnouncementList } from '@/features/engagement/components/AnnouncementList';
 import { DiscussionPanel } from '@/features/engagement/components/DiscussionPanel';
 import { LeaderboardTable } from '@/features/gamification/components/LeaderboardTable';
+import { CourseSessionsPanel } from '@/features/live/components/CourseSessionsPanel';
 
 export function PlayerRoute() {
   const { courseId = '', itemId } = useParams();
@@ -313,6 +314,7 @@ export function PlayerRoute() {
                     <Tabs.Tab value="notes">Notes</Tabs.Tab>
                     <Tabs.Tab value="qa">Q&amp;A</Tabs.Tab>
                     <Tabs.Tab value="announcements">Announcements</Tabs.Tab>
+                    <Tabs.Tab value="live">Live</Tabs.Tab>
                     <Tabs.Tab value="leaderboard">Leaderboard</Tabs.Tab>
                   </Tabs.List>
 
@@ -338,6 +340,10 @@ export function PlayerRoute() {
                    * free time; a ranking of one course compares people doing
                    * the same thing.
                    */}
+                  <Tabs.Panel value="live" pt="md">
+                    <CourseSessionsPanel courseId={courseId} />
+                  </Tabs.Panel>
+
                   <Tabs.Panel value="leaderboard" pt="md">
                     <LeaderboardTable courseId={courseId} />
                   </Tabs.Panel>

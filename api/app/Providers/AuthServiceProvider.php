@@ -38,6 +38,7 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Policies\InstructorProfilePolicy;
 use App\Domain\Identity\Policies\RolePolicy;
 use App\Domain\Identity\Policies\UserPolicy;
+use App\Domain\Live\Models\LiveSession;
 use App\Domain\Media\Models\Media;
 use App\Domain\Media\Policies\MediaPolicy;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -73,6 +74,7 @@ final class AuthServiceProvider extends ServiceProvider
         $this->registerCurriculumGates();
         $this->registerCommerceGates();
         $this->registerAnalyticsGates();
+        $this->registerLiveGates();
     }
 
     /**
@@ -94,6 +96,7 @@ final class AuthServiceProvider extends ServiceProvider
             'resource' => Resource::class,
             'quiz' => Quiz::class,
             'assignment' => Assignment::class,
+            'live_session' => LiveSession::class,
 
             /*
              * Analytics subjects (P13). `analytics_events.subject_type` is a
@@ -123,6 +126,40 @@ final class AuthServiceProvider extends ServiceProvider
             'review' => Review::class,
             'discussion_reply' => DiscussionReply::class,
         ]);
+    }
+
+    /**
+     * Live learning.
+     *
+     * `manage-live-for-course` is SCOPED-ONLY on the staff half — the §
+     * Authorization trap, for the fourth time: every instructor holds
+     * `live.manage.own` globally, so a union check would let any of them
+     * schedule a class in anybody's course and email the roster about it.
+     *
+     * Webinars belong to no course, so there is nothing to scope: a single
+     * academy-wide key, checked with no model.
+     */
+    private function registerLiveGates(): void
+    {
+        Gate::define('manage-live-for-course', function (User $user, Course $course): bool {
+            if ($user->hasPermission('live.manage.any')) {
+                return true;
+            }
+
+            return $user->hasPermission('live.manage.own')
+                && ($course->isStaffedBy($user)
+                    || $user->hasAnyScopedPermission(['live.manage.own'], $course));
+        });
+
+        Gate::define(
+            'manage-webinars',
+            fn (User $user): bool => $user->hasPermission('webinar.manage'),
+        );
+
+        Gate::define(
+            'mark-attendance',
+            fn (User $user): bool => $user->hasPermission('attendance.mark'),
+        );
     }
 
     /**

@@ -959,9 +959,73 @@ streaks and snapshot leaderboards. Front and back.
 boards (P15 can add the scope), and any way to spend points. Points are a score,
 not a currency — a shop would make every rule a pricing decision.
 
-### Phase 15 — Live Learning
-Cohorts · `LiveSessionProvider` with Zoom and Google Meet · sessions as curriculum items ·
-attendance · webinars with registration · reminders · calendar.
+### Phase 15 — Live Learning ✅ complete (with one honest gap)
+
+Cohorts, a provider seam with three implementations, sessions on the
+curriculum spine, attendance, webinars, reminders and a calendar. Front and
+back.
+
+**⚠ THE GAP, stated first because it is the same one Phase 10 has.**
+`ZoomProvider` and `GoogleMeetProvider` are written against the published APIs
+and **have never contacted either service**. An integration cannot be proven
+without credentials, and calling the phase complete without saying so is how a
+feature ships and fails on its first real use. `ManualProvider` — the host
+pastes a link — is fully working and tested, and is what most academies will
+use anyway: Orbito keeps the schedule, the roster, the reminders and the
+attendance, which is the part a video service does badly.
+
+**The decisions worth knowing before changing any of it:**
+
+- **The provider call happens BEFORE the row is written.** A session saved
+  first and then failing at Zoom would leave a row in the schedule with no way
+  to join it — visible to learners, in their calendar, dead.
+- **Cancelling is the reverse:** cancelled HERE first, at the provider second,
+  and a provider failure is swallowed. A session cancelled upstream but still
+  `scheduled` here sends forty people to a dead link.
+- **Following the link IS the attendance record.** It is the only signal every
+  provider has in common, so `join` is a POST and there is no way to get the
+  URL without recording the visit.
+- **The join window opens fifteen minutes early**, because people arrive early
+  for a class and a link that refuses them until the second is a support
+  ticket every time.
+- **`host_url` never leaves the server.** On Zoom the start link opens the
+  meeting as the host; the model hides it, no resource names it, and a test
+  asserts it never appears.
+- **A live session is completable but NOT self-markable**, like a quiz and an
+  assignment. The difference is only what counts as earning it: no score, no
+  submission, so the evidence is attendance.
+- **A cohort NARROWS the audience.** A session attached to one is for that run
+  only. Showing it to everybody on the course is the mistake that makes
+  cohorts pointless, and the calendar query is written around exactly that.
+- **Cohort capacity is checked inside the enrolment transaction**, behind the
+  cohort's own row lock — the third time this race has come up and the third
+  time it is written the same way rather than checked-then-inserted.
+- **`reminder_sent_at` is claimed BEFORE the reminders go out.** A crash
+  halfway under-notifies a few people; the reverse mails everybody twice on
+  every retry. The window has a FLOOR as well as a ceiling, so a scheduler
+  that was down does not send "starts in 30 minutes" about a class that
+  finished.
+- **A session stores an instant and the zone it was scheduled in** — the
+  opposite of every other dated thing in the system, and for a good reason:
+  a class happens at a moment somebody has to be awake for.
+
+**Webinar registration is members-only**, which is a consequence of the
+tenancy design rather than a product choice: tenancy resolves from the
+authenticated user, so there is no anonymous surface to register from. The
+registration is already keyed on EMAIL so the public path in P16 cannot
+produce two places for one person.
+
+**The bug this phase caught, again:** `LiveSession` became an itemable and was
+not in the enforced morph map, so creating one was a 500 — the identical
+failure Phase 14 hit with `Review`. Loudly, in the suite. Registering a model
+in the map is now part of making it an itemable or a trigger source, and it is
+in CLAUDE.md twice.
+
+**Not built:** provider-reported attendance reconciliation (the `source` column
+and the interface's deliberate silence on it are the seam), recurring sessions
+as a single row — a cohort's weekly call is many sessions, because the roster
+and the attendance are per occurrence — and any studio UI for scheduling
+beyond the API.
 
 ### Phase 16 — Advanced Business
 Subscriptions and memberships · bundles · digital downloads · coaching/booking · blog ·

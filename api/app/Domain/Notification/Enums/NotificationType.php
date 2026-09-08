@@ -36,6 +36,9 @@ enum NotificationType: string
     /** You earned a badge. */
     case BadgeAwarded = 'badge.awarded';
 
+    /** A live session you are expected at starts soon. */
+    case SessionReminder = 'session.reminder';
+
     public function label(): string
     {
         return match ($this) {
@@ -45,6 +48,7 @@ enum NotificationType: string
             self::AssignmentGraded => 'My assignment is graded',
             self::CertificateIssued => 'My certificate is ready',
             self::BadgeAwarded => 'I earned a badge',
+            self::SessionReminder => 'Live sessions I am due at',
         };
     }
 
@@ -57,6 +61,7 @@ enum NotificationType: string
             self::AssignmentGraded => 'When an instructor grades work you submitted.',
             self::CertificateIssued => 'When you complete a course and the certificate is issued.',
             self::BadgeAwarded => 'When you earn a badge.',
+            self::SessionReminder => 'Shortly before a live session you are enrolled in or registered for.',
         };
     }
 

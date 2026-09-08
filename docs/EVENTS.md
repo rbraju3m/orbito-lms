@@ -15,7 +15,7 @@ any event is readable in one place.
 
 ## 1. What exists today (Phase 12)
 
-Thirty-seven events across twelve contexts.
+Thirty-nine events across thirteen contexts.
 
 ### Identity
 
@@ -152,6 +152,22 @@ because it exists to trigger a recount. `AnswerAccepted` fires on ACCEPTING
 only — un-accepting is not an event anybody downstream wants, and a listener
 reading a flag to decide whether to do nothing should not have been called.
 
+### Live
+
+| Event | Payload | Fired when |
+|---|---|---|
+| `SessionScheduled` | `LiveSession $session`, `bool $isNew` | a session is created or moved |
+| `AttendanceRecorded` | `SessionAttendance $attendance` | somebody is at a session for the first time |
+
+`SessionScheduled` covers creation AND rescheduling, because both are "there
+is a thing in your calendar at this moment"; `$isNew` says which rather than
+making it two events that must never disagree.
+
+`AttendanceRecorded` fires once per (session, learner) — the unique key makes
+a second impossible — so a listener may complete a curriculum item without
+checking whether it already did. Rejoining after a dropped connection extends
+the row and fires nothing.
+
 ### Gamification
 
 | Event | Payload | Fired when |
@@ -212,6 +228,7 @@ because starting again is worth knowing too.
 | `PointsAwarded` | `EvaluateBadges@points` | Gamification | **yes** |
 | `StreakExtended` | `EvaluateBadges@streak` | Gamification | **yes** |
 | `BadgeAwarded` | `NotifyOnBadgeAwarded` | Notification | **yes** |
+| `AttendanceRecorded` | `CompleteItemOnAttendance` | Live | **yes** |
 
 `RecountEnrollmentTotals` was the first `ShouldQueue` listener: adding one
 lesson changes the denominator for every enrolled learner, and ten thousand
@@ -291,7 +308,7 @@ vocabulary for the same fact.
 | `CertificateIssued` shipped P11; `CertificateRevoked` not built | Certification | — |
 | ~~`ReviewPublished`, `QuestionAsked`, `QuestionAnswered`~~ | Engagement | **shipped P12** as `ReviewChanged`, `QuestionAsked`, `DiscussionReplied`, `AnnouncementPublished`; `ReviewPublished` and `AnswerAccepted` followed in P14 |
 | ~~`BadgeAwarded`, `StreakExtended`~~ | Gamification | **shipped P14**, with `PointsAwarded` |
-| `SessionScheduled`, `AttendanceRecorded` | Live | P15 |
+| ~~`SessionScheduled`, `AttendanceRecorded`~~ | Live | **shipped P15** |
 | `RoleAssignmentExpired` | Identity | still open — the enrolment sweeper shipped in P9 without it |
 
 Outbound webhooks (ADR-12) subscribe to this catalogue rather than to anything

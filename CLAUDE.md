@@ -508,10 +508,52 @@ Gate::authorize('publish', $course);                   // in a controller
 
 ---
 
-## 19. Multi-tenancy — read this before touching a model or a query
+## 19. Patterns established in Phase 15 — reuse these
+
+- **Call the outside world BEFORE writing the row, and undo it after.**
+  Creating a meeting fails first so the academy learns at the moment of
+  scheduling; cancelling writes locally first so a provider outage cannot stop
+  an academy calling off a class. The order is opposite in each direction and
+  both directions are the safe one.
+- **A provider integration you cannot exercise is UNPROVEN, and the code says
+  so.** Zoom and Google Meet carry a ⚠ in their docblocks. The one that works
+  is the manual one, and it is not a fallback.
+- **`cancel()` must not throw when the thing is already gone.** A 404 upstream
+  is the outcome the caller wanted; treating it as failure leaves the record
+  cancelled here and live there.
+- **A credential-bearing URL is `$hidden` on the model AND absent from every
+  resource.** Two independent misses are needed to leak it, and there is a
+  test asserting the string never appears in a response.
+- **Derive a status from the clock; never sweep it.** A status that needs a
+  cron to become true is wrong for as long as the cron is late — which is
+  exactly when somebody is trying to use it.
+- **Open a time window early on purpose.** People arrive early; a door that
+  refuses them until the second is a support ticket every time. Fifteen
+  minutes, stated in the code.
+- **Claim a "did we already send?" flag BEFORE sending.** Crashing halfway
+  under-notifies a few people; the reverse mails everybody twice on every
+  retry. And floor the window as well as capping it, or a late sweeper
+  announces something that has already finished.
+- **Anything that reschedules must clear what the old schedule triggered.**
+  A moved session with a stale `reminder_sent_at` never reminds again.
+- **A scoping column NARROWS an audience, and every read has to honour it.**
+  A cohort's session shown to the whole course is the mistake that makes
+  cohorts pointless.
+- **A capacity check belongs inside the transaction that inserts**, behind the
+  row's own lock. Third time in this codebase; write it the same way.
+- **An instant and a timezone are two facts.** Store both when the thing
+  happens at a real moment somebody has to be awake for — the opposite of the
+  UTC-day rule for anything derived.
+- **Register a model in the morph map when you make it an itemable or a
+  trigger source.** Second phase running that this was the bug; the enforced
+  map is why it failed loudly instead of storing an FQCN.
+
+---
+
+## 20. Multi-tenancy — read this before touching a model or a query
 
 > Code comments cite this section as **`(§ Multi-tenancy)`**, by name and not
-> by number. It has been §16, §17, §18 and now §19 as phases added their own
+> by number. It has been §16 through §20 as phases added their own
 > pattern sections, and thirty comments quietly pointed at the wrong place
 > each time. Cite any section of this file by its NAME.
 
@@ -572,11 +614,11 @@ so the action that fixes a lapse survives it.
 
 ---
 
-## 20. Current phase
+## 21. Current phase
 
-**Phases 0–14 complete** front and back, plus a **multi-tenancy retrofit**
+**Phases 0–15 complete** front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-955 backend tests / 3127 assertions · 209 frontend tests.
+998 backend tests / 3236 assertions · 219 frontend tests.
 
 **Every MVP phase has shipped, but the MVP is not signed off.** Its own
 definition (`docs/ROADMAP.md` §3) says a student "buys it with a real verified
@@ -691,9 +733,33 @@ Three things the next reader will otherwise trip on:
   rules earns nothing, and deactivating a rule freezes the badges that depend
   on it. Both are the academy's choice showing through, not bugs.
 
+**Phase 15 (Live Learning) is COMPLETE with one honest gap.** Cohorts, a
+provider seam, sessions on the spine, attendance, webinars, reminders and a
+calendar are all built and tested. `ZoomProvider` and `GoogleMeetProvider`
+have **never contacted either service** — the same position `StripeGateway`
+is in. `ManualProvider` works and is what most academies will use. The
+patterns are in §19; the retro is in `docs/ROADMAP.md`.
+
+Three things the next reader will otherwise trip on:
+
+- **`join` is a POST because the click IS the attendance record.** It is the
+  only signal every provider has in common. Turning it into a field on a GET
+  would leave every roster empty.
+- **`host_url` must never reach a client.** On Zoom it opens the meeting AS
+  the host. It is `$hidden` and absent from every resource, and there is a
+  test asserting the string never appears in a response.
+- **A live session carries a timezone and everything derived carries a UTC
+  day.** Both are deliberate and they are not in conflict: a class happens at
+  a moment, a rollup describes a period.
+
 **Known debt, deliberately left:**
 
 - Plan **limits** are stored and counted but never enforced. Phase 16.
+- **No studio UI for scheduling.** Sessions and cohorts are creatable through
+  the API and visible everywhere they should be; the authoring screens are
+  not built.
+- **No provider-reported attendance.** `session_attendance.source` and the
+  interface's deliberate silence on the subject are the seam for it.
 - Points cannot be **spent**. They are a score, not a currency; a shop would
   turn every rule into a pricing decision.
 - Analytics has **no per-student activity view** (L6) and the instructor

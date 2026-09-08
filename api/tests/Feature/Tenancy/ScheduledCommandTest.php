@@ -81,6 +81,10 @@ it('syncs gamification rules with no tenant open', function (): void {
     ($this->centrally)('gamification:sync');
 });
 
+it('sends live session reminders with no tenant open', function (): void {
+    ($this->centrally)('live:remind');
+});
+
 it('builds leaderboards with no tenant open', function (): void {
     ($this->centrally)('gamification:leaderboards');
 });

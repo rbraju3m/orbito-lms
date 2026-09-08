@@ -33,11 +33,10 @@ enum ItemType: string
 
     public function isAvailable(): bool
     {
-        return match ($this) {
-            self::Lesson, self::Resource, self::Quiz, self::Assignment => true,
-            // Live session: Phase 15.
-            self::LiveSession => false,
-        };
+        // All of them, as of Phase 15. The method stays: the next content type
+        // declared here should be unavailable until it exists, rather than
+        // being creatable and half-built.
+        return true;
     }
 
     /** @return list<self> */
@@ -55,13 +54,14 @@ enum ItemType: string
     /**
      * Whether a learner may declare this item complete themselves.
      *
-     * A quiz is completed by submitting an attempt and an assignment by
-     * handing work in, not by pressing a button. Otherwise the "mark complete"
-     * endpoint would be a way past every graded item in the course — the
-     * frontend saying "done" is exactly what must not be trusted.
+     * A quiz is completed by submitting an attempt, an assignment by handing
+     * work in, and a live session by TURNING UP. None of them by pressing a
+     * button — otherwise the "mark complete" endpoint would be a way past
+     * every earned item in the course, and the frontend saying "done" is
+     * exactly what must not be trusted.
      */
     public function isSelfMarkable(): bool
     {
-        return ! in_array($this, [self::Quiz, self::Assignment], true);
+        return ! in_array($this, [self::Quiz, self::Assignment, self::LiveSession], true);
     }
 }

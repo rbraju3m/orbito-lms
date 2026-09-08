@@ -690,19 +690,34 @@ cannot work (§ Multi-tenancy).
 
 ---
 
-## 12. Live learning (P15) & Content (P16) — shape only
+## 12. Live learning (P15 — built) & Content (P16) — shape only
 
 ```sql
-cohorts(id, course_id, name, starts_at, ends_at, capacity, enrollment_deadline, status)
-live_sessions(id, uuid, course_id NULL, cohort_id NULL, course_item_id NULL,
-      provider ENUM(zoom,google_meet,custom), external_id, join_url, host_id,
-      title, starts_at, ends_at, timezone, status, recording_media_id NULL)
+-- TENANT, all of them.
+cohorts(id, uuid, course_id, name, starts_at, ends_at, timezone,
+      capacity NULL, enrollment_deadline NULL, status)
+      INDEX (course_id, status), INDEX (starts_at)
+
+live_provider_accounts(id, provider UNIQUE, credentials ENCRYPTED, is_active)
+
+live_sessions(id, uuid, course_id NULL, cohort_id NULL,
+      provider ENUM(manual,zoom,google_meet), external_id NULL,
+      join_url NULL, host_url NULL, host_id,
+      title, description, starts_at, ends_at, timezone, status,
+      recording_media_id NULL, reminder_sent_at NULL)
       INDEX (starts_at, status)
-session_attendance(id, live_session_id, user_id, joined_at, left_at, duration_seconds)
+      INDEX (course_id, starts_at), INDEX (cohort_id, starts_at)
+
+session_attendance(id, live_session_id, user_id, joined_at, left_at,
+      duration_seconds, source ENUM(self,host,provider))
       UNIQUE (live_session_id, user_id)
-webinars(id, uuid, title, description, starts_at, capacity, is_paid, product_id NULL, status)
+
+webinars(id, uuid, slug UNIQUE, title, description, live_session_id NULL,
+      capacity NULL, is_paid, product_id NULL, status)
 webinar_registrations(id, webinar_id, user_id NULL, email, name, status, registered_at)
       UNIQUE (webinar_id, email)
+
+enrollments.cohort_id NULL          -- which RUN they joined; null is self-paced
 
 bundles(id, title, slug, description, thumbnail_media_id, status)
 bundle_items(id, bundle_id, purchasable_type, purchasable_id, position)
@@ -723,6 +738,39 @@ pages(id, slug UNIQUE, title, status, seo JSON)
 page_blocks(id, page_id, type, position, props JSON)      -- the page-builder seam
 leads(id, email, name, phone, source, page_id NULL, course_id NULL, meta JSON)
 ```
+
+**A live session stores an instant AND a zone**, which is the opposite of
+every other dated thing here. Analytics days, streaks and leaderboards are UTC
+days because an academy has no timezone and a shifting local day cannot be
+rebuilt. A session is the reverse: it happens at a real moment somebody has to
+be awake for, so `starts_at` is UTC and `timezone` is the IANA zone it was
+SCHEDULED in — "Tuesdays at 7pm Dhaka time" has to survive a daylight-saving
+change somewhere else in the world.
+
+**`live_sessions.course_item_id` was dropped from the sketch.** A session that
+sits on the spine is reached the way every other itemable is —
+`course_items.itemable_type/itemable_id` — and a second link pointing back
+would be a second thing to keep in step, free to disagree.
+
+**`host_url` was added and is `$hidden` on the model.** On Zoom the start link
+opens the meeting AS the host; it is in no resource, and there is a test
+asserting it never appears in a response.
+
+**`session_attendance.source` was added.** A click on Join, a host marking a
+roster and a provider's own report are different kinds of evidence, and a
+compliance report that cannot tell them apart is one nobody can defend. A
+host's mark overrides a click; a click never downgrades a host's mark.
+
+**`reminder_sent_at` is a column, not a queue guard**, because the scheduler
+may run on more than one host and "did we already?" has to be answerable from
+the row. Rescheduling clears it, or everybody arrives on the old day holding
+an email that told them so.
+
+**`custom` became `manual`**, and it is not a fallback: the host schedules the
+meeting wherever they already do and pastes the link, and it is the provider
+that works today. Zoom and Google Meet are written and have never been
+contacted — the same honest position `StripeGateway` was left in at the end of
+P10.
 
 ---
 

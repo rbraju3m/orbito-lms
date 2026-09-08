@@ -44,6 +44,8 @@ use App\Domain\Identity\Events\UserLoggedIn;
 use App\Domain\Identity\Events\UserRegistered;
 use App\Domain\Identity\Listeners\SendEmailVerification;
 use App\Domain\Identity\Listeners\TouchLastSeen;
+use App\Domain\Live\Events\AttendanceRecorded;
+use App\Domain\Live\Listeners\CompleteItemOnAttendance;
 use App\Domain\Media\Events\MediaDeleted;
 use App\Domain\Media\Events\MediaUploaded;
 use App\Domain\Notification\Listeners\NotifyOnAnnouncementPublished;
@@ -211,6 +213,16 @@ final class EventServiceProvider extends ServiceProvider
         ],
         PaymentCaptured::class => [
             RecordCommerceEvents::class,
+        ],
+
+        /*
+         * Turning up completes the item. A live session is completable but
+         * NOT self-markable, like a quiz and an assignment — the difference
+         * is only what counts as earning it, and attendance is the evidence
+         * every provider can produce.
+         */
+        AttendanceRecorded::class => [
+            CompleteItemOnAttendance::class,
         ],
 
         /*
