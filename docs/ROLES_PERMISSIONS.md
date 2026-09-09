@@ -268,3 +268,47 @@ caller could legitimately fix answers **423 Locked** with the reason, not 403.
 
 **Counts at Phase 8:** 98 permission keys across 8 system roles, synced from
 `config/permissions.php` by `php artisan permissions:sync`.
+
+### The platform owner
+
+One permanent account, configured in `config/orbito.php` under `owner` and
+created by `EnsurePlatformOwner` — from `DatabaseSeeder`, from
+`php artisan orbito:ensure-owner`, and automatically at the end of every
+central migration. Idempotent, so a deploy repairs it rather than duplicating
+it.
+
+It is the only account that holds **both** super-admin answers, which are
+otherwise unrelated things (see `../CLAUDE.md` § Multi-tenancy):
+
+| | What it is | Where it lives |
+|---|---|---|
+| `users.is_super_admin` | the platform operator — runs the academy registry | central row, a flag |
+| `RoleKey::SuperAdmin` | everything on ONE academy's data, via `Gate::before` | that academy's schema |
+
+The owner is granted the role in **every** academy: by `TenantDatabaseSeeder`
+when one is provisioned, by `EnsurePlatformOwner` for the ones that already
+exist, and again by `EnterAcademy` on the way in. Which academy they are
+currently inside is `users.tenant_id`, moved by
+`POST /admin/tenants/{tenant}/enter`.
+
+**Three things are refused, in three independent places.** Delete, suspend and
+demote each throw `PlatformOwnerProtected`:
+
+| Where | Why it is not enough on its own |
+|---|---|
+| `UserPolicy` | keeps the button off the screen; but a policy the Gate never reaches protects nothing |
+| the Actions (`SuspendUser`, `RevokeRoleFromUser`) | a console command authorizes nothing |
+| `User::deleting` | the last line, for any path the other two do not cover |
+
+`Gate::before` — the one blanket bypass in the system — has exactly one
+exception, and this is it: when the subject of an ability is the platform
+owner it falls **through** to the policy instead of granting. Without that,
+any other Super Admin could delete the permanent account. It falls through
+rather than denying, so the harmless abilities (view, export) still work.
+
+`isPlatformOwner()` compares against the configured email rather than reading a
+column, deliberately: a boolean somebody can set is a boolean somebody can
+unset, and this is the account nobody can restore from inside the application.
+Changing `PLATFORM_OWNER_EMAIL` therefore *moves* the protection; it does not
+create a second protected account. The password is a seed — written once, at
+creation, never rewritten, so a deploy cannot revert a changed one.

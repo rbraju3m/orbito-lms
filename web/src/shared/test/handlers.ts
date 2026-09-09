@@ -42,6 +42,9 @@ export function sessionFixture(overrides: Record<string, unknown> = {}) {
     permissions: ['review.create', 'enrollment.view.own'],
     is_instructor: false,
     must_verify_email: false,
+    is_platform_operator: false,
+    is_platform_owner: false,
+    academy: { id: 'academy-1', slug: 'test-academy', name: 'Test Academy' },
     ...overrides,
   };
 }

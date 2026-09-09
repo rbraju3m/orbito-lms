@@ -10,6 +10,7 @@ use App\Domain\Identity\Exceptions\RoleAssignmentRejected;
 use App\Domain\Identity\Models\Role;
 use App\Domain\Identity\Models\RoleAssignment;
 use App\Domain\Identity\Models\User;
+use App\Domain\Platform\Exceptions\PlatformOwnerProtected;
 use Illuminate\Database\Eloquent\Model;
 
 final class RevokeRoleFromUser
@@ -18,8 +19,17 @@ final class RevokeRoleFromUser
     {
         // Locking everyone out of role management is unrecoverable without
         // database access, so the last Super Admin cannot be demoted.
-        if ($role->key === RoleKey::SuperAdmin->value && $this->isLastSuperAdmin($user, $role)) {
-            throw RoleAssignmentRejected::lastSuperAdmin();
+        if ($role->key === RoleKey::SuperAdmin->value) {
+            // The platform owner's grant is not the last-holder question: it
+            // must survive even in an academy with three other Super Admins,
+            // because it is what makes "the owner can always get in" true.
+            if ($user->isPlatformOwner()) {
+                throw PlatformOwnerProtected::cannotBeDemoted();
+            }
+
+            if ($this->isLastSuperAdmin($user, $role)) {
+                throw RoleAssignmentRejected::lastSuperAdmin();
+            }
         }
 
         $user->revokeRole($role->key, $scope);

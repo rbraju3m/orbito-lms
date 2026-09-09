@@ -3,7 +3,7 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
-**Where it stands after Phase 15:** 999 backend tests / 3,238 assertions across
+**Where it stands after Phase 15:** 1,014 backend tests / 3,298 assertions across
 18 Feature suites and 8 Unit suites · 219 frontend tests across 38 files ·
 PHPStan level 6 clean · Pint, oxlint, `tsc` and `vite build` clean.
 

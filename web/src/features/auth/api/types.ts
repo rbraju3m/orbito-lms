@@ -38,6 +38,25 @@ export interface Session {
   permissions: string[];
   is_instructor: boolean;
   must_verify_email: boolean;
+  /**
+   * The platform operator flag — the academy REGISTRY, not a role. An academy
+   * Super Admin is a different thing and appears in `roles`.
+   */
+  is_platform_operator: boolean;
+  /** The one permanent account. Cannot be deleted, suspended or demoted. */
+  is_platform_owner: boolean;
+  /**
+   * The academy the caller is inside. Always set for a member; null for an
+   * operator who has entered none, and then the product screens have no data
+   * behind them.
+   */
+  academy: SessionAcademy | null;
   /** Present only for token clients (mobile), never for the cookie SPA. */
   token?: string;
+}
+
+export interface SessionAcademy {
+  id: string;
+  slug: string;
+  name: string;
 }

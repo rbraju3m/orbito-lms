@@ -54,14 +54,17 @@ use App\Domain\Notification\Listeners\NotifyOnBadgeAwarded;
 use App\Domain\Notification\Listeners\NotifyOnCertificateIssued;
 use App\Domain\Notification\Listeners\NotifyOnDiscussionReplied;
 use App\Domain\Notification\Listeners\NotifyStaffOnQuestionAsked;
+use App\Domain\Platform\Actions\EnsurePlatformOwner;
 use App\Domain\Platform\Listeners\TrackCourseUsage;
 use App\Domain\Platform\Listeners\TrackInstructorUsage;
 use App\Domain\Platform\Listeners\TrackStorageUsage;
 use App\Domain\Progress\Events\CourseCompleted;
 use App\Domain\Progress\Events\ItemCompleted;
 use App\Domain\Progress\Listeners\RecountEnrollmentTotals;
+use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 /**
  * The domain event catalogue. Cross-context reactions are wired here and
@@ -259,5 +262,52 @@ final class EventServiceProvider extends ServiceProvider
                 Event::listen($event, $listener);
             }
         }
+
+        $this->ensurePlatformOwnerAfterMigrations();
+    }
+
+    /**
+     * "The owner exists whenever the application runs" made concrete.
+     *
+     * A boot-time check would be a database write on the path of every
+     * request; a seeder only runs when somebody asks. The honest hook is the
+     * end of a migration, which is what every install and every deploy does.
+     *
+     * Three guards, each for a real case:
+     *  - `tenancy()->initialized` — stancl migrates each academy's schema
+     *    through this same event, and the owner is a CENTRAL row.
+     *  - `up` — a rollback should not resurrect the account it just removed.
+     *  - testing — the suite migrates once per process OUTSIDE a transaction,
+     *    so a row written here would survive every rollback and skew any test
+     *    that counts users. `PlatformOwnerTest` calls the Action directly.
+     *
+     * It never throws into the migration: a partial `migrate --path` run has
+     * no `users` table, and a failed deploy is worse than a missing account
+     * that the next `orbito:ensure-owner` creates anyway.
+     *
+     * One honest limit, verified rather than assumed: Laravel prints "Nothing
+     * to migrate" and returns BEFORE firing this event, so a deploy that
+     * carries no new migration does not reach here. That is harmless on an
+     * installation that already has the owner and is exactly why
+     * `orbito:ensure-owner` exists as a command — an existing installation
+     * upgrading to this code needs one explicit run.
+     */
+    private function ensurePlatformOwnerAfterMigrations(): void
+    {
+        if ($this->app->runningUnitTests()) {
+            return;
+        }
+
+        Event::listen(function (MigrationsEnded $event): void {
+            if ($event->method !== 'up' || tenancy()->initialized) {
+                return;
+            }
+
+            try {
+                app(EnsurePlatformOwner::class)->handle();
+            } catch (Throwable $e) {
+                report($e);
+            }
+        });
     }
 }

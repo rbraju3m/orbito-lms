@@ -11,6 +11,7 @@ use App\Domain\Identity\Notifications\ResetPasswordNotification;
 use App\Domain\Identity\Notifications\VerifyEmailNotification;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\Platform\Actions\PurgeUserFromTenant;
+use App\Domain\Platform\Exceptions\PlatformOwnerProtected;
 use App\Domain\Platform\Models\Tenant;
 use Carbon\CarbonInterface;
 use Database\Factories\Identity\UserFactory;
@@ -89,6 +90,19 @@ final class User extends Authenticatable implements MustVerifyEmail
         });
 
         /*
+         * The platform owner is undeletable, and the guard sits HERE rather
+         * than only in the policy so that nothing reaches it by another path —
+         * a console command, a tinker session, a future admin endpoint that
+         * forgets to authorize. `deleting` covers the soft delete and the
+         * force delete alike, because a force delete fires it too.
+         */
+        self::deleting(function (self $user): void {
+            if ($user->isPlatformOwner()) {
+                throw PlatformOwnerProtected::cannotBeDeleted();
+            }
+        });
+
+        /*
          * `users` is central and the rows referencing it are not, so no foreign
          * key can cascade across the boundary any more. This does it in code.
          *
@@ -104,6 +118,25 @@ final class User extends Authenticatable implements MustVerifyEmail
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    /**
+     * The one permanent account, identified by the configured email.
+     *
+     * Deliberately NOT a column: a boolean somebody can set is a boolean
+     * somebody can unset, and the account this protects is the one nobody can
+     * restore from inside the application. `config('orbito.owner.email')` is
+     * the single definition — see config/orbito.php.
+     *
+     * This is not the same question as `is_super_admin` (the operator flag,
+     * which several accounts may hold) or `isSuperAdmin()` (a role inside one
+     * academy). The owner holds both; only they are protected.
+     */
+    public function isPlatformOwner(): bool
+    {
+        $email = trim((string) config('orbito.owner.email'));
+
+        return $email !== '' && strcasecmp($this->email, $email) === 0;
     }
 
     /**

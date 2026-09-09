@@ -325,10 +325,25 @@ final class AuthServiceProvider extends ServiceProvider
      *
      * Returning null (not false) for everyone else lets the normal policy chain
      * run — returning false here would deny everything.
+     *
+     * The one thing it does NOT cover is the platform owner. A bypass that
+     * skipped the policy would let any other Super Admin delete or suspend the
+     * permanent account, and "blanket" is exactly why the exception has to be
+     * written here rather than only in UserPolicy: a policy the Gate never
+     * reaches protects nothing.
      */
     private function registerSuperAdminBypass(): void
     {
-        Gate::before(function (User $user): ?bool {
+        /** @param array<int, mixed> $arguments */
+        Gate::before(function (User $user, string $ability, array $arguments = []): ?bool {
+            $target = $arguments[0] ?? null;
+
+            if ($target instanceof User && $target->isPlatformOwner()) {
+                // Fall through to the policy, which refuses the destructive
+                // abilities and allows the harmless ones.
+                return null;
+            }
+
             return $user->isSuperAdmin() ? true : null;
         });
     }

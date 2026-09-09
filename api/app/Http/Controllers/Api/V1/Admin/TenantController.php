@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Domain\Platform\Actions\AssignPlan;
 use App\Domain\Platform\Actions\ChangeTenantStatus;
+use App\Domain\Platform\Actions\EnterAcademy;
+use App\Domain\Platform\Actions\LeaveAcademy;
 use App\Domain\Platform\Actions\ProvisionTenant;
 use App\Domain\Platform\Data\NewAcademy;
 use App\Domain\Platform\Enums\TenantAction;
@@ -107,6 +109,34 @@ final class TenantController
         return ApiResponse::ok(
             TenantResource::make($updated->load('subscription.plan'))->resolve($request)
         );
+    }
+
+    /**
+     * Step INSIDE an academy.
+     *
+     * The registry is central; the product is not. An operator who has entered
+     * an academy resolves that academy's schema on every other route, which is
+     * what lets one account use the whole system — catalogue, builder, player,
+     * grading — rather than only the tenant list.
+     *
+     * Authorized by the `super_admin` middleware on the whole group, like
+     * every other route in this controller.
+     */
+    public function enter(Request $request, Tenant $tenant, EnterAcademy $action): JsonResponse
+    {
+        $action->handle($request->user(), $tenant);
+
+        return ApiResponse::ok(
+            TenantResource::make($tenant->load('subscription.plan'))->resolve($request)
+        );
+    }
+
+    /** Step back out, onto the central connection. */
+    public function leave(Request $request, LeaveAcademy $action): JsonResponse
+    {
+        $action->handle($request->user());
+
+        return ApiResponse::ok(['academy' => null]);
     }
 
     /**

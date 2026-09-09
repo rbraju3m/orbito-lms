@@ -141,6 +141,21 @@ name itself, and a stateful SPA must not be handed a bearer token it never asked
 `GET /auth/me` returns the user **and their resolved permission keys**, so the SPA can
 hide UI it may not use. The server still enforces every one of them independently.
 
+It also names which academy the caller is inside, and which of the two unrelated
+super-admin answers they hold:
+
+```jsonc
+{
+  "roles": ["super_admin"],       // roles INSIDE this academy
+  "is_platform_operator": true,   // users.is_super_admin — the academy REGISTRY
+  "is_platform_owner": true,      // the one permanent account
+  "academy": { "id": "…", "slug": "demo-academy", "name": "Demo Academy" }
+}
+```
+
+`academy` is null only for an operator who has entered none; a member always has
+one. See `ROLES_PERMISSIONS.md` §7 for why the two flags are different things.
+
 ---
 
 ## 4. Domain surface
@@ -366,12 +381,25 @@ POST   /admin/tenants                           provision {slug, name, owner_*, 
 GET    /admin/tenants/{tenant}
 PATCH  /admin/tenants/{tenant}                  {action: approve|reject|suspend|reactivate}
 PUT    /admin/tenants/{tenant}/plan             {plan, period_ends_at?}  — also RENEWS
+POST   /admin/tenants/{tenant}/enter            step INSIDE an academy
+POST   /admin/tenants/leave                     step back out, onto central
 ```
 
 Central-DB only, behind `super_admin`, and deliberately **outside** both the
 `tenant` and `subscription` middleware: a suspended or lapsed academy is
 exactly the one an operator needs to reach, and renewing is the action that
 unblocks it.
+
+**`enter` is how one account uses the whole product.** The registry is central;
+the catalogue, builder, player and grading are not. `users.tenant_id` is a
+single column, so an operator is inside one academy at a time and this is what
+moves them — `InitializeTenancyByAuthenticatedUser` then opens that schema on
+every other route. The platform owner holds Super Admin in every academy (see
+`ROLES_PERMISSIONS.md` §7), so the academy they enter is one they can use.
+
+An operator inside a **closed** academy is not locked out the way a member is:
+they fall through to the central connection rather than getting a 403, because
+the surface that reopens it is the one they need.
 
 ### Commerce — live (P10)
 

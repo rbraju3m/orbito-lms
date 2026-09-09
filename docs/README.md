@@ -3,7 +3,7 @@
 **Status: Phases 0–15 complete**, front and back, plus a **multi-tenancy
 retrofit** (ADR-13) that reversed the single-tenant decision partway through.
 
-999 backend tests / 3,238 assertions · 219 frontend tests · Pint, PHPStan
+1,014 backend tests / 3,298 assertions · 219 frontend tests · Pint, PHPStan
 level 6, oxlint, tsc and build all clean.
 
 Audit, architecture, foundation, identity, course management, the curriculum

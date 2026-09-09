@@ -8,6 +8,7 @@ use App\Domain\Identity\Enums\InstructorStatus;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Actions\ChangeTenantStatus;
+use App\Domain\Platform\Actions\EnsurePlatformOwner;
 use App\Domain\Platform\Actions\ProvisionTenant;
 use App\Domain\Platform\Data\NewAcademy;
 use App\Domain\Platform\Models\Tenant;
@@ -32,7 +33,15 @@ final class DatabaseSeeder extends Seeder
     {
         $this->call(PlanSeeder::class);
 
-        // The platform operator. No academy, central database only.
+        /*
+         * The permanent owner. Created here as well as after every migration,
+         * because a seed-only install and a migrate-only deploy are both real
+         * and both have to end with somebody able to sign in.
+         */
+        app(EnsurePlatformOwner::class)->handle();
+
+        // A second, disposable operator for demos and fixtures. Unlike the
+        // owner this one has no protections and can be deleted freely.
         User::firstOrCreate(
             ['email' => 'operator@orbito.test'],
             [
@@ -47,6 +56,14 @@ final class DatabaseSeeder extends Seeder
         }
 
         $this->demoAcademy();
+
+        /*
+         * Again, and deliberately. The first call ran before any academy
+         * existed, so it could neither grant the Super Admin role nor put the
+         * owner inside one. The Action is idempotent; this is the run that
+         * lands them in the demo academy.
+         */
+        app(EnsurePlatformOwner::class)->handle();
     }
 
     private function demoAcademy(): void

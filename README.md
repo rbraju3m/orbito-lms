@@ -101,6 +101,31 @@ The demo accounts (local only) all use the password `password`:
 | `applicant@orbito.test` | Student with a pending instructor application |
 | `student@orbito.test` | Student |
 
+### The platform owner
+
+One account is **not** a demo account and exists in every environment,
+including production: the platform owner, configured under `owner` in
+`config/orbito.php` (`PLATFORM_OWNER_*` in `.env`). It is created and repaired
+automatically at the end of every `php artisan migrate` that actually runs a
+migration, by `db:seed`, and by `php artisan orbito:ensure-owner`. Run that
+command once when upgrading an existing installation — Laravel returns before
+firing the migration event when there is nothing to migrate.
+
+It holds the platform-operator flag **and** Super Admin inside every academy,
+so it can both run the academy registry and use the whole product. It cannot be
+deleted, suspended, or stripped of its Super Admin role — not by another Super
+Admin, not from a console. `docs/ROLES_PERMISSIONS.md` §7 says how, and why the
+protection is written three times.
+
+The default password ships in `config/orbito.php` so a fresh clone boots
+usable. **Set `PLATFORM_OWNER_PASSWORD` before a real deployment** — or sign in
+once and change it, which is safe: the seed is written only at creation and no
+later run overwrites it.
+
+An operator is inside one academy at a time (`users.tenant_id`).
+`POST /api/v1/admin/tenants/{tenant}/enter` moves them; `.../leave` steps back
+out to the central connection, where no product screen has data behind it.
+
 Adding a permission key to `config/permissions.php` means running
 `php artisan permissions:sync`; nothing reads the file at runtime. The same
 applies to `config/gamification.php` and `php artisan gamification:sync` —

@@ -21,6 +21,12 @@ Route::middleware(['auth:sanctum', 'super_admin'])
     ->group(function (): void {
         Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
         Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
+
+        // Static segment before the dynamic one, so `leave` is never read as
+        // an academy id.
+        Route::post('tenants/leave', [TenantController::class, 'leave'])->name('tenants.leave');
+        Route::post('tenants/{tenant}/enter', [TenantController::class, 'enter'])->name('tenants.enter');
+
         Route::get('tenants/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
         Route::patch('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
         Route::put('tenants/{tenant}/plan', [TenantController::class, 'assignPlan'])

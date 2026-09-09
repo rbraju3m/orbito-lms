@@ -29,6 +29,12 @@ final class UserPolicy
 
     public function delete(User $actor, User $target): bool
     {
+        // The permanent account. Also refused by the model and by any Action
+        // that could reach it; this is the copy that keeps the button away.
+        if ($target->isPlatformOwner()) {
+            return false;
+        }
+
         // Deleting yourself through the admin endpoint is almost always a
         // mistake; account closure is a separate, deliberate flow.
         return ! $actor->is($target) && $actor->hasPermission('user.delete');
@@ -37,6 +43,10 @@ final class UserPolicy
     public function suspend(User $actor, User $target): bool
     {
         if ($actor->is($target)) {
+            return false;
+        }
+
+        if ($target->isPlatformOwner()) {
             return false;
         }
 

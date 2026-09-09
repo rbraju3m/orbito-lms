@@ -16,7 +16,7 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 999 Pest tests / 3,238 assertions · PHPStan level 6 clean · Pint clean |
+| Backend | 1,014 Pest tests / 3,298 assertions · PHPStan level 6 clean · Pint clean |
 | Frontend | 219 Vitest tests across 38 files · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS ~246 KB gzipped against 250 KB — see Phase 11 and Phase 13 |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |

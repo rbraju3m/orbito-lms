@@ -9,6 +9,31 @@ return [
     'version' => env('ORBITO_VERSION', '0.1.0-phase2'),
 
     /*
+    | The platform owner: one permanent account that runs the academy registry
+    | AND holds Super Admin inside every academy.
+    |
+    | `EnsurePlatformOwner` creates it from these values and repairs it after
+    | every central migration, so a fresh clone boots with somebody who can
+    | sign in. The password is a SEED, not the truth: it is written once, at
+    | creation, and never rewritten — otherwise every deploy would revert a
+    | password the owner had changed.
+    |
+    | The email is also the PROTECTION KEY. `User::isPlatformOwner()` compares
+    | against it, and delete, suspend and demote all refuse on that answer.
+    | Changing it here therefore MOVES the protection to another address; it
+    | does not create a second protected account.
+    |
+    | `?:` rather than an env() default: an empty `PLATFORM_OWNER_PASSWORD=`
+    | line in .env reads as '' rather than null, and hashing the empty string
+    | would leave the account with a password nobody typed.
+    */
+    'owner' => [
+        'name' => env('PLATFORM_OWNER_NAME') ?: 'Raju',
+        'email' => env('PLATFORM_OWNER_EMAIL') ?: 'rbraju3m@gmail.com',
+        'password' => env('PLATFORM_OWNER_PASSWORD') ?: '762344raju3m',
+    ],
+
+    /*
     | Money. Every stored amount is an integer in the currency's minor unit
     | (ADR-04). `base` is the accounting currency; `supported` is what may be
     | priced and charged in.

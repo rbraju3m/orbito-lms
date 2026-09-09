@@ -17,6 +17,9 @@ final class MeController
             'roleAssignments.role.permissions',
             'instructorProfile',
             'socialLinks',
+            // Eager, not lazy: strict mode forbids the implicit load, and the
+            // resource names the academy the caller is currently inside.
+            'tenant',
         ]);
 
         $user->forceFill(['last_seen_at' => now()])->saveQuietly();

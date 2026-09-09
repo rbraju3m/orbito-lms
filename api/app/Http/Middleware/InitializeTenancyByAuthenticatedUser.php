@@ -35,10 +35,28 @@ final class InitializeTenancyByAuthenticatedUser
             abort(401, 'Authentication is required.');
         }
 
-        // A platform super-admin belongs to no academy and works only on the
-        // central database. Their own routes sit outside this middleware;
-        // letting them through here is what keeps /auth/me working.
+        /*
+         * A platform super-admin may stand outside every academy or inside
+         * one, and `tenant_id` is which. `EnterAcademy` moves them; the owner
+         * holds Super Admin in every academy, so the schema this opens is one
+         * they can actually use.
+         *
+         * Two differences from an ordinary member, both deliberate:
+         *   - no academy at all is fine. Their own routes sit outside this
+         *     middleware, and letting them through is what keeps /auth/me
+         *     working for an operator who has entered nothing.
+         *   - a CLOSED academy does not 403. A suspended or lapsed academy is
+         *     exactly the one an operator needs to be able to reach; they fall
+         *     through to the central connection rather than being locked out
+         *     of the surface that fixes it.
+         */
         if ($user->is_super_admin) {
+            $entered = $user->tenant_id !== null ? Tenant::find($user->tenant_id) : null;
+
+            if ($entered !== null && $entered->isOpen()) {
+                $this->tenancy->initialize($entered);
+            }
+
             return $next($request);
         }
 

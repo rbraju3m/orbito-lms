@@ -227,6 +227,10 @@ Gate::authorize('publish', $course);                   // in a controller
   regression tests are in `CourseScopedAccessTest`.
 - Policies are the only place authorization decisions live. `Gate::before`
   grants Super Admin everything; that is the one blanket bypass in the system.
+  It has exactly one exception: when the subject of an ability is the **platform
+  owner** it falls through to the policy instead of granting, so no other Super
+  Admin can delete or suspend the permanent account. See
+  `docs/ROLES_PERMISSIONS.md` §7.
 - `GET /auth/me` returns the caller's permission keys so the SPA can hide UI.
   That is a convenience. Every endpoint still authorizes independently, and
   every endpoint needs a test for its 403 path.
@@ -618,7 +622,7 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-999 backend tests / 3,238 assertions · 219 frontend tests.
+1,014 backend tests / 3,298 assertions · 219 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -640,6 +644,20 @@ coaching, blog, page builder, multilingual, RTL, plan limits, outbound
 webhooks. It is markedly larger than the phases before it, and it is where the
 public marketing surface finally arrives — which is what webinar registration
 and lead capture have both been waiting for.
+
+### The platform owner
+
+One permanent account — `config('orbito.owner')`, created and repaired by
+`EnsurePlatformOwner` after every central migration and by
+`php artisan orbito:ensure-owner`. It is the only account holding BOTH
+super-admin answers: the central `is_super_admin` flag (the academy registry)
+and the `SuperAdmin` role inside every academy. `POST /admin/tenants/{t}/enter`
+moves it between academies; `users.tenant_id` is which one it is inside.
+
+Delete, suspend and demote are each refused in three independent places — the
+policy, the Action, and `User::deleting` — because any one alone is a hole.
+`isPlatformOwner()` is the configured EMAIL, not a column: a boolean somebody
+can set is one somebody can unset. Full account in `docs/ROLES_PERMISSIONS.md` §7.
 
 ### Traps that are still live
 
@@ -674,6 +692,10 @@ Every one of these has already cost time at least once.
 - **`point_transactions.dedupe_key` is the anti-farming constraint.** The
   action CATCHES the unique violation rather than checking first. Do not
   "simplify" it into a check-then-insert.
+- **A platform operator with no academy sees no product.** `tenant_id` null
+  means the central connection, where none of the domain tables exist. That is
+  why `EnsurePlatformOwner` adopts an academy and why `enter` exists — an
+  operator staring at empty screens has usually just left one.
 - **`host_url` and gateway `credentials` must never reach a client.** Both are
   `$hidden` and absent from every resource; there is a test asserting the
   session start link never appears in a response.
@@ -690,6 +712,11 @@ Every one of these has already cost time at least once.
   item in the codebase. Phase 16.
 - **Playwright covers phases 2–3 only.** Two spec files, thirteen phases ago.
   The host cannot run it (Ubuntu 20.04); CI can.
+- **No platform-operator UI at all.** `/admin/tenants` — list, provision,
+  approve, suspend, assign plan, enter, leave — is complete and tested, and
+  `web/src/features/platform/` holds only the subscription-lapse banner. An
+  operator can sign in and reach nothing but their own account until they enter
+  an academy, and entering one currently needs a curl.
 - **No studio UI for scheduling** live sessions or cohorts. The API is
   complete; the authoring screens are not.
 - **No provider-reported attendance.** `session_attendance.source` and the
