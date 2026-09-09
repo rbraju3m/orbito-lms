@@ -156,6 +156,19 @@ super-admin answers they hold:
 `academy` is null only for an operator who has entered none; a member always has
 one. See `ROLES_PERMISSIONS.md` §7 for why the two flags are different things.
 
+**`/auth/me` is the one route behind `tenant` that answers with no academy
+open** — it opts in with `->defaults('tenant_optional', true)`, because it is
+how the SPA discovers there is no academy and offers the registry. Its payload
+degrades honestly in that state: `roles: []`, `permissions: []`,
+`academy: null`. Every other route behind `tenant` answers **409
+`no_academy_selected`**, with `error.meta.enter_at` naming where to go.
+
+**Login and register build the session payload from inside the academy.** Both
+run before the `tenant` middleware could know whose academy to open, and most
+of that payload — roles, permissions, the instructor profile — is tenant data.
+`AuthenticatedAcademy` opens the academy first and loads second; the reverse
+order is a 500 naming whichever tenant table it reached first.
+
 ---
 
 ## 4. Domain surface
@@ -376,6 +389,7 @@ query. Search works, scoped to the academy.
 
 ### Platform administration — live
 ```
+GET    /admin/plans                             every plan, unpaginated
 GET    /admin/tenants                           ?status= ?search=
 POST   /admin/tenants                           provision {slug, name, owner_*, plan?}
 GET    /admin/tenants/{tenant}
@@ -400,6 +414,20 @@ every other route. The platform owner holds Super Admin in every academy (see
 An operator inside a **closed** academy is not locked out the way a member is:
 they fall through to the central connection rather than getting a 403, because
 the surface that reopens it is the one they need.
+
+**A tenant carries `available_actions`** — which of `approve`, `reject`,
+`suspend`, `reactivate` are legal right now. The server computes it from
+`TenantStatus::allows()`, which is the same method `ChangeTenantStatus`
+enforces, so a screen that renders a button per entry can never offer a
+transition that would 409. `suspend` stays legal on an already-suspended
+academy: it is how the reason is amended, and the UI relabels it rather than
+hiding it.
+
+**`GET /admin/plans` is deliberately unpaginated** — the one list endpoint in
+the API that is not. `plans` is a handful of rows an operator curates, ordered
+by `position`, and a page control over four cards is noise. Inactive plans are
+included so an academy sitting on a retired plan still renders as a name
+instead of an unresolved slug.
 
 ### Commerce — live (P10)
 

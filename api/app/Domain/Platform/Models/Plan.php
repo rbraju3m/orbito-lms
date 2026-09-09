@@ -13,8 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $slug
  * @property string $name
+ * @property string|null $description
  * @property int $price_minor
  * @property string $currency
+ * @property string $billing_period
+ * @property int $position
  * @property int $trial_days
  * @property int $grace_days
  * @property array<string, int|null>|null $limits

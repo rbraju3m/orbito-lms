@@ -3,18 +3,30 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
-**Where it stands after Phase 15:** 1,014 backend tests / 3,298 assertions across
-18 Feature suites and 8 Unit suites · 219 frontend tests across 38 files ·
+**Where it stands after Phase 15:** 1,024 backend tests / 3,349 assertions across
+18 Feature suites and 8 Unit suites · 241 frontend tests across 42 files ·
 PHPStan level 6 clean · Pint, oxlint, `tsc` and `vite build` clean.
 
 **Playwright specs exist for phases 2 and 3 only** — two files, `auth.spec.ts`
 and `shell.spec.ts`. That gap has now outlasted thirteen phases and is the
 oldest untouched item in this document; see §4.
 
-**The suite takes ~11–13 minutes**, up from ~2 before tenancy. Provisioning
-tests build real schemas, and that is the price of testing the isolation
-rather than trusting it. Provision one academy per FILE rather than per test
-where it hurts.
+**The suite takes ~19 minutes**, up from ~2 before tenancy. Provisioning tests
+build real schemas, and that is the price of testing the isolation rather than
+trusting it. Provision one academy per FILE rather than per test where it
+hurts.
+
+**The suite drops tenant schemas by PREFIX, and the prefix is why it has its
+own.** `UsesSharedTenant::tearDownUsesSharedTenant()` runs after every test and
+drops every schema matching `config('tenancy.database.prefix')` except the
+shared one — that is how a test that provisions an academy cleans up after
+itself without knowing its uuid. Until `TENANCY_DB_PREFIX` was overridden in
+`phpunit.xml`, that prefix was shared with development, so **running the suite
+silently destroyed the developer's own academies**. The symptom was not a test
+failure; it was a `db:seed` in another terminal dying with `Unknown database`
+partway through a tenant migration, because the suite had dropped the schema
+between two statements. Separate databases were not enough — the tenant prefix
+is the boundary the teardown scans, so the boundary is what had to differ.
 
 ---
 
@@ -98,7 +110,7 @@ Two things to know before writing a test that touches tenancy:
   only place that condition is reproduced.
 
 Provisioning tests build real schemas, which is why the suite went from ~118s
-to ~430s. If that becomes painful, provision one academy per *file* rather than
+to ~1,150s. If that becomes painful, provision one academy per *file* rather than
 per test before reaching for mocks.
 
 ### Laravel 13 moved a hook

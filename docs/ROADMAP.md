@@ -16,11 +16,11 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,014 Pest tests / 3,298 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 219 Vitest tests across 38 files · `tsc` clean · oxlint clean · build clean |
+| Backend | 1,024 Pest tests / 3,349 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 241 Vitest tests across 42 files · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS ~246 KB gzipped against 250 KB — see Phase 11 and Phase 13 |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
-| Suite runtime | ~11–13 minutes, up from ~2 — provisioning tests build real schemas |
+| Suite runtime | ~19 minutes, up from ~2 — provisioning tests build real schemas |
 
 Each completed phase below carries what it delivered, the decisions that shaped
 it, the bugs it found, and what it deliberately left. Where a phase's exit
@@ -33,6 +33,12 @@ it against an enforced checklist, schedule cohorts, announce things, answer
 questions, work through one queue of everything waiting to be marked, and read
 analytics built from an append-only event log.
 
+**What a platform operator can do:** sign in as the permanent owner (created
+automatically, undeletable — `ROLES_PERMISSIONS.md` §7), see every academy on
+the installation with its subscription, provision a new one, approve or reject
+a signup, suspend and reinstate, move an academy onto a plan and renew it, and
+step INSIDE any academy to use its own screens as a Super Admin.
+
 **What a learner can do:** find the course, buy it, enrol, learn through a
 player with video resume and notes, take a timed quiz, hand in written and
 uploaded work, read the feedback and hand in again, attend a live class, ask a
@@ -43,7 +49,21 @@ certificate — and see all of it in a calendar, an inbox and a dashboard.
 subscriptions, bundles, downloads, the blog and page builder, multilingual and
 RTL, plan-limit enforcement, and outbound webhooks. Plus the two unproven
 integrations above, and the Playwright gap, which has now outlasted thirteen
-phases.
+phases. On the operator surface specifically: no cross-academy usage view, no
+audit of who approved what, and no screen for editing a plan — plans are still
+changed in the database.
+
+**Self-registration has no academy to register INTO.** `RegisterUser` never
+sets `users.tenant_id`, and `POST /auth/register` is unauthenticated, so
+tenancy — which resolves from the authenticated user — has nothing to resolve
+from. `assignRole(Student)` therefore writes into whichever academy happens to
+be open, which under test is the harness's shared one and in a real deployment
+is none at all. This is a hole left by the tenancy retrofit rather than a new
+bug, and it is invisible to the suite for exactly the reason `ScheduledCommandTest`
+exists. Closing it is a product decision, not a patch: an invite token, an
+academy in the path, or a host-based signup — pick one before the public
+marketing surface lands in Phase 16, because that is what will first send real
+strangers at this route.
 
 ---
 

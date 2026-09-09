@@ -36,7 +36,7 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 |---|---|---|---|
 | **Public** | `/` | anonymous + logged in | marketing header/footer, catalogue |
 | **Learn** | `/learn/*` | enrolled students | distraction-free player shell |
-| **Platform** | — | operators | not a route group: holds the lapsed-subscription banner and store |
+| **Platform** | `/platform/*` | platform operators | sidebar app shell — the academy REGISTRY, above every academy |
 | **Dashboard** | `/dashboard/*` | students | sidebar app shell |
 | **Studio** | `/studio/*` | instructors, course managers, TAs, reviewers | sidebar app shell + course context |
 | **Admin** | `/admin/*` | admins, staff | sidebar app shell |
@@ -140,11 +140,29 @@ through, not a panel of the editor.
 /admin/analytics                   KPIs, trend, top courses, CSV           ✅
 /admin/roles · /admin/permissions
 /admin/settings/*
+
+/platform/academies                the registry: search, filter, provision  ✅
+/platform/academies/:slug          approve/reject/suspend, plan, enter/leave ✅
 ```
+
+`/platform/*` is **not** `/admin/*`, and the distinction is the one this
+codebase keeps making: `/admin/*` administers ONE academy from inside it, and
+everything there is gated by a permission — which is a role, which lives in that
+academy's schema. `/platform/*` is about academies rather than inside one, so it
+is gated by `is_platform_operator` on the central user row instead. An academy
+Super Admin holds every permission there is and still sees nothing here.
+
+**Entering an academy clears the whole query cache.** `users.tenant_id` decides
+which schema every other request resolves against, so after a switch every
+cached answer in the client belongs to the academy the operator just left.
+Nothing short of `queryClient.clear()` is correct — anything less leaves one
+academy's course list on screen while the server answers for another.
 
 **Route guards.** A `<RequirePermission permission="…" />` wrapper reads the permission
 set from `GET /auth/me`. It hides UI; it is not security. Every route's data still comes
-from an endpoint that authorizes independently.
+from an endpoint that authorizes independently. `<RequirePlatformOperator />` is
+the same idea for the registry, reading the operator flag rather than a
+permission.
 
 ---
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Domain\Identity\Actions\AuthenticateUser;
+use App\Domain\Platform\Support\AuthenticatedAcademy;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Resources\Identity\AuthenticatedUserResource;
 use App\Support\Http\ApiResponse;
@@ -13,8 +14,11 @@ use Illuminate\Support\Facades\Auth;
 
 final class LoginController
 {
-    public function __invoke(LoginRequest $request, AuthenticateUser $action): JsonResponse
-    {
+    public function __invoke(
+        LoginRequest $request,
+        AuthenticateUser $action,
+        AuthenticatedAcademy $academy,
+    ): JsonResponse {
         $user = $action->handle(
             $request,
             mb_strtolower($request->string('email')->trim()->value()),
@@ -33,9 +37,10 @@ final class LoginController
 
         $request->setUserResolver(fn () => $user);
 
-        $payload = AuthenticatedUserResource::make(
-            $user->fresh(['roleAssignments.role.permissions', 'instructorProfile'])
-        )->resolve($request);
+        // Opens their academy and loads the payload's relations from inside it.
+        // Most of this payload is tenant data on a route the `tenant`
+        // middleware cannot serve — see AuthenticatedAcademy.
+        $payload = AuthenticatedUserResource::make($academy->prepare($user))->resolve($request);
 
         if ($token !== null) {
             $payload['token'] = $token;

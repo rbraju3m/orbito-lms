@@ -5,6 +5,7 @@ import { HomeRoute } from '@/features/home/routes/HomeRoute';
 import { RequireAuth } from './guards/RequireAuth';
 import { RequireGuest } from './guards/RequireGuest';
 import { RequirePermission } from './guards/RequirePermission';
+import { RequirePlatformOperator } from './guards/RequirePlatformOperator';
 import { AppLayout } from './layouts/AppLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 import { PublicLayout } from './layouts/PublicLayout';
@@ -354,6 +355,32 @@ export const router = createBrowserRouter([
                 lazy: async () => ({
                   Component: (await import('@/features/grading/routes/GradeSubmissionRoute'))
                     .GradeSubmissionRoute,
+                }),
+              },
+            ],
+          },
+
+          /*
+           * The academy REGISTRY, not an academy's admin area. Guarded by the
+           * central operator flag rather than a permission — permissions are
+           * roles and roles live inside a schema, so an academy Super Admin
+           * holds every one of them and still has no business here.
+           */
+          {
+            element: <RequirePlatformOperator />,
+            children: [
+              {
+                path: 'platform/academies',
+                lazy: async () => ({
+                  Component: (await import('@/features/platform/routes/AcademiesRoute'))
+                    .AcademiesRoute,
+                }),
+              },
+              {
+                path: 'platform/academies/:slug',
+                lazy: async () => ({
+                  Component: (await import('@/features/platform/routes/AcademyDetailRoute'))
+                    .AcademyDetailRoute,
                 }),
               },
             ],

@@ -33,4 +33,34 @@ enum TenantStatus: string
     {
         return $this === self::Active;
     }
+
+    /**
+     * Whether a transition is legal from here.
+     *
+     * The single definition: `ChangeTenantStatus` enforces it and
+     * `TenantResource` renders it, so the button an operator sees and the
+     * transition the server accepts cannot drift. Same instinct as
+     * `PublishChecklist` and `SubmissionRules`.
+     *
+     * Suspend stays legal on an already-suspended academy on purpose — it is
+     * how an operator amends the reason — which is why the UI labels it
+     * differently there rather than hiding it.
+     */
+    public function allows(TenantAction $action): bool
+    {
+        return match ($action) {
+            TenantAction::Approve, TenantAction::Reject => $this === self::Pending,
+            TenantAction::Suspend => $this !== self::Rejected,
+            TenantAction::Reactivate => $this === self::Suspended,
+        };
+    }
+
+    /** @return list<TenantAction> */
+    public function availableActions(): array
+    {
+        return array_values(array_filter(
+            TenantAction::cases(),
+            fn (TenantAction $action): bool => $this->allows($action),
+        ));
+    }
 }

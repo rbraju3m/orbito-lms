@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\PlanController;
 use App\Http\Controllers\Api\V1\Admin\TenantController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth:sanctum', 'super_admin'])
     ->prefix('admin')->name('admin.')
     ->group(function (): void {
+        // What an academy can be put ON. Both writes that take a plan speak in
+        // its slug, so the operator needs the list to pick from.
+        Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
+
         Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
         Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Platform\Actions;
 
 use App\Domain\Identity\Models\User;
+use App\Domain\Platform\Enums\TenantAction;
 use App\Domain\Platform\Enums\TenantStatus;
 use App\Domain\Platform\Exceptions\TenantTransitionRejected;
 use App\Domain\Platform\Models\Tenant;
@@ -20,7 +21,10 @@ final class ChangeTenantStatus
 {
     public function approve(Tenant $tenant, User $approver): Tenant
     {
-        if ($tenant->status !== TenantStatus::Pending) {
+        // `TenantStatus::allows()` is the single definition of what is legal;
+        // TenantResource renders the same answer, so the button and the server
+        // cannot disagree.
+        if (! $tenant->status->allows(TenantAction::Approve)) {
             throw TenantTransitionRejected::notPending();
         }
 
@@ -35,7 +39,7 @@ final class ChangeTenantStatus
 
     public function reject(Tenant $tenant, User $approver, ?string $reason = null): Tenant
     {
-        if ($tenant->status !== TenantStatus::Pending) {
+        if (! $tenant->status->allows(TenantAction::Reject)) {
             throw TenantTransitionRejected::notPending();
         }
 
@@ -56,7 +60,7 @@ final class ChangeTenantStatus
      */
     public function suspend(Tenant $tenant, ?string $reason = null): Tenant
     {
-        if ($tenant->status === TenantStatus::Rejected) {
+        if (! $tenant->status->allows(TenantAction::Suspend)) {
             throw TenantTransitionRejected::notSuspendable();
         }
 
@@ -70,7 +74,7 @@ final class ChangeTenantStatus
 
     public function reactivate(Tenant $tenant): Tenant
     {
-        if ($tenant->status !== TenantStatus::Suspended) {
+        if (! $tenant->status->allows(TenantAction::Reactivate)) {
             throw TenantTransitionRejected::notSuspended();
         }
 

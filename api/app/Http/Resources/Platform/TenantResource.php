@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Platform;
 
+use App\Domain\Platform\Enums\TenantAction;
 use App\Domain\Platform\Models\Tenant;
 use App\Support\Http\Resources\BaseResource;
 use Illuminate\Http\Request;
@@ -27,6 +28,16 @@ final class TenantResource extends BaseResource
             'status_label' => $this->status->label(),
             'is_active' => $this->is_active,
             'is_open' => $this->isOpen(),
+
+            /*
+             * What this operator may DO to this academy, from the same rule
+             * `ChangeTenantStatus` enforces. A row renders these as buttons,
+             * so it can never offer a transition that would 409.
+             */
+            'available_actions' => array_map(
+                fn (TenantAction $action): string => $action->value,
+                $this->status->availableActions(),
+            ),
 
             'support_email' => $this->support_email,
             // Nullable in the schema; the cast makes it look otherwise.

@@ -599,6 +599,15 @@ running on?** They do not look alike:
   transaction. It short-circuits when the tenant is already active, which is
   why `RunsForEveryTenant` restores the caller's context instead of ending.
 
+**Login and register run BEFORE the tenant middleware could know whose academy
+to open** — it reads the authenticated user, and there is none yet. Their
+session payload is mostly tenant data (roles, permissions, instructor profile),
+so `AuthenticatedAcademy` opens the academy first and loads the relations
+second. The reverse order is a 500 naming whichever tenant table it reached
+first, and **the harness hides it** by leaving an academy open all test long.
+`PlatformOwnerTest` calls `tenancy()->end()` to defeat that, the same trick
+`ScheduledCommandTest` uses.
+
 **Anything scheduled runs centrally with no academy open**, so it must walk
 them (`RunsForEveryTenant`). Tests cannot catch this on their own — the
 harness leaves a tenant open during `$this->artisan()`, which is what
@@ -622,7 +631,7 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-1,014 backend tests / 3,298 assertions · 219 frontend tests.
+1,024 backend tests / 3,349 assertions · 241 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -659,6 +668,25 @@ policy, the Action, and `User::deleting` — because any one alone is a hole.
 `isPlatformOwner()` is the configured EMAIL, not a column: a boolean somebody
 can set is one somebody can unset. Full account in `docs/ROLES_PERMISSIONS.md` §7.
 
+The registry's screens are `/platform/academies`, guarded by
+`RequirePlatformOperator` — the operator FLAG, never a permission, because
+permissions are roles and roles live inside an academy. Two rules that surface
+there and generalise:
+
+- **A legal-transition list belongs on the resource, from the rule that
+  enforces it.** `TenantStatus::allows()` is read by `ChangeTenantStatus` and
+  rendered as `available_actions`, so a button that would 409 cannot exist. The
+  §16 `meta` pattern, applied to a single row.
+- **Switching academies clears the whole query cache.** `tenant_id` decides
+  which schema every request resolves against, so after `enter` every cached
+  answer belongs to the academy just left. `queryClient.clear()` is the correct
+  amount, not a heavy hammer.
+- **An operator inside NO academy gets 409 `no_academy_selected`**, not a 500
+  about a missing table. `/auth/me` is the single exemption — it opts in with
+  `->defaults('tenant_optional', true)` and degrades to empty roles, because it
+  is the answer that sends them to the registry. A route that needs an academy
+  and does not have one must say so.
+
 ### Traps that are still live
 
 Every one of these has already cost time at least once.
@@ -676,6 +704,12 @@ Every one of these has already cost time at least once.
   disk in `beforeEach`, not the test body. And `Notification::fake()` and
   asserting a database row are mutually exclusive — fake to assert channels,
   do not fake to assert the row landed.
+- **The suite drops tenant schemas by PREFIX.** `tearDownUsesSharedTenant()`
+  drops everything matching `tenancy.database.prefix` except the shared one, so
+  the test run needs its OWN prefix — `TENANCY_DB_PREFIX` in `phpunit.xml`.
+  Separate databases are not enough. Before that override, running the suite
+  destroyed the developer's own academies, and the symptom appeared in a
+  different terminal as `Unknown database` mid-migration.
 - **A scheduled command runs centrally with NO academy open.** It must walk
   them (`RunsForEveryTenant`). The harness hides this; `ScheduledCommandTest`
   exists to defeat the harness, and every new scheduled command belongs in it.
@@ -708,15 +742,22 @@ Every one of these has already cost time at least once.
 
 ### Known debt, deliberately left
 
+- **Self-registration has no academy to register INTO.** `RegisterUser` never
+  sets `tenant_id` and `/auth/register` is unauthenticated, so `assignRole`
+  writes into whichever academy happens to be open — the harness's shared one
+  under test, none at all in a real deployment. A hole left by the tenancy
+  retrofit; closing it is a product decision (invite token, academy in the
+  path, host-based signup), and Phase 16's public marketing surface is what
+  will first send strangers at that route. See `docs/ROADMAP.md`.
 - Plan **limits** are stored and counted but never enforced — the oldest open
   item in the codebase. Phase 16.
 - **Playwright covers phases 2–3 only.** Two spec files, thirteen phases ago.
   The host cannot run it (Ubuntu 20.04); CI can.
-- **No platform-operator UI at all.** `/admin/tenants` — list, provision,
-  approve, suspend, assign plan, enter, leave — is complete and tested, and
-  `web/src/features/platform/` holds only the subscription-lapse banner. An
-  operator can sign in and reach nothing but their own account until they enter
-  an academy, and entering one currently needs a curl.
+- **The platform UI covers the registry, not the platform.** `/platform/academies`
+  ships list, provision, approve/reject/suspend/reinstate, plan and renewal, and
+  enter/leave. There is still no operator view of usage across academies, no
+  audit of who approved what, and no screen for editing plans themselves —
+  `config/orbito.php` and the database are the only way to change one.
 - **No studio UI for scheduling** live sessions or cohorts. The API is
   complete; the authoring screens are not.
 - **No provider-reported attendance.** `session_attendance.source` and the
@@ -737,7 +778,7 @@ Every one of these has already cost time at least once.
 - `ItemEditorDrawer` issues **two sequential writes** (lesson body, then drip
   fields). Body first is deliberate; a failure between them is a partial save
   with no test.
-- The suite takes **~11–13 minutes**, up from ~2, because provisioning tests
+- The suite takes **~19 minutes**, up from ~2, because provisioning tests
   build real schemas. Provision one academy per FILE rather than per test
   where it hurts.
 - A test artifact (`storage/tenanttest/…pdf`) is committed in 998ee74 and

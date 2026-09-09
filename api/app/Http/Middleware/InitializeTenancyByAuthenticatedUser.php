@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Domain\Platform\Exceptions\NoAcademySelected;
 use App\Domain\Platform\Models\Tenant;
 use Closure;
 use Illuminate\Http\Request;
@@ -55,9 +56,26 @@ final class InitializeTenancyByAuthenticatedUser
 
             if ($entered !== null && $entered->isOpen()) {
                 $this->tenancy->initialize($entered);
+
+                return $next($request);
             }
 
-            return $next($request);
+            /*
+             * No academy open. Every route behind this middleware reads tenant
+             * tables, so serving one would be a 500 about a missing table —
+             * which is what it was before this said so out loud.
+             *
+             * The exception is a route that opts out with
+             * `->defaults('tenant_optional', true)`: today that is `/auth/me`,
+             * the endpoint the SPA uses to LEARN it has no academy and offer
+             * the registry. A flag rather than a route name, so the exemption
+             * is declared where the route is and greps to one place.
+             */
+            if ($request->route()?->defaults['tenant_optional'] ?? false) {
+                return $next($request);
+            }
+
+            throw NoAcademySelected::make();
         }
 
         if ($user->tenant_id === null) {

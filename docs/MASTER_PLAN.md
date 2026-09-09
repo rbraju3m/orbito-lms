@@ -94,7 +94,7 @@ certificate — on a phone, in dark mode, with a keyboard.
 ## 7. Current status
 
 **Phases 0–15 are complete, front and back**, plus a multi-tenancy retrofit.
-1,014 backend tests / 3,298 assertions · 219 frontend tests.
+1,024 backend tests / 3,349 assertions · 241 frontend tests.
 
 An instructor can build and publish a course, write quizzes across ten
 question types, set assignments, schedule live sessions and cohorts, announce

@@ -46,7 +46,14 @@ Route::prefix('auth')->name('auth.')->group(function (): void {
 
     // `me` returns the caller's permission keys, which live in the academy's
     // schema, so this one needs the tenant open.
+    //
+    // `tenant_optional` is the one exemption: a platform operator inside NO
+    // academy must still be able to ask who they are, because this is the
+    // answer that tells the SPA to send them to the registry. Everything else
+    // behind `tenant` gets a 409 in that state rather than a 500 about a
+    // missing table. The payload degrades honestly — no roles, no permissions,
+    // `academy: null`.
     Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
-        Route::get('me', MeController::class)->name('me');
+        Route::get('me', MeController::class)->defaults('tenant_optional', true)->name('me');
     });
 });

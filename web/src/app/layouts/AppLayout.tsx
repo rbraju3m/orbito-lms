@@ -17,6 +17,7 @@ import {
   IconBroadcast,
   IconBook,
   IconBookmark,
+  IconBuildingCommunity,
   IconCalendar,
   IconChartBar,
   IconChalkboard,
@@ -37,6 +38,7 @@ import {
 import { NavLink, Outlet, useNavigate } from 'react-router';
 
 import { NotificationBell } from '@/features/notification/components/NotificationBell';
+import { NoAcademyBanner } from '@/features/platform/NoAcademyBanner';
 import { SubscriptionBanner } from '@/features/platform/SubscriptionBanner';
 
 import { useLogout } from '@/features/auth/api/queries';
@@ -49,10 +51,24 @@ interface NavItem {
   icon: typeof IconBook;
   /** Shown only when the caller holds one of these permissions. */
   anyOf?: string[];
+  /**
+   * Shown only to a platform operator. A separate flag rather than another
+   * permission key, because the registry is not inside an academy and
+   * permissions are — see RequirePlatformOperator.
+   */
+  operatorOnly?: boolean;
   end?: boolean;
 }
 
 const NAV: NavItem[] = [
+  // First: an operator with no academy has nothing else that works, and the
+  // registry is where they pick one.
+  {
+    to: '/platform/academies',
+    label: 'Academies',
+    icon: IconBuildingCommunity,
+    operatorOnly: true,
+  },
   { to: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard, end: true },
   { to: '/dashboard/courses', label: 'My learning', icon: IconBook },
   { to: '/courses', label: 'Browse courses', icon: IconSearch },
@@ -113,7 +129,23 @@ export function AppLayout() {
   const { mutateAsync: signOut } = useLogout();
   const navigate = useNavigate();
 
-  const items = NAV.filter((item) => !item.anyOf || canAny(item.anyOf));
+  const isOperator = session?.is_platform_operator === true;
+
+  /*
+   * An operator inside NO academy. Every item below except the registry reads
+   * tenant data, and the API answers those with a 409 `no_academy_selected` —
+   * so offering them is offering fifteen links that all fail. The banner in
+   * the main area says why and where to go.
+   */
+  const outsideAnyAcademy = isOperator && session?.academy == null;
+
+  const items = NAV.filter((item) => {
+    if (item.operatorOnly === true) return isOperator;
+
+    if (outsideAnyAcademy) return false;
+
+    return !item.anyOf || canAny(item.anyOf);
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -207,6 +239,7 @@ export function AppLayout() {
       </AppShell.Navbar>
 
       <AppShell.Main>
+        <NoAcademyBanner />
         <SubscriptionBanner />
         <Outlet />
       </AppShell.Main>

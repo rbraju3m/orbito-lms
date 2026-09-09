@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Enums\SubscriptionStatus;
+use App\Domain\Platform\Enums\TenantAction;
+use App\Domain\Platform\Enums\TenantStatus;
 use App\Domain\Platform\Models\Plan;
 use App\Domain\Platform\Models\Subscription;
 use App\Domain\Platform\Models\Tenant;
@@ -204,5 +206,95 @@ describe('who may reach the registry', function (): void {
 
     it('requires authentication', function (): void {
         $this->getJson('/api/v1/admin/tenants')->assertStatus(401);
+    });
+});
+
+/*
+ * The registry screens render a button per available action. If this list and
+ * ChangeTenantStatus ever disagree, an operator gets a button that 409s — so
+ * they come from one definition (TenantStatus::allows) and these tests assert
+ * the two halves agree.
+ */
+describe('the actions a row offers', function (): void {
+    beforeEach(function (): void {
+        $this->actingAs($this->admin)->postJson('/api/v1/admin/tenants', newAcademyPayload());
+        $this->tenant = Tenant::where('slug', 'north-college')->firstOrFail();
+    });
+
+    /*
+     * Suspend is offered on a PENDING academy, which reads oddly until you
+     * remember what suspension is for: closing access to a signup that turned
+     * out to be abusive, without rejecting it outright. ChangeTenantStatus has
+     * always allowed it — this asserts the button matches, rather than the
+     * screen quietly deciding otherwise.
+     */
+    it('offers approve, reject and suspend on a pending academy', function (): void {
+        expect($this->actingAs($this->admin)
+            ->getJson("/api/v1/admin/tenants/{$this->tenant->slug}")
+            ->assertOk()
+            ->json('data.available_actions'))
+            ->toEqualCanonicalizing(['approve', 'reject', 'suspend']);
+    });
+
+    it('offers only suspend once an academy is open', function (): void {
+        $this->actingAs($this->admin)
+            ->patchJson("/api/v1/admin/tenants/{$this->tenant->slug}", ['action' => 'approve']);
+
+        expect($this->actingAs($this->admin)
+            ->getJson("/api/v1/admin/tenants/{$this->tenant->slug}")
+            ->json('data.available_actions'))
+            ->toEqualCanonicalizing(['suspend']);
+    });
+
+    it('offers nothing on a rejected academy', function (): void {
+        $this->actingAs($this->admin)
+            ->patchJson("/api/v1/admin/tenants/{$this->tenant->slug}", ['action' => 'reject']);
+
+        expect($this->actingAs($this->admin)
+            ->getJson("/api/v1/admin/tenants/{$this->tenant->slug}")
+            ->json('data.available_actions'))
+            ->toBe([]);
+    });
+
+    it('never offers an action the write endpoint would refuse', function (): void {
+        foreach (TenantStatus::cases() as $status) {
+            $this->tenant->forceFill(['status' => $status])->save();
+
+            $offered = $this->actingAs($this->admin)
+                ->getJson("/api/v1/admin/tenants/{$this->tenant->slug}")
+                ->json('data.available_actions');
+
+            foreach (TenantAction::cases() as $action) {
+                // The list is exactly what the Action will accept — asserted
+                // against the enum both of them read, in both directions.
+                expect(in_array($action->value, $offered, true))
+                    ->toBe($status->allows($action));
+            }
+        }
+    });
+});
+
+describe('the plan list', function (): void {
+    it('returns the plans an academy can be put on, in display order', function (): void {
+        Plan::factory()->create(['slug' => 'zzz-late', 'name' => 'Late', 'position' => 900]);
+        Plan::factory()->create(['slug' => 'aaa-early', 'name' => 'Early', 'position' => 1]);
+
+        $response = $this->actingAs($this->admin)->getJson('/api/v1/admin/plans')->assertOk();
+
+        $slugs = $response->json('data.*.slug');
+
+        // `position`, not the slug and not the id: an operator curates the
+        // order these appear in.
+        expect(array_search('aaa-early', $slugs, true))
+            ->toBeLessThan(array_search('zzz-late', $slugs, true));
+
+        expect($response->json('data.0'))->toHaveKeys([
+            'slug', 'name', 'price_minor', 'currency', 'limits', 'is_active',
+        ]);
+    });
+
+    it('denies it to an academy admin', function (): void {
+        $this->actingAs(userWithRole(RoleKey::Admin))
+            ->getJson('/api/v1/admin/plans')->assertForbidden();
     });
 });

@@ -7,6 +7,7 @@ use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Enums\UserStatus;
 use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Actions\EnsurePlatformOwner;
+use App\Domain\Platform\Actions\LeaveAcademy;
 use App\Domain\Platform\Actions\ProvisionTenant;
 use App\Domain\Platform\Data\NewAcademy;
 use App\Domain\Platform\Exceptions\PlatformOwnerProtected;
@@ -214,6 +215,75 @@ describe('entering and leaving an academy', function (): void {
             ->assertJsonPath('data.slug', $academy->slug);
 
         expect($owner->fresh()->tenant_id)->toBe($academy->id);
+    });
+
+    /*
+     * The bug this whole group exists for. `role_assignments` and
+     * `instructor_profiles` are TENANT tables, and login runs before the
+     * `tenant` middleware could know whose academy to open — so the session
+     * payload was being built on the central connection and 500ing with
+     * "Base table or view not found".
+     *
+     * Every test passed anyway, because the harness leaves an academy open for
+     * the whole test. So these tests END tenancy first, the same trick
+     * ScheduledCommandTest uses, which is the only way to reproduce what a
+     * real deployment does on the busiest route in the API.
+     */
+    it('logs in and answers with the academy’s roles', function (): void {
+        $owner = ensureOwner();
+        $academy = currentAcademy();
+
+        tenancy()->end();
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => $owner->email,
+            'password' => $this->ownerPassword,
+            'device_name' => 'cli',
+        ])->assertOk();
+
+        expect($response->json('data.roles'))->toContain(RoleKey::SuperAdmin->value)
+            ->and($response->json('data.academy.slug'))->toBe($academy->slug)
+            ->and($response->json('data.is_platform_owner'))->toBeTrue();
+    });
+
+    it('answers /auth/me for an operator who is inside no academy', function (): void {
+        $owner = ensureOwner();
+        app(LeaveAcademy::class)->handle($owner);
+
+        tenancy()->end();
+
+        $response = $this->actingAs($owner->fresh())->getJson('/api/v1/auth/me')->assertOk();
+
+        // Degrades honestly rather than erroring: no academy, so no academy
+        // roles. This is the answer that tells the SPA to offer the registry.
+        expect($response->json('data.academy'))->toBeNull()
+            ->and($response->json('data.roles'))->toBe([])
+            ->and($response->json('data.permissions'))->toBe([])
+            ->and($response->json('data.is_platform_operator'))->toBeTrue();
+    });
+
+    it('refuses a tenant route with 409 and a way in, rather than a 500', function (): void {
+        $owner = ensureOwner();
+        app(LeaveAcademy::class)->handle($owner);
+
+        tenancy()->end();
+
+        $response = $this->actingAs($owner->fresh())
+            ->getJson('/api/v1/admin/users')
+            ->assertStatus(409);
+
+        expect($response)->toBeApiError('no_academy_selected')
+            // A refusal that cannot say how to proceed is a dead end.
+            ->and($response->json('error.meta.enter_at'))->toBe('/platform/academies');
+    });
+
+    it('still lets the operator reach the registry with no academy open', function (): void {
+        $owner = ensureOwner();
+        app(LeaveAcademy::class)->handle($owner);
+
+        tenancy()->end();
+
+        $this->actingAs($owner->fresh())->getJson('/api/v1/admin/tenants')->assertOk();
     });
 
     it('denies entering an academy to anyone who is not a platform operator', function (): void {
