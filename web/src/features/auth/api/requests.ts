@@ -3,6 +3,15 @@ import { apiGet, apiPost, ensureCsrfCookie } from '@/shared/api/client';
 import type { Session } from './types';
 
 export interface RegisterPayload {
+  /**
+   * WHICH academy the account joins, by slug.
+   *
+   * Required. Tenancy resolves from the authenticated user and registration
+   * has none, so without it the server has no way to know — and the account
+   * would belong nowhere. It comes from the `?academy=` on the signup link an
+   * academy hands out.
+   */
+  academy: string;
   name: string;
   email: string;
   password: string;

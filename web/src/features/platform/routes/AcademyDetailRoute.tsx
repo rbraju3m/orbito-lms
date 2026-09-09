@@ -146,6 +146,9 @@ function AcademyDetail({ tenant }: { tenant: Tenant }) {
             <Detail label="Created" value={formatDateTime(tenant.created_at)} />
             <Detail label="Approved" value={formatDateTime(tenant.approved_at)} />
             <Detail label="Support email" value={tenant.support_email ?? '—'} />
+            {/* Read-only: the academy's own admin owns this. Shown so support
+                can answer "why can nobody sign up?" without asking them. */}
+            <Detail label="Sign-ups" value={tenant.registration_mode_label} />
             <Detail label="Database id" value={tenant.id} />
           </Stack>
         </Card>

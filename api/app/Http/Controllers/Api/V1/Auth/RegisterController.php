@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Domain\Identity\Actions\RegisterUser;
+use App\Domain\Platform\Actions\ResolveSignupAcademy;
 use App\Domain\Platform\Support\AuthenticatedAcademy;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\Identity\AuthenticatedUserResource;
@@ -17,9 +18,15 @@ final class RegisterController
     public function __invoke(
         RegisterRequest $request,
         RegisterUser $action,
+        ResolveSignupAcademy $signupAcademy,
         AuthenticatedAcademy $academy,
     ): JsonResponse {
-        $user = $action->handle($request->toData());
+        // Refuses before anything is created: no such academy, closed, or not
+        // accepting sign-ups.
+        $user = $action->handle(
+            $request->toData(),
+            $signupAcademy->handle($request->string('academy')->trim()->value()),
+        );
 
         $token = null;
 

@@ -16,8 +16,8 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,024 Pest tests / 3,349 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 241 Vitest tests across 42 files · `tsc` clean · oxlint clean · build clean |
+| Backend | 1,043 Pest tests / 3,418 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 249 Vitest tests across 44 files · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS ~246 KB gzipped against 250 KB — see Phase 11 and Phase 13 |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~19 minutes, up from ~2 — provisioning tests build real schemas |
@@ -53,17 +53,21 @@ phases. On the operator surface specifically: no cross-academy usage view, no
 audit of who approved what, and no screen for editing a plan — plans are still
 changed in the database.
 
-**Self-registration has no academy to register INTO.** `RegisterUser` never
-sets `users.tenant_id`, and `POST /auth/register` is unauthenticated, so
-tenancy — which resolves from the authenticated user — has nothing to resolve
-from. `assignRole(Student)` therefore writes into whichever academy happens to
-be open, which under test is the harness's shared one and in a real deployment
-is none at all. This is a hole left by the tenancy retrofit rather than a new
-bug, and it is invisible to the suite for exactly the reason `ScheduledCommandTest`
-exists. Closing it is a product decision, not a patch: an invite token, an
-academy in the path, or a host-based signup — pick one before the public
-marketing surface lands in Phase 16, because that is what will first send real
-strangers at this route.
+**Self-registration now names its academy.** `POST /auth/register` takes an
+`academy` slug, which travels in the link an academy hands out
+(`/register?academy=<slug>`), and `RegisterUser` sets `users.tenant_id` from
+it. Until this landed the account belonged nowhere and its Student role went
+into whichever academy happened to be open — a hole left by the tenancy
+retrofit, invisible to the suite for the same reason `ScheduledCommandTest`
+exists.
+
+Whether an academy accepts a signup is now its own decision, at
+`/admin/academy`: **open** (the default), or **closed**. `invite` is declared
+in `RegistrationMode` and deliberately NOT built — no invitations table, no
+accept flow — so an academy that selects it finds registration closed rather
+than silently falling back to open. Invitations are the natural next piece if
+academies want a controlled roster; host-based signup is the other route, and
+becomes worth doing when academies get their own domains.
 
 ---
 

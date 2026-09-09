@@ -120,7 +120,7 @@ same.
 
 ```
 # live
-POST   /auth/register            {name,email,password,role_intent?}
+POST   /auth/register            {academy,name,email,password,...}
 POST   /auth/login               {email,password,device_name?}   → user + (token for mobile)
 POST   /auth/logout
 POST   /auth/forgot-password     {email}
@@ -137,6 +137,27 @@ POST   /auth/two-factor/enable   · /confirm · /disable            (P19)
 
 `device_name` is **required** when the request has no session — a token client must
 name itself, and a stateful SPA must not be handed a bearer token it never asked for.
+
+**`academy` is required on register**, and is the academy's slug. Tenancy
+resolves from the authenticated user and a signup has none, so without it the
+server cannot know which academy the account joins — it previously wrote a
+central row with a null `tenant_id` and put the Student role in whichever
+academy happened to be open. It travels in the link an academy hands out:
+`/register?academy=<slug>`.
+
+`ResolveSignupAcademy` decides whether that academy accepts the signup, and
+answers **403 `registration_not_open`** when it does not — no such academy, the
+academy is closed, or its `registration_mode` refuses. The three are told
+apart, unlike `tenant.path`'s deliberately uniform 404: the slug is in a link
+the academy published, so its existence is not a secret, and somebody following
+that link needs to know which case they are in. `error.meta.registration_mode`
+carries the mode when there is one.
+
+| Mode | Meaning |
+|---|---|
+| `open` | anyone with the link joins, as a Student. **The default** when an academy has never chosen. |
+| `invite` | declared, **not built** — no invitations table, no accept flow. Selecting it closes self-registration and says so; the API refuses it as a value. |
+| `closed` | nobody self-registers; an academy admin creates accounts. |
 
 `GET /auth/me` returns the user **and their resolved permission keys**, so the SPA can
 hide UI it may not use. The server still enforces every one of them independently.
@@ -520,8 +541,20 @@ GET    /admin/users/{user}/roles · POST · DELETE /…/roles/{role:key}
 GET    /admin/instructors?status=pending
 POST   /admin/instructors/{instructorProfile}/review   {decision, reason?}
 GET    /admin/roles · GET /admin/permissions
+GET    /admin/academy · PATCH                    {registration_mode?, support_email?}
 GET    /health
 ```
+
+**`/admin/academy` is the academy administering ITSELF** — who may sign up, and
+the link that lets them. There is no `{academy}` in the path on purpose: the
+caller's own academy is the only one they may touch, and the `tenant`
+middleware has already resolved it from their `tenant_id`. Accepting an id here
+would be an IDOR with extra steps.
+
+It is a permission (`settings.view` / `settings.update`), not the operator
+flag: this is inside an academy, unlike `/admin/tenants`. The operator sees
+`registration_mode` on the registry screen but cannot change it — whose members
+an academy accepts is the academy's decision.
 
 ### Certification — live (P11)
 ```

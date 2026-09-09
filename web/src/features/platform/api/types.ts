@@ -53,6 +53,14 @@ export interface Tenant {
   approved_at: string | null;
   created_at: string;
 
+  /**
+   * Who may sign up. READ-ONLY here — the academy's own admin owns this
+   * decision, at `/admin/academy`. The operator sees it so support can answer
+   * "why can nobody join?" without asking them to look.
+   */
+  registration_mode: 'open' | 'invite' | 'closed';
+  registration_mode_label: string;
+
   suspended_reason: string | null;
   rejected_reason: string | null;
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\AcademyController;
 use App\Http\Controllers\Api\V1\Admin\InstructorController;
 use App\Http\Controllers\Api\V1\Admin\RoleController;
 use App\Http\Controllers\Api\V1\Admin\UserController;
@@ -27,6 +28,12 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
 
     /* -------- Administration -------- */
     Route::prefix('admin')->name('admin.')->group(function (): void {
+        // The academy administering ITSELF. No id in the path: the caller's
+        // own academy is the only one they may touch, and the `tenant`
+        // middleware has already resolved it.
+        Route::get('academy', [AcademyController::class, 'show'])->name('academy.show');
+        Route::patch('academy', [AcademyController::class, 'update'])->name('academy.update');
+
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::post('users/{user}/suspension', [UserController::class, 'suspend'])->name('users.suspend');

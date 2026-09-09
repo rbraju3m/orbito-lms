@@ -22,6 +22,8 @@ function tenant(overrides: Partial<Tenant> = {}): Tenant {
     available_actions: ['approve', 'reject', 'suspend'],
     support_email: null,
     approved_at: null,
+    registration_mode: 'open',
+    registration_mode_label: 'Anyone with the link',
     created_at: '2026-08-30T10:00:00+00:00',
     suspended_reason: null,
     rejected_reason: null,

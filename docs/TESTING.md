@@ -3,8 +3,8 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
-**Where it stands after Phase 15:** 1,024 backend tests / 3,349 assertions across
-18 Feature suites and 8 Unit suites · 241 frontend tests across 42 files ·
+**Where it stands after Phase 15:** 1,043 backend tests / 3,418 assertions across
+18 Feature suites and 8 Unit suites · 249 frontend tests across 44 files ·
 PHPStan level 6 clean · Pint, oxlint, `tsc` and `vite build` clean.
 
 **Playwright specs exist for phases 2 and 3 only** — two files, `auth.spec.ts`

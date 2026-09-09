@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Platform\Models;
 
 use App\Domain\Identity\Models\User;
+use App\Domain\Platform\Enums\RegistrationMode;
 use App\Domain\Platform\Enums\TenantStatus;
 use Carbon\CarbonInterface;
 use Database\Factories\Platform\TenantFactory;
@@ -33,6 +34,7 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property int|null $approved_by
  * @property string|null $suspended_reason
  * @property string|null $rejected_reason
+ * @property string|null $registration_mode read through registrationMode()
  */
 final class Tenant extends BaseTenant implements TenantWithDatabase
 {
@@ -104,5 +106,23 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
     public function isOpen(): bool
     {
         return $this->is_active && $this->status === TenantStatus::Active;
+    }
+
+    /**
+     * Who may self-register here.
+     *
+     * Virtual, in the `data` blob, because nothing filters or sorts on it —
+     * the rule this model already states for its own columns. A missing value
+     * means the default rather than a state, so a mode added later reaches
+     * every academy that never touched the switch and no backfill is needed
+     * (the same shape as notification preferences).
+     */
+    public function registrationMode(): RegistrationMode
+    {
+        $stored = $this->registration_mode;
+
+        return is_string($stored)
+            ? RegistrationMode::tryFrom($stored) ?? RegistrationMode::default()
+            : RegistrationMode::default();
     }
 }

@@ -40,6 +40,13 @@ final class TenantResource extends BaseResource
             ),
 
             'support_email' => $this->support_email,
+
+            // Read-only here. The academy's own admin owns this decision; the
+            // operator sees it so support can answer "why can nobody sign up?"
+            // without asking them to look.
+            'registration_mode' => $this->resource->registrationMode()->value,
+            'registration_mode_label' => $this->resource->registrationMode()->label(),
+
             // Nullable in the schema; the cast makes it look otherwise.
             'approved_at' => $this->resource->approved_at !== null
                 ? $this->resource->approved_at->toIso8601String()

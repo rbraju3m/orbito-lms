@@ -91,13 +91,13 @@ final class AuthenticatedAcademy
     {
         /*
          * Already inside one. Respect it rather than deciding again — the
-         * caller opened it, and anything just written for this user (the
-         * Student role a registration assigns) is in THAT schema.
+         * caller opened it, and anything just written for this user is in THAT
+         * schema.
          *
-         * Registration relies on this, and on nothing else: `RegisterUser`
-         * never sets `tenant_id`, so a self-registered account belongs to no
-         * academy — a real hole in the tenancy retrofit, recorded in
-         * ROADMAP.md, not something this class can paper over.
+         * Registration no longer depends on this: `RegisterUser` now takes the
+         * academy explicitly and sets `tenant_id`, so the branch below finds
+         * it. The short-circuit stays because closing an academy the caller
+         * opened, mid-request, is never this class's decision to make.
          */
         if ($this->tenancy->initialized) {
             return true;

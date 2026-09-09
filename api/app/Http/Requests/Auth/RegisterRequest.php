@@ -20,6 +20,18 @@ final class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
+            /*
+             * WHICH academy. Required, because tenancy resolves from the
+             * authenticated user and this route has none — without it the
+             * account belongs nowhere.
+             *
+             * Shape only. Whether the academy exists, is open, and accepts
+             * sign-ups is decided by `ResolveSignupAcademy`, so that "no such
+             * academy" and "invitation only" can be different answers instead
+             * of one `exists` failure.
+             */
+            'academy' => ['required', 'string', 'max:100'],
+
             'name' => ['required', 'string', 'min:2', 'max:120'],
             // `rfc` only, deliberately not `dns`: a DNS lookup makes signup as
             // slow and as unreliable as the resolver, and rejects legitimate

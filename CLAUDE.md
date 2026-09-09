@@ -600,10 +600,12 @@ running on?** They do not look alike:
   why `RunsForEveryTenant` restores the caller's context instead of ending.
 
 **Login and register run BEFORE the tenant middleware could know whose academy
-to open** — it reads the authenticated user, and there is none yet. Their
-session payload is mostly tenant data (roles, permissions, instructor profile),
-so `AuthenticatedAcademy` opens the academy first and loads the relations
-second. The reverse order is a 500 naming whichever tenant table it reached
+to open** — it reads the authenticated user, and there is none yet. Login reads
+it from the account; **register is TOLD**, by an `academy` slug in the request
+that comes from the link an academy hands out, because a signup has no account
+to read it from. Their session payload is mostly tenant data (roles,
+permissions, instructor profile), so `AuthenticatedAcademy` opens the academy
+first and loads the relations second. The reverse order is a 500 naming whichever tenant table it reached
 first, and **the harness hides it** by leaving an academy open all test long.
 `PlatformOwnerTest` calls `tenancy()->end()` to defeat that, the same trick
 `ScheduledCommandTest` uses.
@@ -631,7 +633,7 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision.
-1,024 backend tests / 3,349 assertions · 241 frontend tests.
+1,043 backend tests / 3,418 assertions · 249 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -742,13 +744,10 @@ Every one of these has already cost time at least once.
 
 ### Known debt, deliberately left
 
-- **Self-registration has no academy to register INTO.** `RegisterUser` never
-  sets `tenant_id` and `/auth/register` is unauthenticated, so `assignRole`
-  writes into whichever academy happens to be open — the harness's shared one
-  under test, none at all in a real deployment. A hole left by the tenancy
-  retrofit; closing it is a product decision (invite token, academy in the
-  path, host-based signup), and Phase 16's public marketing surface is what
-  will first send strangers at that route. See `docs/ROADMAP.md`.
+- **Invitations are declared and not built.** `RegistrationMode::Invite` exists
+  so an academy that wants a controlled roster is not silently given open
+  signup; the API refuses it as a value and the UI greys it out. Building it
+  means an invitations table, an accept flow and an admin screen.
 - Plan **limits** are stored and counted but never enforced — the oldest open
   item in the codebase. Phase 16.
 - **Playwright covers phases 2–3 only.** Two spec files, thirteen phases ago.

@@ -41,6 +41,8 @@ use App\Domain\Identity\Policies\UserPolicy;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Media\Models\Media;
 use App\Domain\Media\Policies\MediaPolicy;
+use App\Domain\Platform\Models\Tenant;
+use App\Domain\Platform\Policies\AcademyPolicy;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -50,6 +52,9 @@ final class AuthServiceProvider extends ServiceProvider
     /** @var array<class-string, class-string> */
     private array $policies = [
         User::class => UserPolicy::class,
+        // The academy administering ITSELF. The platform registry is the
+        // operator's surface and is gated by a flag, not by this.
+        Tenant::class => AcademyPolicy::class,
         Role::class => RolePolicy::class,
         InstructorProfile::class => InstructorProfilePolicy::class,
         Course::class => CoursePolicy::class,

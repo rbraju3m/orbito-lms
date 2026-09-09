@@ -405,6 +405,21 @@ export const router = createBrowserRouter([
                     .InstructorsRoute,
                 }),
               },
+              // The academy administering ITSELF — who may join it. Not the
+              // platform registry, which is the operator's and sits under
+              // /platform behind a flag rather than a permission.
+              {
+                element: <RequirePermission anyOf={['settings.view']} />,
+                children: [
+                  {
+                    path: 'admin/academy',
+                    lazy: async () => ({
+                      Component: (await import('@/features/admin/routes/AcademySettingsRoute'))
+                        .AcademySettingsRoute,
+                    }),
+                  },
+                ],
+              },
               /*
                * Connecting the academy's own gateway (ADR-13). Its own
                * permission: staff run orders but move no money, so

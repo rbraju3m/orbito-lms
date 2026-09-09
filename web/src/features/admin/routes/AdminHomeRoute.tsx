@@ -11,6 +11,12 @@ const AREAS = [
     description: 'Approve, reject or block instructors.',
     permission: 'instructor.view',
   },
+  {
+    to: '/admin/academy',
+    title: 'Academy',
+    description: 'Who may sign up, and the link that lets them.',
+    permission: 'settings.view',
+  },
 ];
 
 export function AdminHomeRoute() {

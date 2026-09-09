@@ -13,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { applyServerErrors } from '@/shared/lib/form';
 
@@ -26,6 +26,19 @@ export function RegisterRoute() {
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
   const { mutateAsync, isPending } = useRegister();
+
+  /*
+   * WHICH academy this account joins. There is no anonymous surface and
+   * tenancy resolves from the authenticated user, so a signup has no academy
+   * unless the link carries one — every academy hands out
+   * `/register?academy=<its slug>`.
+   *
+   * The name is not shown, deliberately: resolving a slug to a name before
+   * anyone has signed up would be an endpoint for enumerating which academies
+   * exist. The server names it back in its refusal when the slug is wrong.
+   */
+  const [searchParams] = useSearchParams();
+  const academy = searchParams.get('academy')?.trim() ?? '';
 
   const {
     register: field,
@@ -46,12 +59,35 @@ export function RegisterRoute() {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     try {
-      await mutateAsync(values);
+      await mutateAsync({ ...values, academy });
       void navigate('/dashboard', { replace: true });
     } catch (error) {
       setFormError(applyServerErrors(error, setError, FIELDS));
     }
   });
+
+  /*
+   * No academy in the link, so there is nothing to submit to. Said here rather
+   * than letting the form post and come back 422 on a field the user cannot
+   * see or fix.
+   */
+  if (academy === '') {
+    return (
+      <Stack gap="md">
+        <Title order={2}>You need an invitation link</Title>
+        <Alert color="warning" icon={<IconAlertCircle size={16} />}>
+          Accounts belong to an academy, so signing up needs that academy&rsquo;s own link — it
+          ends in <Text span ff="monospace">?academy=…</Text>. Ask whoever invited you for it.
+        </Alert>
+        <Text size="sm" c="dimmed" ta="center">
+          Already have an account?{' '}
+          <Anchor component={Link} to="/login">
+            Sign in
+          </Anchor>
+        </Text>
+      </Stack>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} noValidate>

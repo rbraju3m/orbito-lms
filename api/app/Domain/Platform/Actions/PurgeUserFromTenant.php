@@ -28,14 +28,35 @@ use Illuminate\Support\Facades\DB;
  */
 final class PurgeUserFromTenant
 {
-    /** Rows the user owned outright — the old cascadeOnDelete. */
-    private const CASCADE = [
+    /**
+     * Rows the user owned outright — the old cascadeOnDelete.
+     *
+     * Public so a test can assert every column here still exists. The maps are
+     * hand-written from a schema that no longer enforces them, so nothing but
+     * a test stops one drifting out of step with the migrations.
+     *
+     * @var array<string, string>
+     */
+    public const CASCADE = [
         'role_assignments' => 'user_id',
         'instructor_profiles' => 'user_id',
         'media' => 'owner_id',
         'courses' => 'owner_id',
         'course_instructors' => 'user_id',
-        'quizzes' => 'owner_id',
+        /*
+         * `quizzes` was here with an `owner_id` that has never existed: a quiz
+         * is a settings row hung off a `course_item`, and it is the ITEM that
+         * belongs to a course and the course that belongs to a user. The entry
+         * did nothing but throw "Unknown column 'owner_id'" on every hard
+         * delete of an academy member. `PurgeUserFromTenantTest` now asserts
+         * every column in both maps exists, so the next such entry fails in
+         * the suite instead of on somebody's deletion.
+         *
+         * Deleting the course does take its `course_items` (they cascade), but
+         * NOT the itemables those items pointed at — `itemable` is a morph and
+         * carries no foreign key. Those orphans predate this and are a
+         * question about course deletion generally, not about users.
+         */
         'question_banks' => 'owner_id',
         'assignment_submissions' => 'user_id',
         'quiz_attempts' => 'user_id',
@@ -45,8 +66,12 @@ final class PurgeUserFromTenant
         'lesson_notes' => 'user_id',
     ];
 
-    /** Rows that merely REFERENCE them — the old nullOnDelete. */
-    private const NULLIFY = [
+    /**
+     * Rows that merely REFERENCE them — the old nullOnDelete.
+     *
+     * @var array<string, string>
+     */
+    public const NULLIFY = [
         'role_assignments' => 'granted_by',
         'instructor_profiles' => 'reviewed_by',
         'assignment_submissions' => 'graded_by',
