@@ -8,14 +8,15 @@ Legend
   **Bold = shipped.** `⚠` = built but unproven against the outside world.
 - Phases are defined in `ROADMAP.md`.
 
-**Everything through Phase 15 is bold.** Sections A–N carry the decision that
-shaped each row rather than a restatement of the feature; O, P and Q are still
-plan.
+**Everything through Phase 15 is bold**, plus the operator rows in Q that came
+after it. Sections A–N carry the decision that shaped each row rather than a
+restatement of the feature; O and P are still plan.
 
-**Multi-tenancy (ADR-13)** is not in this matrix because neither reference
-product has it: Tutor is a WordPress plugin and Klasio is closed managed-SaaS.
-Orbito runs one database per academy, which is a platform capability rather
-than an LMS feature — see `ROADMAP.md` Phase T.
+**Multi-tenancy (ADR-13)** has no Tutor or Klasio column to compare against:
+Tutor is a WordPress plugin and Klasio is closed managed-SaaS. Orbito runs one
+database per academy — see `ROADMAP.md` Phase T. What it *produced* is in the
+matrix, in **Q**, because running academies turned out to be a real operator
+surface rather than an invisible mechanism.
 
 ---
 
@@ -23,7 +24,7 @@ than an LMS feature — see `ROADMAP.md` Phase T.
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
-| A1 | Registration (student) | Core | Yes | **P3 · M** | Email + password |
+| A1 | Registration (student) | Core | Yes | **P3 · M** | Email + password, **plus the academy's slug** — an account belongs to one academy and a signup has no session to resolve one from |
 | A2 | Login / logout | Core | Yes | **P3 · M** | Sanctum; cookie for web, token for mobile |
 | A3 | Email verification | Pro | Yes | **P3 · M** | Signed URL, queued mail |
 | A4 | Password reset | Core | Yes | **P3 · M** | |
@@ -39,6 +40,8 @@ than an LMS feature — see `ROADMAP.md` Phase T.
 | A14 | "View as student" toggle for instructors | Core | — | P6 | Keep — good UX |
 | A15 | Audit log of privileged actions | — | — | P19 | |
 | A16 | GDPR consent + data export/erase | Core | — | P19 | Tutor has a decent model |
+| A17 | Per-academy signup policy (open / closed) | — | Yes | **shipped** | `/admin/academy`; `invite` is declared and not built |
+| A18 | Invitations | Pro | Yes | Open | Needs a table, an accept flow and a screen; the enum case already refuses rather than falling back to open |
 
 **Shipped in Phase 3:** A1–A5, A10, A11, A13. Course-scoped roles (A11) work
 through `role_assignments(scope_type, scope_id)`; see ADR-07 and the correction
@@ -389,6 +392,10 @@ the discount.
 | Q12 | CI/CD | — | n/a | P19 | |
 | Q13 | Plan limits / usage counters | — | Yes | P16 (counters **P4**) | Counted since P4 and **never enforced** — the oldest open item in the codebase |
 | Q14 | Public roadmap / changelog | Yes | Yes | P19 | |
+| Q15 | Academy registry: provision, approve, reject, suspend, reinstate | — | n/a | **shipped** | `/platform/academies`; `available_actions` comes from the rule the write endpoint enforces |
+| Q16 | Permanent platform owner | — | n/a | **shipped** | Auto-created; cannot be deleted, suspended or demoted. Holds BOTH super-admin answers |
+| Q17 | Operator steps inside an academy | — | n/a | **shipped** | `enter` / `leave`; switching clears the client's whole query cache |
+| Q18 | Cross-academy usage view · audit of operator actions · plan editing | — | Yes | Open | Plans are still changed in the database |
 
 ---
 

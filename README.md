@@ -11,7 +11,7 @@ A production-grade, API-first Learning Management System.
 retrofit — one database per academy.
 [`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
 
-999 backend tests / 3,238 assertions · 219 frontend tests · PHPStan level 6.
+1,043 backend tests / 3,418 assertions · 249 frontend tests · PHPStan level 6.
 
 An instructor can build and publish a course with lessons, resources, quizzes,
 assignments and live sessions, price it, schedule cohorts, announce things,
@@ -23,6 +23,11 @@ and notes, take a timed quiz, hand in work and read the feedback, attend a live
 class, ask a question, review the course, earn points and badges, and download
 a verifiable certificate — with a calendar, an inbox and a dashboard tying it
 together.
+
+A platform operator runs the academies themselves: provision one, approve or
+reject it, suspend and reinstate it, put it on a plan and renew it, and step
+inside any of them to use its own screens. Each academy decides whether anyone
+may sign up, and hands out its own signup link.
 
 **Two integrations are written and unproven, and need credentials rather than
 code:** `StripeGateway` has never contacted Stripe (commerce is complete and
@@ -60,9 +65,9 @@ cd api
 composer install
 cp .env.example .env      # then set DB_USERNAME / DB_PASSWORD
 php artisan key:generate
-php artisan migrate
-php artisan db:seed       # roles, permissions, categories, tags — plus six
-                          # demo accounts in local/testing only
+php artisan migrate       # also creates the permanent platform owner
+php artisan db:seed       # plans — plus a demo academy, its catalogue and
+                          # seven demo accounts in local/testing only
 
 # 3. Frontend
 cd ../web
@@ -87,19 +92,26 @@ Then open <http://localhost:5173>. `/system` shows a live health check of the
 API, database, cache and queue.
 
 `db:seed` is safe to re-run — everything in it is `firstOrCreate`. Outside
-`local` and `testing` it stops after roles, permissions and the catalogue
-taxonomy, so it never creates demo accounts in production.
+`local` and `testing` it stops after the plans and the permanent owner, so it
+creates no demo account and no demo academy in production. Roles and
+permissions are not seeded centrally at all: they live in each academy's own
+schema and are written when that academy is provisioned.
 
 The demo accounts (local only) all use the password `password`:
 
-| Email | Role |
+| Email | Who they are |
 |---|---|
-| `super@orbito.test` | Super Admin — the one blanket authorization bypass |
-| `admin@orbito.test` | Platform Admin |
+| `operator@orbito.test` | A platform operator — the academy registry. Belongs to no academy. |
+| `owner@orbito.test` | Demo Academy's owner, with the Admin role inside it |
 | `staff@orbito.test` | Support Staff |
 | `instructor@orbito.test` | Instructor, approved |
 | `applicant@orbito.test` | Student with a pending instructor application |
 | `student@orbito.test` | Student |
+
+Every account except `operator@orbito.test` lives in **Demo Academy**; roles
+are held inside that academy's schema and mean nothing outside it. `super@` and
+`admin@` used to be on this list and were never created — the accounts a
+single-tenant seeder made before an academy owner existed.
 
 ### The platform owner
 

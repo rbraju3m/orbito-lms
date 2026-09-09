@@ -6,4 +6,13 @@ Read that first. This file only notes what is specific to the backend workspace.
 - Laravel 13, PHP 8.3+, API-only. There is no Blade UI and no Vite here —
   the SPA lives in `../web`.
 - Domain code lives in `app/Domain/<Context>/`. See `../docs/ARCHITECTURE_PROPOSAL.md` §3.
-- Run `composer check` before pushing (Pint + PHPStan + Pest).
+- Run `composer check` before pushing (Pint + PHPStan + Pest). **Budget ~20
+  minutes** — provisioning tests build real MySQL schemas. Run the files you
+  touched first; save the full sweep for before a push.
+- **The suite drops every schema matching the tenant prefix after every test.**
+  It has its own (`TENANCY_DB_PREFIX` in `phpunit.xml`) precisely so it cannot
+  reach your development academies. Do not remove that override.
+- Anything that runs OUTSIDE the `tenant` middleware — login, register, a
+  scheduled command, a webhook — must be tested with `tenancy()->end()` first.
+  The harness leaves an academy open all test long and will otherwise pass code
+  that dies in production. See `../docs/TESTING.md`.

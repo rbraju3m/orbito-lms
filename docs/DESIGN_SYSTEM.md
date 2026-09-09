@@ -94,6 +94,13 @@ Design mobile-first: the 360 px layout is the primary target, not a fallback.
 > is a hand-rolled SVG chart in `features/analytics`, and it stays there until
 > a second feature needs one.
 >
+> **The platform operator's surface did not change it either**, and that was
+> the strongest test yet: an entirely new audience, on screens no learner or
+> instructor ever sees, built from `EmptyState`, `ErrorState`, `LoadingState`,
+> `PageHeader` and Mantine directly. `TenantStatusBadge` is a five-line colour
+> map that belongs to the registry and nowhere else. A wrapper earns its place
+> by encoding a decision, not by being used twice.
+>
 > That was not the original plan, and it is worth being clear about why it held.
 > A wrapper that only re-exports a Mantine component adds an indirection and a
 > file to keep in step, and buys nothing: Mantine's own props are already the

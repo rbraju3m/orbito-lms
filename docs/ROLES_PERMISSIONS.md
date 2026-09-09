@@ -181,6 +181,7 @@ need something passed to it that does not exist.
 | `MediaPolicy` | view (⟶ `CourseAccess` for private), upload, delete |
 | `CourseCategoryPolicy` | view, create, update, delete |
 | `UserPolicy` / `RolePolicy` | view, update, assign, delete |
+| `AcademyPolicy` | view, update — the academy administering ITSELF (`/admin/academy`), gated by `settings.view` / `settings.update`. NOT the platform registry, which is the operator's and sits behind the central flag. |
 | `InstructorProfilePolicy` | view, review |
 | `EnrollmentPolicy` (P9) | view, create, suspend, revoke, extend |
 | `OrderPolicy` (P10) | view, refund — plus the `manage-gateways` Gate |
@@ -257,7 +258,12 @@ caller could legitimately fix answers **423 Locked** with the reason, not 403.
 - Roles and permissions are seeded from a single `config/permissions.php` registry.
   A `permissions:sync` command adds new keys and reports orphans; it never silently
   removes a key that a role still uses.
-- The first registered user becomes Super Admin. Subsequent users are Students.
+- **Every self-registered account is a Student**, in the academy its signup
+  link named. "The first registered user becomes Super Admin" was true before
+  multi-tenancy and is not now: an academy's first account is its OWNER, created
+  by `ProvisionTenant` with the Admin role, and `RegistrationMode` decides
+  whether anyone may self-register after that. The permanent platform owner is
+  a third thing again — see below.
 - Instructor role is granted only after approval (`instructor_profiles.status = approved`).
 - Course-scoped assignments carry `role_assignments.expires_at`. **The column
   exists and nothing sweeps it yet** — an expired row is not currently ignored
@@ -266,8 +272,10 @@ caller could legitimately fix answers **423 Locked** with the reason, not 403.
 - `RoleAssigned` and `RoleRevoked` events are emitted. A general audit log
   (P19) will listen to them; today nothing does.
 
-**Counts at Phase 8:** 98 permission keys across 8 system roles, synced from
-`config/permissions.php` by `php artisan permissions:sync`.
+**Counts today:** 102 permission keys across 8 system roles, synced into every
+academy's schema from `config/permissions.php` by `php artisan permissions:sync`
+— and by `TenantDatabaseSeeder` when an academy is provisioned, because an
+academy with no roles is one where nobody can do anything, including its owner.
 
 ### The platform owner
 

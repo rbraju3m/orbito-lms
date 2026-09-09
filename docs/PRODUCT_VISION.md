@@ -7,7 +7,8 @@
 | **Independent instructors** | Publish a first course today, without documentation, and get paid. |
 | **Academies and training businesses** | Multiple instructors, delegated staff, real reporting, invoices and tax. |
 | **Students** | Find a course, learn on a phone during a commute, know exactly where they left off. |
-| **Platform operators** | Run a marketplace: approve instructors, moderate, refund, split revenue, see the numbers. |
+| **Academy administrators** | Approve instructors, moderate, refund, see the numbers, decide who may join. This is what "platform operator" meant when this was written, and it is the role most of the product serves. |
+| **Platform operators** | Run the ACADEMIES: provision one, approve or suspend it, put it on a plan, step inside it to help. A smaller audience than the row above and a different surface — one database per academy (ADR-13) split what used to be one job into two. |
 
 ## 2. What "good" means here
 
@@ -59,4 +60,4 @@ broke something, and no file is 10,000 lines long.
 | Student course completion rate vs baseline | measurably higher — the funnel tells us where it isn't |
 | Mobile LCP on mid-tier Android over 4G | < 2.5 s |
 | Payment disputes caused by access errors | zero |
-| Test suite runtime | fast enough that nobody skips it |
+| Test suite runtime | fast enough that nobody skips it — **currently ~20 min and failing this**, because provisioning tests build real MySQL schemas. That is the price of testing tenant isolation rather than trusting it, and it is a debt rather than a decision: see `TESTING.md` |

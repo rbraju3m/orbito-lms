@@ -64,6 +64,15 @@ subscriptions(id, tenant_id UNIQUE, plan_id,
 `subscriptions.grace_days` is copied deliberately: changing a plan's grace
 period must not retroactively re-open academies that already lapsed.
 
+**`tenants.data` is where an academy's settings live** unless something filters
+or sorts on them — the rule the model states for its own columns. Today it
+holds `suspended_reason`, `rejected_reason` and **`registration_mode`**
+(`open` | `invite` | `closed`; see `RegistrationMode`). A key that is absent
+means the DEFAULT rather than a state, so a setting added later reaches every
+academy that never touched the switch without a backfill — the same shape as
+notification preferences. Promote one to a real column the day something needs
+to query it.
+
 `usage_counters` gained a leading `tenant_id`, NOT NULL with an `''` sentinel
 for platform-wide rows — the same reason `owner_id` uses `0`. MySQL treats
 NULLs as distinct in a unique index, so a nullable column there would let
@@ -75,9 +84,16 @@ those rows duplicate silently.
 
 ```sql
 -- CENTRAL. `tenant_id` is the academy this account belongs to; NULL only for
--- a platform operator (`is_super_admin`). Email is unique PLATFORM-wide, so
--- one person teaching at two academies needs two accounts — the cost of
--- central users, and what makes tenancy-from-user unambiguous.
+-- a platform operator (`is_super_admin`), and for them it is which academy
+-- they have ENTERED rather than a permanent home. Email is unique
+-- PLATFORM-wide, so one person teaching at two academies needs two accounts —
+-- the cost of central users, and what makes tenancy-from-user unambiguous.
+--
+-- Nothing a request body sends ever writes this column. Provisioning sets it
+-- for an academy owner, registration sets it from the `academy` slug in the
+-- signup link, and `EnterAcademy` moves an operator between academies. It was
+-- NULL for every self-registered account until registration was told which
+-- academy it was writing into.
 users(id, uuid, tenant_id NULL, is_super_admin BOOL, name, email UNIQUE, email_verified_at, password, phone,
       avatar_media_id, cover_media_id, headline, bio, timezone DEFAULT 'UTC',
       locale DEFAULT 'en', status ENUM(active,pending,suspended,deleted),

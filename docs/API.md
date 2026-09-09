@@ -194,8 +194,8 @@ order is a 500 naming whichever tenant table it reached first.
 
 ## 4. Domain surface
 
-Blocks are marked **live** (implemented, tested, in the route table as of Phase 15)
-or **planned** (design intent for a later phase). A planned path is not a promise
+Blocks are marked **live** (implemented, tested, and verified against
+`php artisan route:list`) or **planned** (design intent for a later phase). A planned path is not a promise
 about its final shape — see `ROADMAP.md` for when each lands.
 
 ### Catalog

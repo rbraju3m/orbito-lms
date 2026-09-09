@@ -13,9 +13,11 @@ any event is readable in one place.
 
 ---
 
-## 1. What exists today (Phase 12)
+## 1. What exists today
 
-Thirty-nine events across thirteen contexts.
+Thirty-nine events across thirteen contexts. The catalogue has not grown since
+Phase 15, which is itself worth reading: see §4 for the operator actions that
+deliberately fire nothing yet.
 
 ### Identity
 
@@ -310,6 +312,11 @@ vocabulary for the same fact.
 | ~~`BadgeAwarded`, `StreakExtended`~~ | Gamification | **shipped P14**, with `PointsAwarded` |
 | ~~`SessionScheduled`, `AttendanceRecorded`~~ | Live | **shipped P15** |
 | `RoleAssignmentExpired` | Identity | still open — the enrolment sweeper shipped in P9 without it |
+| `AcademyEntered` / `AcademyLeft`, `AcademySettingsChanged`, `TenantStatusChanged` | Platform | **deliberately not fired yet.** Nothing in the system cares today, and an event nobody listens to is a contract nobody is keeping. They become worth defining the moment the P19 **audit log** exists — an operator entering somebody's academy, or an academy opening itself to the public, are exactly the facts it will want, and `TenantProvisioned` is the one that already exists to follow |
+
+`ChangeTenantStatus` writes four transitions and emits nothing, which is the
+largest silent Action in the codebase. That is a known omission rather than an
+oversight: see the row above.
 
 Outbound webhooks (ADR-12) subscribe to this catalogue rather than to anything
 new: a webhook is one more listener, which is the whole reason extension does

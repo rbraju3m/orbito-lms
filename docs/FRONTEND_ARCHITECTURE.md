@@ -7,8 +7,9 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 > Mantine requires `postcss`, `postcss-preset-mantine`, `postcss-simple-vars`,
 > `@mantine/core/styles.css`, a `<MantineProvider>`, and `<ColorSchemeScript>`.
 >
-> **State at Phase 15.** The route map and directory layout below are the
-> target. What exists today is marked ✅; unmarked entries are not built.
+> **State: Phase 15, plus the platform operator's surface.** The route map and
+> directory layout below are the target. What exists today is marked ✅;
+> unmarked entries are not built.
 >
 > **The bundle is watched, and the numbers are in `ROADMAP.md`.** Mantine is a
 > shared chunk, so a lazy route does NOT keep its component imports off the
@@ -60,7 +61,8 @@ bundle. The player is deliberately *not* the dashboard shell — it is full-blee
 /blog · /blog/:slug                                       (P16)
 /verify/:token                     public certificate verification
 /cart · /checkout · /checkout/:orderUuid/status
-/login · /register · /forgot-password · /reset-password · /verify-email   ✅
+/login · /register?academy=<slug> · /forgot-password · /reset-password
+/verify-email                                                             ✅
 
 /learn/:courseId                   → redirect to last/first item          ✅
 /learn/:courseId/announcements     every announcement in the course       ✅
@@ -138,6 +140,7 @@ through, not a panel of the editor.
 /admin/reviews                     moderation                            ✅
 /admin/media
 /admin/analytics                   KPIs, trend, top courses, CSV           ✅
+/admin/academy                     who may sign up, and the link          ✅
 /admin/roles · /admin/permissions
 /admin/settings/*
 
@@ -186,7 +189,7 @@ src/
 │   └── i18n/
 └── features/
     ├── account/       ✅ profile, password, instructor application
-    ├── admin/         ✅ users, instructor approval queue
+    ├── admin/         ✅ users, instructor approval queue, academy settings
     ├── assignment/    ✅ authoring, the learner's pane, submission form
     ├── auth/          ✅
     ├── catalog/       ✅ public catalogue + course detail
@@ -206,8 +209,15 @@ src/
     ├── notification/  ✅ the bell, the inbox, the preference matrix
     ├── analytics/     ✅ the academy dashboard, the course panel, the heatmap
     ├── gamification/  ✅ the badge wall, the boards, the opt-out
-    └── live/          ✅ the calendar, session cards, webinars
+    ├── live/          ✅ the calendar, session cards, webinars
+    └── platform/      ✅ the academy registry, the lapse banner, the
+                          "you are inside no academy" banner
 ```
+
+`platform/` is the only feature whose screens are not about a course, and the
+only one gated by a FLAG rather than a permission — it is above the academies
+rather than inside one. It also holds the two app-wide banners, which is where
+the feature started: for a long time it was a Zustand store and an alert.
 
 `notification/` is its own feature rather than a corner of `engagement/`,
 mirroring the backend: engagement is a thing people DO to a course, and a

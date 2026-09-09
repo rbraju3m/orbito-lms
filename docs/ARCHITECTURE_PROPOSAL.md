@@ -362,6 +362,21 @@ identification and is a real change — not a config flag.
 - A route with no authenticated user cannot resolve one, so the signed media
   download carries the tenant inside its signed payload. Phase 10 webhooks
   need the same.
+- **Registration is the route this hurt most, and it took longest to notice.**
+  A signup has no user, so it had no academy: it wrote a central row with a
+  null `tenant_id` and put the Student role into whichever schema happened to
+  be open. It is now TOLD — the academy's slug travels in the signup link the
+  academy hands out. That is a third answer to "how does a route with no user
+  find its academy", alongside the signed payload and the path segment, and it
+  is the one that applies when the caller is a person rather than a machine.
+- **Login and register also read tenant tables before the middleware could
+  help**, because their payload is roles and permissions. `AuthenticatedAcademy`
+  opens the academy first and loads the relations second; the reverse order is
+  a 500 naming whichever tenant table it reached first.
+- For a platform operator, `tenant_id` means "which academy have they
+  ENTERED", not "where do they belong". They may be inside none, and every
+  route behind the tenant middleware then answers 409 rather than 500 — except
+  `/auth/me`, which is how the client discovers the state at all.
 
 **Consequence for Phase 10.** Platform billing (academies paying us) and
 course sales (learners paying an academy) are now two different systems on
@@ -377,8 +392,9 @@ The frontend's Zod schemas mirror them; the server is authoritative.
 **Errors.** ✅ One exception→response mapper. Envelope in `API.md` §Errors. Domain
 exceptions extend `Support\Exceptions\DomainException` and carry a stable machine
 `code` and status: `attempt_rejected` (409), `submission_rejected` (409),
-`progress_rejected` (409), `content_locked` (423), `validation_failed` (422).
-Switch on the code, never the message.
+`progress_rejected` (409), `content_locked` (423), `validation_failed` (422),
+`platform_owner_protected` (422), `registration_not_open` (403),
+`no_academy_selected` (409). Switch on the code, never the message.
 
 **Idempotency.** Planned, with P10. Nothing today creates money. Where it
 matters now it is achieved structurally instead: starting a quiz attempt

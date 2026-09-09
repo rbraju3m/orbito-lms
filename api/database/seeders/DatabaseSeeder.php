@@ -40,8 +40,25 @@ final class DatabaseSeeder extends Seeder
          */
         app(EnsurePlatformOwner::class)->handle();
 
-        // A second, disposable operator for demos and fixtures. Unlike the
-        // owner this one has no protections and can be deleted freely.
+        if (! app()->environment('local', 'testing')) {
+            return;
+        }
+
+        /*
+         * BELOW THIS LINE IS LOCAL ONLY, and the guard sits above it rather
+         * than below for a reason found while auditing the README's claim that
+         * this seeder "never creates demo accounts in production".
+         *
+         * It did. A second platform operator with the password `password` and
+         * `is_super_admin` set was created before the environment check, so
+         * `db:seed` on a live installation minted a known-credential account
+         * that runs the academy registry. Anything with a fixed password
+         * belongs after the guard; the permanent owner above is the one
+         * exception, and its password is configurable and written once.
+         */
+
+        // A disposable operator for demos and fixtures. Unlike the owner this
+        // one has no protections and can be deleted freely.
         User::firstOrCreate(
             ['email' => 'operator@orbito.test'],
             [
@@ -50,10 +67,6 @@ final class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
         )->forceFill(['is_super_admin' => true, 'tenant_id' => null])->save();
-
-        if (! app()->environment('local', 'testing')) {
-            return;
-        }
 
         $this->demoAcademy();
 

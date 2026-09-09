@@ -111,6 +111,15 @@ service** (ADR-03), correct answers that never leave the server during an
 attempt (ADR-06), analytics as a log plus rollups (ADR-08), and **one database
 per academy** (ADR-13), which made the catalogue members-only.
 
+**The platform operator now has a surface of their own.** A permanent owner
+account exists in every environment, cannot be deleted, suspended or demoted,
+and holds both super-admin answers — the central flag that opens the academy
+registry, and the Super Admin role inside every academy. `/platform/academies`
+provisions, approves, suspends, prices and renews them, and lets an operator
+step INSIDE one to use its own screens. Registration was the last piece: it
+now takes the academy's slug from the link an academy hands out, so an account
+belongs somewhere. Each academy chooses whether it accepts sign-ups at all.
+
 **Two integrations are written and UNPROVEN**, and neither is called done:
 `StripeGateway` has never contacted Stripe, and `ZoomProvider` /
 `GoogleMeetProvider` have never contacted either service. Both need

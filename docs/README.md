@@ -11,6 +11,11 @@ builder, the learning experience, quizzes, assignments, enrolment & access,
 one database per academy, commerce, certificates, engagement & notifications,
 analytics, gamification, and live learning.
 
+Since Phase 15 the **platform operator's own surface** landed on top of that:
+a permanent owner account that cannot be locked out, the academy registry at
+`/platform/academies` — provision, approve, suspend, plan, and step inside an
+academy — and a signup that finally knows which academy it is writing into.
+
 **Two things are built but UNPROVEN against the outside world**, and both say
 so wherever they appear:
 
@@ -44,13 +49,15 @@ is worth less than one that says "this came out differently, and here is why".
 | `ROADMAP.md` | Phases 0–15 and Phase T carry delivery notes; each retro opens with what the phase decided and closes with what it deliberately left |
 | `ARCHITECTURE_PROPOSAL.md` | every ADR carries a delivery status; ADR-13 records the tenancy reversal, and risk R4 says why its own estimate was wrong |
 | `API.md` | endpoints are marked **live** or **planned**; §2a explains why nothing is public any more |
-| `DATABASE.md` | §0 is the central/tenant boundary and is authoritative; every context through Phase 15 matches the migrations, and each records where the built schema DIFFERS from the sketch and why |
+| `DATABASE.md` | §0 is the central/tenant boundary and is authoritative — including what lives in `tenants.data` rather than a column; every context matches the migrations, and each records where the built schema DIFFERS from the sketch and why |
 | `FEATURE_MATRIX.md` | shipped rows are bolded and carry the decision that shaped them; ⚠ marks the two unproven integrations |
 | `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅; the header explains what tenancy removed |
 | `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is partly still a wish list, and says so |
-| `EVENTS.md` | current — 39 events across 13 contexts, with who listens and why |
-| `TESTING.md` | current, including the Playwright gap |
-| `TUTOR_AUDIT.md`, `KLASIO_REFERENCE.md`, `PRODUCT_VISION.md` | research and intent; unchanged by implementation |
+| `EVENTS.md` | current — 39 events across 13 contexts, with who listens, and §4 names the operator actions that deliberately fire nothing yet |
+| `TESTING.md` | current, including the Playwright gap and why the suite has its own tenant prefix |
+| `ROLES_PERMISSIONS.md` | current — the policy table, the two unrelated "super admins", and §7 on the permanent owner |
+| `TUTOR_AUDIT.md`, `KLASIO_REFERENCE.md` | research, dated 2026-09-07; snapshots of external products, deliberately never updated |
+| `PRODUCT_VISION.md` | intent, mostly unchanged by implementation — two rows now say where reality diverged |
 
 ## Reading order
 
