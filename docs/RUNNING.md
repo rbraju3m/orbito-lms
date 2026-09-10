@@ -69,10 +69,22 @@ one academy, so plain `/register` has nowhere to put it.
 | Symptom | Cause |
 |---|---|
 | `npm run dev`: port 5173 is already in use | Another dev server holds it. Stop it. |
-| Login returns 419, or 401 straight after signing in | The SPA and API disagree about where each other lives — see below |
+| Login says *Could not reach the server* | The API is not running — nothing on :8000 |
+| Login says **CSRF token mismatch** (419) | A stale `XSRF-TOKEN` cookie from another Laravel app you run on `localhost`. See below |
+| Still 419, or 401 straight after signing in, with cookies cleared | The SPA and API disagree about where each other lives — see below |
 | Signed in, screens empty, `no_academy_selected` | A platform operator inside no academy. Pick one at `/platform/academies` and enter it |
 | Owner account missing | `php artisan orbito:ensure-owner` recreates and repairs it |
 | Emails, certificates or notifications never arrive | Horizon is not running |
+
+**CSRF token mismatch when you also run another Laravel app locally.** Cookies
+belong to a HOST, not a port, and every Laravel app names its CSRF cookie
+`XSRF-TOKEN`. An app that leaves `SESSION_DOMAIN` unset writes that cookie to
+`localhost` itself; Orbito writes it with `domain=localhost`. The browser keeps
+both, the SPA sends whichever it reads first, and Orbito cannot decrypt the
+other app's. Clear the cookies for `localhost` (DevTools → Application →
+Storage → *Clear site data*) and reload. It comes back whenever you switch
+between the two apps; running one of them on its own hostname — `*.localhost`
+resolves to your machine in modern browsers — ends it for good.
 
 **Changing ports** means changing all of these together, then
 `php artisan config:clear`:
