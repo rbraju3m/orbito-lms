@@ -691,6 +691,12 @@ Gate::authorize('publish', $course);                   // in a controller
 - **A rejection's headers are part of its answer.** `ApiExceptionRenderer`
   rebuilt every 429 without `Retry-After`, on every limiter. An envelope that
   drops "when may I retry?" is a dead end — the 423 rule again.
+- **A sweep deletes from the limit's OWN definition.** `media:sweep-unused`
+  reads `UploadQuota::unusedFiles()`, narrowed by
+  `MediaCollection::sweptWhenUnused()`, so a file it removes is exactly one
+  the quota was charging for. And a thing nothing references YET (avatars) is
+  not an orphan, it is unwired: sweep only what could have been used and
+  wasn't.
 
 ---
 
@@ -775,7 +781,7 @@ so the action that fixes a lapse survives it.
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, digital downloads, upload
 permissions and upload volume limits** (§ Patterns established in Phase 16).
-1,183 backend tests / 4,039 assertions · 282 frontend tests.
+1,201 backend tests / 4,080 assertions · 282 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -798,11 +804,8 @@ been called. `ManualProvider` works and is what most academies will use.
 done — bundles closed a Phase 10 hole on the way (nothing could set a price),
 downloads fixed two bugs bundles shipped, uploads closed a hole downloads
 found, and volume limits closed the rest of it (§ Patterns established in
-Phase 16). The most self-contained next slice is **outbound webhooks**; the
-quickest is **sweeping never-used uploads** — a scheduled job that deletes
-unused avatar and submission files after a grace period, reading the SAME
-definition of "unused" `UploadQuota` counts, which is what keeps that quota
-fair over years. Also ahead: subscriptions and memberships (after the Stripe test), coaching, blog,
+Phase 16), and a nightly sweep now deletes the submission uploads nothing
+used. The most self-contained next slice is **outbound webhooks**. Also ahead: subscriptions and memberships (after the Stripe test), coaching, blog,
 page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
@@ -912,13 +915,13 @@ Every one of these has already cost time at least once.
   still names `course_id`: teaching it about downloads means a morph there, a
   grant that switches on type, and an allocation target that is not a course.
   Its own slice.
-- **Nothing sweeps uploads that were never used.** `UploadQuota` caps what a
-  person holds in unused avatar and submission files (512 MB) and the
-  submission form's remove button deletes, but a file left in a form that was
-  never submitted counts until it is deleted, and no screen lists it. A sweep
-  must read `UploadQuota`'s own definition of unused — two definitions would
-  disagree about which files are safe to delete. Nobody can delete a handed-in
-  file either, admins included; moderation will one day need that.
+- **Avatars are counted but never swept.** Nothing references an avatar yet —
+  the header draws initials — so every avatar reads as unused, and a live one
+  cannot be told from an abandoned one. Wiring avatars to a profile means
+  adding that reference to `UploadQuota::unusedFiles()` FIRST, then turning on
+  `MediaCollection::sweptWhenUnused()` for them; the other order deletes every
+  profile picture two days after it is uploaded. Nobody can delete a
+  handed-in file either, admins included; moderation will one day need that.
 - **Nothing scans uploads**, and every byte goes through PHP — the
   direct-to-storage flow `MediaStatus::Pending` was declared for was never
   built. Downloads cap at 500 MB and allow no executables; that allowlist is

@@ -1268,12 +1268,30 @@ forever, and never hand one in.
 - **Every 429 was missing `Retry-After`.** `ApiExceptionRenderer` rebuilt the
   response and dropped the throttle's headers, on every limiter including
   login's, while API.md §5 promised them.
-- **Still open:** a file abandoned in a form that was never submitted counts
-  until it is deleted, and no screen lists it. Sweeping never-attached files
-  is what keeps the quota fair over years, and it is its own item. An
-  assignment with unlimited attempts still takes 20 × 25 MB per attempt —
-  the instructor's setting, and visible in the grading queue. And nobody can
-  delete a handed-in file, admins included, which moderation will one day need.
+- **Still open:** an assignment with unlimited attempts still takes 20 × 25 MB
+  per attempt — the instructor's setting, and visible in the grading queue.
+  And nobody can delete a handed-in file, admins included, which moderation
+  will one day need.
+
+**Unused-upload sweep — done.** `media:sweep-unused`, nightly at 03:20 in
+every academy, deletes submission files nothing used within 48 hours
+(`MEDIA_UNUSED_GRACE_HOURS`). The form keeps what a learner attached only in
+the page, so once it is left those files are unreachable and would count
+against their quota for good — this is what keeps the quota fair over years.
+
+- **One definition of unused.** The sweep reads `UploadQuota::unusedFiles()`,
+  so a file it deletes is exactly one the quota was charging for; a test holds
+  the swept collections inside the counted ones.
+- **Through `DeleteMedia`, file by file.** The bytes go first, the counters
+  move, and its guard still applies: a file handed in between the query and
+  the delete is refused there and left alone. One stuck file does not stop the
+  rest, and fails the run so an operator hears of it. `--dry-run` reports
+  without deleting.
+- **Not avatars.** Nothing references one yet, so a live avatar cannot be told
+  from an abandoned one. They join the sweep when they are wired to a
+  profile — the reference first, or every profile picture goes after two days.
+- **Indexed on `(collection, created_at)`.** The sweep asks across every
+  owner, which `(owner_id, collection)` cannot serve.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL, and outbound webhooks.

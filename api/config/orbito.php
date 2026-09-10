@@ -113,6 +113,12 @@ return [
          * assemble one; a test holds the default there.
          */
         'unattached_quota_bytes' => (int) env('MEDIA_UNATTACHED_QUOTA_MB', 512) * 1024 * 1024,
+        /*
+         * How long an upload nothing has used survives `media:sweep-unused`.
+         * The submission form holds its files only in the page, so once that
+         * is left they are unreachable; two days is longer than any sitting.
+         */
+        'unused_grace_hours' => (int) env('MEDIA_UNUSED_GRACE_HOURS', 48),
     ],
 
     /*

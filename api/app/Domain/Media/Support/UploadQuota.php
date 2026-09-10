@@ -31,8 +31,9 @@ use Illuminate\Support\Facades\DB;
  *
  * Media asks Assessment directly, as `DeleteMedia` asks Catalog: a limit must
  * answer before the bytes are written, and an event cannot say no. A new
- * place that CONSUMES files from these collections belongs in `unused()`, or
- * learners are charged for files they have used.
+ * place that CONSUMES files from these collections belongs in
+ * `unusedFiles()`, or learners are charged for files they have used — and
+ * `media:sweep-unused` deletes them.
  */
 final class UploadQuota
 {
@@ -43,7 +44,7 @@ final class UploadQuota
 
     public function usedBytes(User $owner): int
     {
-        return (int) $this->unused($owner)->sum('size_bytes');
+        return (int) $this->unusedFiles()->where('owner_id', $owner->id)->sum('size_bytes');
     }
 
     /**
@@ -71,19 +72,23 @@ final class UploadQuota
     }
 
     /**
-     * Their files in the quota'd collections that nothing references.
+     * Everybody's files in the quota'd collections that nothing references.
+     *
+     * THE definition of unused. The quota counts it per owner and
+     * `media:sweep-unused` deletes from it, so the two cannot disagree about
+     * which files are safe to delete — a file the sweep would remove is
+     * exactly a file the quota was charging for.
      *
      * Both `media_id` columns below carry a foreign key, so MySQL has already
-     * indexed them, and (owner_id, collection) leads the media table's own
-     * index. Soft-deleted files are excluded by the model's scope — their
-     * bytes went first (`DeleteMedia`).
+     * indexed them; (owner_id, collection) and (collection, created_at) serve
+     * the two readers. Soft-deleted files are excluded by the model's scope —
+     * their bytes went first (`DeleteMedia`).
      *
      * @return Builder<Media>
      */
-    private function unused(User $owner): Builder
+    public function unusedFiles(): Builder
     {
         return Media::query()
-            ->where('owner_id', $owner->id)
             ->whereIn('collection', MediaCollection::withPersonalQuota())
             // Handed in.
             ->whereNotIn('id', AssignmentSubmissionFile::query()->select('media_id'))

@@ -163,4 +163,30 @@ enum MediaCollection: string
             array_filter(self::cases(), static fn (self $collection): bool => $collection->hasPersonalQuota()),
         ));
     }
+
+    /**
+     * Whether `media:sweep-unused` deletes a file here once nothing has used
+     * it for the grace period. Always a subset of `hasPersonalQuota()`: the
+     * sweep reads the quota's definition of unused, and a test holds that.
+     *
+     * NOT avatars, yet. Nothing references an avatar — the header draws
+     * initials — so every avatar reads as unused, and a live one cannot be
+     * told from an abandoned one. The day avatars are wired to a profile, that
+     * reference goes into `UploadQuota::unusedFiles()` and this turns on.
+     * Turning it on first would delete every profile picture two days after
+     * it was uploaded.
+     */
+    public function sweptWhenUnused(): bool
+    {
+        return $this === self::Submission;
+    }
+
+    /** @return list<string> */
+    public static function swept(): array
+    {
+        return array_values(array_map(
+            static fn (self $collection): string => $collection->value,
+            array_filter(self::cases(), static fn (self $collection): bool => $collection->sweptWhenUnused()),
+        ));
+    }
 }

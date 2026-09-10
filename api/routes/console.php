@@ -26,6 +26,11 @@ Schedule::command('enrollment:sweep-expired')->hourly()->withoutOverlapping();
  */
 Schedule::command('subscriptions:expire')->dailyAt('02:30')->withoutOverlapping();
 Schedule::command('progress:reconcile')->dailyAt('03:10')->withoutOverlapping();
+/*
+ * Uploads nothing used within their grace period. BEFORE usage:reconcile, so
+ * the storage figures it checks already reflect tonight's deletions.
+ */
+Schedule::command('media:sweep-unused')->dailyAt('03:20')->withoutOverlapping();
 Schedule::command('usage:reconcile')->dailyAt('03:30')->withoutOverlapping();
 /*
  * A wrong rating on a course card is invisible — nobody reports it, because

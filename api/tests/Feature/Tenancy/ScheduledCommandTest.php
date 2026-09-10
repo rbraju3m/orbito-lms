@@ -7,8 +7,11 @@ use App\Domain\Enrollment\Enums\EnrollmentStatus;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
+use App\Domain\Media\Enums\MediaCollection;
+use App\Domain\Media\Models\Media;
 use App\Domain\Platform\Models\Tenant;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\SwitchesTenants;
 
 // These commands walk every academy, so the academy cannot be transacted —
@@ -87,6 +90,20 @@ it('sends live session reminders with no tenant open', function (): void {
 
 it('builds leaderboards with no tenant open', function (): void {
     ($this->centrally)('gamification:leaderboards');
+});
+
+it('sweeps unused uploads with no tenant open', function (): void {
+    Storage::fake('private');
+
+    $media = Media::factory()
+        ->ownedBy($this->student)
+        ->forCollection(MediaCollection::Submission)
+        ->create(['created_at' => now()->subDays(3)]);
+
+    ($this->centrally)('media:sweep-unused');
+
+    // A tenant-blind sweep would find no `media` table centrally and die.
+    expect(Media::find($media->id))->toBeNull();
 });
 
 it('builds analytics rollups with no tenant open', function (): void {

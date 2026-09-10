@@ -601,7 +601,9 @@ submission files also count against a per-person quota of **unused** files —
 yet. A file stops counting once it is handed in. Past the quota the upload is
 refused before any bytes are written: `409 upload_quota_exceeded`, with
 `meta: {used_bytes, limit_bytes, file_bytes}`. Authoring collections are not
-counted — they are the academy's storage, shown against its plan.
+counted — they are the academy's storage, shown against its plan. A
+submission file nothing uses is deleted by a nightly sweep once it is 48 hours
+old (`MEDIA_UNUSED_GRACE_HOURS`): attach it to something within that window.
 
 **`DELETE` refuses a file somebody still needs** — `409 media_in_use` for the
 file behind a download, and for a file handed in with an assignment.
