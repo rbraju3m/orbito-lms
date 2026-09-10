@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { server } from '@/shared/test/server';
 import { renderWithRouter } from '@/shared/test/renderRoute';
@@ -17,6 +17,9 @@ function cart(overrides: Partial<Cart> = {}): Cart {
     currency: 'USD',
     item_count: 1,
     estimated_total_minor: 4900,
+    estimated_subtotal_minor: 4900,
+    estimated_discount_minor: 0,
+    coupon: null,
     is_checkoutable: true,
     items: [
       {
@@ -29,6 +32,7 @@ function cart(overrides: Partial<Cart> = {}): Cart {
         list_amount_minor: null,
         is_on_sale: false,
         is_available: true,
+        discount_minor: 0,
       },
     ],
     ...overrides,
@@ -115,6 +119,80 @@ describe('CartRoute', () => {
     await waitFor(() =>
       expect(screen.getByText(/cannot take payments right now/i)).toBeInTheDocument(),
     );
+  });
+
+  it('applies a coupon and shows the discount the server computed', async () => {
+    const applied = vi.fn();
+    serveCart(cart());
+    server.use(
+      http.post(`${API}/cart/coupon`, async ({ request }) => {
+        applied(await request.json());
+        return HttpResponse.json({
+          data: cart({
+            estimated_subtotal_minor: 4900,
+            estimated_discount_minor: 980,
+            estimated_total_minor: 3920,
+            coupon: { code: 'LAUNCH20', description: 'Launch week', applies: true, reason: null, message: null },
+            items: [{ ...cart().items[0]!, discount_minor: 980 }],
+          }),
+        });
+      }),
+    );
+    renderWithRouter(<CartRoute />);
+
+    await userEvent.type(await screen.findByLabelText('Coupon code'), 'launch20');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    expect(applied).toHaveBeenCalledWith({ code: 'launch20' });
+    expect(await screen.findByText('LAUNCH20')).toBeInTheDocument();
+    expect(screen.getByText('−$9.80')).toBeInTheDocument();
+    expect(screen.getByText('$39.20')).toBeInTheDocument();
+  });
+
+  it('says why a code was refused', async () => {
+    serveCart(cart());
+    server.use(
+      http.post(`${API}/cart/coupon`, () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'coupon_rejected',
+              message: 'LAUNCH20 has expired.',
+              details: [],
+              meta: { reason: 'expired' },
+            },
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    renderWithRouter(<CartRoute />);
+
+    await userEvent.type(await screen.findByLabelText('Coupon code'), 'LAUNCH20');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    expect(await screen.findByText('LAUNCH20 has expired.')).toBeInTheDocument();
+  });
+
+  /* The same rules as checkout: a coupon that stopped applying blocks it. */
+  it('blocks checkout, and says why, when an applied coupon stops applying', async () => {
+    serveCart(
+      cart({
+        is_checkoutable: false,
+        coupon: {
+          code: 'LAUNCH20',
+          description: null,
+          applies: false,
+          reason: 'exhausted',
+          message: 'LAUNCH20 has been used up.',
+        },
+      }),
+    );
+    renderWithRouter(<CartRoute />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/used up/);
+    expect(screen.getByRole('button', { name: /check out/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Remove code' })).toBeInTheDocument();
   });
 
   it('shows an error state rather than an empty basket when the request fails', async () => {

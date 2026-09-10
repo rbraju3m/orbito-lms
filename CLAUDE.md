@@ -706,6 +706,22 @@ Gate::authorize('publish', $course);                   // in a controller
 - **Sign frozen bytes.** A webhook body is encoded once, when the event fires,
   stored, and signed at send time. Re-encoding on a retry is a chance to send
   different bytes under the same event id — and the receiver hashes the bytes.
+- **Split a discount across the LINES, never just the order.** Every revenue
+  figure sums order lines (and bundle allocations), so a discount held only on
+  the order makes them disagree by exactly the discount. `CouponDiscount`
+  computes it once, splits it by largest remainder, and each line's
+  `total_minor` is net of its share; a discounted bundle's courses share its
+  NET line. `CouponRevenueTest` is the proof, with an amount that divides
+  evenly nowhere.
+- **A place held by an unpaid order expires by the clock.** A coupon
+  redemption counts while its order is paid, or unpaid and inside the
+  reservation window; an abandoned checkout gives the use back with nothing to
+  sweep it. The count and the insert still happen under the coupon row's lock
+  — fourth time in this codebase; write it the same way.
+- **An order the SERVER priced at zero needs no gateway.** ADR-05 refuses to
+  believe the client about money; a free order has none to believe. It
+  completes at checkout through `GrantOrderAccess`, the same delivery a
+  captured payment uses, and fires no `PaymentCaptured` — nothing was.
 - **Retry state belongs on the row, not the queue.** `DeliverWebhook` counts
   `attempts` in the database and `release()`s, which the sync test queue
   ignores; tests drive each retry by running the job again. The alternative —
@@ -793,9 +809,9 @@ so the action that fixes a lapse survives it.
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, digital downloads, upload
-permissions, upload volume limits and outbound webhooks** (§ Patterns
-established in Phase 16).
-1,255 backend tests / 4,273 assertions · 296 frontend tests.
+permissions, upload volume limits, outbound webhooks and coupons**
+(§ Patterns established in Phase 16).
+1,302 backend tests / 4,750 assertions · 314 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -819,8 +835,9 @@ done — bundles closed a Phase 10 hole on the way (nothing could set a price),
 downloads fixed two bugs bundles shipped, uploads closed a hole downloads
 found, and volume limits closed the rest of it (§ Patterns established in
 Phase 16), and a nightly sweep now deletes the submission uploads nothing
-used. **Outbound webhooks** are done too (`docs/WEBHOOKS.md`). Also ahead:
-coupons — whose discount must be allocated across items (Known debt) — subscriptions and memberships (after the Stripe test), coaching, blog,
+used. **Outbound webhooks** (`docs/WEBHOOKS.md`) and **coupons**
+(`docs/COUPONS.md`) are done too. Also ahead: refunds — which must decide
+whether a refunded order's coupon use still counts — subscriptions and memberships (after the Stripe test), coaching, blog,
 page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
@@ -949,8 +966,8 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 250.58 — 250.28 after the bell went lazy,
-  then +0.30 for the webhooks nav icon. At 250 the
+  purpose**, and first paint is 250.75 — 250.28 after the bell went lazy,
+  then +0.30 for the webhooks nav icon and +0.17 for coupons'. At 250 the
   shell had 0.04 KB of room; measured, no set of small cuts bought more than
   ~0.1 KB. The real fix is splitting the route table — `router.tsx` is the
   largest module on first paint and grows with every route — and it is its
@@ -977,10 +994,6 @@ Every one of these has already cost time at least once.
   series has **an endpoint with no screen**.
 - Points cannot be **spent**. They are a score, not a currency; a shop would
   turn every rule into a pricing decision.
-- **Order-level discounts will split the revenue figures.** `discount_minor`
-  is always 0 today, so per-course line totals sum exactly to the platform
-  total. When coupons land (P16), the discount has to be allocated across
-  items — largest remainder — or a dashboard will show them disagreeing.
 - A notification fan-out issues **one preference lookup per recipient** inside
   the queued job. Correct and cacheless; a batch resolver is the fix if a
   five-thousand-learner announcement ever hurts.

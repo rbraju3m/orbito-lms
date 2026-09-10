@@ -45,3 +45,19 @@ export function formatMinor(amountMinor: number, currency: string): string {
 export function isFree(amountMinor: number | null | undefined): boolean {
   return amountMinor === 0;
 }
+
+/**
+ * A figure somebody TYPED ("12.50") into minor units (1250), for sending.
+ *
+ * Rounded, because 19.99 × 100 is 1998.9999… in binary floating point, and
+ * truncating it would charge a minor unit less than the person wrote. The
+ * result is an integer and is the only form the API accepts (ADR-04).
+ */
+export function toMinor(major: number, currency: string): number {
+  return Math.round(major * 10 ** fractionDigits(currency));
+}
+
+/** Minor units back into the figure a person edits — for a form's default only. */
+export function toMajor(amountMinor: number, currency: string): number {
+  return amountMinor / 10 ** fractionDigits(currency);
+}

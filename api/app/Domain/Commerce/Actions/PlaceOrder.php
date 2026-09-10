@@ -10,8 +10,11 @@ use App\Domain\Catalog\Models\DownloadGrant;
 use App\Domain\Commerce\Enums\OrderStatus;
 use App\Domain\Commerce\Exceptions\CheckoutRejected;
 use App\Domain\Commerce\Models\Cart;
+use App\Domain\Commerce\Models\Coupon;
+use App\Domain\Commerce\Models\CouponRedemption;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Commerce\Models\Product;
+use App\Domain\Commerce\Support\CouponRules;
 use App\Domain\Commerce\Support\RevenueAllocator;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Models\User;
@@ -25,7 +28,8 @@ use Illuminate\Support\Str;
  * This is where ADR-05 is won or lost. The request body contributes nothing to
  * the total: not a price, not a quantity, not a discount. Every figure below
  * comes from `product_prices` at this moment, which is why `cart_items` stores
- * no price to be tempted by.
+ * no price to be tempted by — and the coupon on the cart is only a POINTER,
+ * asked again here whether it still applies and for how much.
  */
 final class PlaceOrder
 {
@@ -41,8 +45,8 @@ final class PlaceOrder
 
         $currency = strtoupper($cart->currency);
         $lines = [];
-        /** @var list<array<int, int>> $allocations one map per line, index-aligned */
-        $allocations = [];
+        /** @var list<Product> $products index-aligned with $lines */
+        $products = [];
         $subtotal = 0;
 
         foreach ($cart->items as $item) {
@@ -79,23 +83,58 @@ final class PlaceOrder
                 // rewrite what somebody was charged.
                 'title_snapshot' => $product->title,
                 'unit_amount_minor' => $amount,
+                'discount_minor' => 0,
                 'total_minor' => $amount,
             ];
-
-            // Computed HERE, from the prices this method already read, and
-            // stored with the line. See allocationFor().
-            $allocations[] = $this->allocationFor($product, $amount, $currency);
+            $products[] = $product;
         }
 
-        return DB::transaction(function () use ($user, $cart, $currency, $lines, $allocations, $subtotal): Order {
+        return DB::transaction(function () use ($user, $cart, $currency, $lines, $products, $subtotal): Order {
+            /*
+             * The coupon is read, and its limits counted, BEHIND A LOCK on its
+             * own row, inside the transaction that writes the redemption —
+             * two learners racing for the last use must not both get it (§
+             * Patterns established in Phase 9: count and insert in ONE
+             * transaction). A coupon deleted since it was applied has nulled
+             * the pointer, so there is simply no coupon.
+             */
+            $coupon = $cart->coupon_id !== null
+                ? Coupon::query()->lockForUpdate()->find($cart->coupon_id)
+                : null;
+
+            if ($coupon !== null) {
+                $rules = CouponRules::for($coupon, $user->id, $currency, array_map(
+                    static fn (array $line): array => [
+                        'product_id' => $line['product_id'],
+                        'amount_minor' => $line['unit_amount_minor'],
+                    ],
+                    $lines,
+                ));
+
+                // Refuse the checkout rather than charge a price the learner
+                // was not shown: the basket said this coupon applied.
+                $rules->assertApplies();
+
+                foreach ($rules->discounts() as $index => $discount) {
+                    $lines[$index]['discount_minor'] = $discount;
+                    $lines[$index]['total_minor'] = $lines[$index]['unit_amount_minor'] - $discount;
+                }
+            }
+
+            $discount = array_sum(array_column($lines, 'discount_minor'));
+
             $order = Order::create([
                 'number' => $this->nextNumber(),
                 'user_id' => $user->id,
                 'status' => OrderStatus::Pending,
                 'currency' => $currency,
+                'coupon_id' => $coupon?->id,
+                'coupon_code' => $coupon?->code,
                 'subtotal_minor' => $subtotal,
-                'discount_minor' => 0,
-                'total_minor' => $subtotal,
+                'discount_minor' => $discount,
+                // Equal to the sum of the line totals, by construction — that
+                // equality is what every revenue figure relies on.
+                'total_minor' => $subtotal - $discount,
                 'placed_at' => now(),
             ]);
 
@@ -105,15 +144,27 @@ final class PlaceOrder
              * Index-aligned with $lines, because createMany returns them in
              * the order given. A bundle's money has to reach the courses it
              * contains or it counts in the platform total and in no course
-             * figure at all.
+             * figure at all — and it is the NET line total that is split, so
+             * a discounted bundle's courses earn their share of what was
+             * actually charged.
              */
             foreach ($created as $index => $item) {
-                foreach ($allocations[$index] ?? [] as $courseId => $amountMinor) {
+                foreach ($this->allocationFor($products[$index], $item->total_minor, $currency) as $courseId => $amountMinor) {
                     $item->allocations()->create([
                         'course_id' => $courseId,
                         'amount_minor' => $amountMinor,
                     ]);
                 }
+            }
+
+            if ($coupon !== null) {
+                CouponRedemption::create([
+                    'coupon_id' => $coupon->id,
+                    'order_id' => $order->id,
+                    'user_id' => $user->id,
+                    'discount_minor' => $discount,
+                    'currency' => $currency,
+                ]);
             }
 
             // The cart is consumed. Leaving it would let a second checkout

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Commerce;
 
+use App\Domain\Commerce\Actions\CompleteFreeOrder;
 use App\Domain\Commerce\Actions\InitiatePayment;
 use App\Domain\Commerce\Actions\PlaceOrder;
 use App\Domain\Commerce\Exceptions\CheckoutRejected;
@@ -24,12 +25,13 @@ use Illuminate\Support\Facades\Gate;
  * settled BEFORE a gateway is involved — and because a failed payment must
  * leave a re-payable order rather than an empty basket.
  *
- * Neither grants anything. There is no third endpoint that does: access
- * arrives only through the webhook (ADR-05).
+ * Neither grants anything for money. Access to a PAID order arrives only
+ * through the webhook (ADR-05); the one exception is an order the server
+ * priced at zero, which has no money to verify (`CompleteFreeOrder`).
  */
 final class CheckoutController
 {
-    public function store(Request $request, PlaceOrder $action): JsonResponse
+    public function store(Request $request, PlaceOrder $action, CompleteFreeOrder $free): JsonResponse
     {
         $cart = Cart::query()
             ->where('user_id', $request->user()->id)
@@ -40,7 +42,7 @@ final class CheckoutController
             throw CheckoutRejected::emptyCart();
         }
 
-        $order = $action->handle($request->user(), $cart);
+        $order = $free->handle($action->handle($request->user(), $cart));
 
         return ApiResponse::created(OrderResource::make($order->load('items')));
     }

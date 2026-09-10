@@ -568,6 +568,18 @@ export const router = createBrowserRouter([
                 ],
               },
               {
+                element: <RequirePermission anyOf={['coupon.manage']} />,
+                children: [
+                  {
+                    path: 'admin/coupons',
+                    lazy: async () => ({
+                      Component: (await import('@/features/commerce/routes/CouponsRoute'))
+                        .CouponsRoute,
+                    }),
+                  },
+                ],
+              },
+              {
                 element: <RequirePermission anyOf={['webhook.manage']} />,
                 children: [
                   {

@@ -166,9 +166,10 @@ final class BuildDailyRollups
              * course, so they need their own line or the platform total would
              * silently stop matching its parts.
              *
-             * `orders.discount_minor` is still always 0. When coupons land, an
-             * order-level discount has to be allocated across its items
-             * (largest remainder, as `RevenueAllocator` does) or this breaks.
+             * A coupon's discount is SPLIT across the order's lines when it is
+             * placed (largest remainder, `CouponDiscount`), and each line's
+             * `total_minor` is net of its share — bundle allocations too — so
+             * this still equals its parts. `CouponRevenueTest` asserts it.
              */
             'revenue_minor' => (int) Order::query()
                 ->whereNotNull('paid_at')

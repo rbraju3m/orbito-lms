@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Domain\Commerce\Enums;
 
 /**
- * An order's life. The only transition that grants access is
- * `awaiting_payment → paid`, and only a verified webhook makes it (ADR-05).
+ * An order's life. Access is granted on becoming `paid`, which happens two
+ * ways: `awaiting_payment → paid` by a verified webhook (ADR-05), or
+ * `pending → paid` at checkout for an order the SERVER priced at zero — a
+ * coupon took it to nothing, so there is no money to verify
+ * (`CompleteFreeOrder`).
  */
 enum OrderStatus: string
 {

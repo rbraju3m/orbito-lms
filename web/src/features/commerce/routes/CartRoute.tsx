@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
 import { cartQuery, useCheckout, useClearCart, useRemoveCartLine } from '../api/queries';
 import type { CartLine } from '../api/types';
+import { CouponField } from '../components/CouponField';
 
 /**
  * The basket.
@@ -103,6 +104,30 @@ export function CartRoute() {
         )}
 
         <Card withBorder>
+          <CouponField cart={cart} />
+
+          {/* Both figures are the server's; the page subtracts nothing itself. */}
+          {cart.estimated_discount_minor > 0 ? (
+            <Stack gap={4} mt="sm">
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">
+                  Subtotal
+                </Text>
+                <Text size="sm">{formatMinor(cart.estimated_subtotal_minor, cart.currency)}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">
+                  Discount{cart.coupon ? ` (${cart.coupon.code})` : ''}
+                </Text>
+                <Text size="sm" c="green.7">
+                  −{formatMinor(cart.estimated_discount_minor, cart.currency)}
+                </Text>
+              </Group>
+            </Stack>
+          ) : null}
+
+          <Divider my="sm" />
+
           <Group justify="space-between" align="baseline">
             <Text c="dimmed">Estimated total</Text>
             <Title order={3}>{formatMinor(cart.estimated_total_minor, cart.currency)}</Title>

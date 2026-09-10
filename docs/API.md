@@ -516,9 +516,9 @@ instead of an unresolved slug.
 
 ### Commerce — live (P10)
 
-The money path is reachable. Coupons, refunds, tax, invoices and the
-earnings/payout surface are **not** — see `ROADMAP.md` Phase 10 for why each
-was deferred rather than half-built.
+The money path is reachable, and coupons are live (P16 — `COUPONS.md`).
+Refunds, tax, invoices and the earnings/payout surface are **not** — see
+`ROADMAP.md` Phase 10 for why each was deferred rather than half-built.
 
 ```
 # live
@@ -526,7 +526,7 @@ GET    /cart                                    the caller's basket; an unmade o
 POST   /cart/items                              {product_id} (uuid)
 DELETE /cart/items/{cartItem}                   404 for a line that is not yours
 DELETE /cart                                    empties without deleting the basket
-POST   /checkout                                → order, priced by the SERVER
+POST   /checkout                                → order, priced by the SERVER; a zero total is paid at once
 POST   /orders/{order}/pay                      {gateway} → {redirect_url|client_secret}
 GET    /orders                                  own orders, or all with `order.view.any`
 GET    /orders/{order}
@@ -534,13 +534,21 @@ POST   /webhooks/payments/{gateway}/{tenant}    unauthenticated · signature-ver
 GET    /admin/payment-gateways                  every supported gateway, connected or not
 PUT    /admin/payment-gateways/{gateway}        partial; omitted secrets are KEPT
 DELETE /admin/payment-gateways/{gateway}        disconnect — deletes the row
+POST   /cart/coupon · DELETE /cart/coupon       {code} → 422 coupon_rejected with meta.reason; throttled
+GET    /admin/coupons · POST                    coupon.manage; list carries times_used (PAID) and state
+GET    /admin/coupons/products                  what a coupon can be scoped to: everything for sale
+GET · PUT · DELETE /admin/coupons/{coupon}      PUT REPLACES; DELETE is 409 coupon_in_use once used
 
 # planned
-POST   /cart/coupon · DELETE /cart/coupon
 GET    /orders/{uuid}/invoice
 POST   /admin/orders/{uuid}/refund
-GET    /admin/coupons · POST · PATCH · DELETE
 ```
+
+**Coupons.** One set of rules (`CouponRules`) prices the basket's preview and
+enforces the order, so the two agree; a coupon that stops applying blocks
+checkout with its reason. The discount is split across the order's lines, so
+`order_items.discount_minor` + `total_minor` still sum to the order. An order a
+coupon takes to zero is paid at checkout with no gateway. See `COUPONS.md`.
 
 **The webhook is the only unauthenticated write in the system**, and three
 omissions from its middleware are each load-bearing:

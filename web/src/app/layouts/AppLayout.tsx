@@ -34,6 +34,7 @@ import {
   IconSettings,
   IconShieldCheck,
   IconShieldLock,
+  IconTicket,
   IconTrophy,
   IconUser,
   IconUsers,
@@ -124,6 +125,7 @@ const NAV: NavItem[] = [
     icon: IconCreditCard,
     anyOf: ['gateway.manage'],
   },
+  { to: '/admin/coupons', label: 'Coupons', icon: IconTicket, anyOf: ['coupon.manage'] },
   // Super Admin only: an endpoint receives learners' names and emails.
   { to: '/admin/webhooks', label: 'Webhooks', icon: IconWebhook, anyOf: ['webhook.manage'] },
   {

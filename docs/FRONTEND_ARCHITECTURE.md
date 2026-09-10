@@ -141,7 +141,8 @@ through, not a panel of the editor.
 /admin/instructors                 approval queue                         ✅
 /admin/courses                     all courses, review queue
 /admin/orders · /admin/orders/:uuid
-/admin/coupons · /admin/products · /admin/tax
+/admin/coupons                     code, scope, limits, derived state       ✅
+/admin/products · /admin/tax
 /admin/payouts
 /admin/certificates · /admin/certificate-templates
 /admin/reviews                     moderation                            ✅

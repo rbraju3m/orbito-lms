@@ -19,13 +19,14 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property string $purchasable_type
  * @property int $purchasable_id
  * @property int $unit_amount_minor
- * @property int $total_minor
+ * @property int $discount_minor this line's share of the order's coupon
+ * @property int $total_minor what was charged for the line: unit minus discount
  */
 final class OrderItem extends Model
 {
     protected $fillable = [
         'order_id', 'product_id', 'purchasable_type', 'purchasable_id',
-        'title_snapshot', 'unit_amount_minor', 'total_minor',
+        'title_snapshot', 'unit_amount_minor', 'discount_minor', 'total_minor',
     ];
 
     /** @return array<string, string> */
@@ -33,6 +34,7 @@ final class OrderItem extends Model
     {
         return [
             'unit_amount_minor' => 'integer',
+            'discount_minor' => 'integer',
             'total_minor' => 'integer',
         ];
     }

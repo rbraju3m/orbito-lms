@@ -6,6 +6,7 @@ namespace App\Http\Resources\Commerce;
 
 use App\Domain\Commerce\Models\Cart;
 use App\Domain\Commerce\Models\CartItem;
+use App\Domain\Commerce\Support\CouponRules;
 use App\Support\Http\Resources\BaseResource;
 use Illuminate\Http\Request;
 
@@ -30,18 +31,46 @@ final class CartResource extends BaseResource
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
-        $this->loadMissing('items.product.prices');
+        $this->loadMissing(['items.product.prices', 'coupon']);
 
-        $lines = $this->items->map(fn (CartItem $item): array => $this->line($item));
+        // The SAME rules checkout enforces, asked of the same live prices, so
+        // the preview and the order cannot disagree about a discount.
+        $coupon = $this->coupon;
+        $rules = $coupon !== null
+            ? CouponRules::for($coupon, (int) $request->user()?->getAuthIdentifier(), $this->currency, $this->resource->pricedLines())
+            : null;
+        $discounts = $rules?->discounts() ?? [];
+
+        $lines = $this->items->map(fn (CartItem $item): array => $this->line($item, $discounts[$item->id] ?? 0));
+        $subtotal = (int) $lines->sum('amount_minor');
+        $discount = $rules?->total() ?? 0;
 
         return [
             'id' => $this->uuid,
             'currency' => $this->currency,
             'item_count' => $lines->count(),
-            'estimated_total_minor' => (int) $lines->sum('amount_minor'),
+            'estimated_subtotal_minor' => $subtotal,
+            'estimated_discount_minor' => $discount,
+            'estimated_total_minor' => $subtotal - $discount,
+            /*
+             * The coupon on the basket, and whether it still applies — it can
+             * stop (it expired, a line was removed, the last use went) while
+             * sitting here. A reason the page can show, rather than a checkout
+             * that refuses.
+             */
+            'coupon' => $coupon === null || $rules === null ? null : [
+                'code' => $coupon->code,
+                'description' => $coupon->description,
+                'applies' => $rules->applies(),
+                'reason' => $rules->refusal()?->value,
+                'message' => $rules->message(),
+            ],
             // The button state, decided here so a component cannot invent its
-            // own rule and disagree with what checkout will actually do.
-            'is_checkoutable' => $lines->isNotEmpty() && $lines->every('is_available'),
+            // own rule and disagree with what checkout will actually do —
+            // which includes refusing a coupon that no longer applies.
+            'is_checkoutable' => $lines->isNotEmpty()
+                && $lines->every('is_available')
+                && ($rules === null || $rules->applies()),
             'items' => $lines->values()->all(),
         ];
     }
@@ -55,7 +84,7 @@ final class CartResource extends BaseResource
      *
      * @return array<string, mixed>
      */
-    private function line(CartItem $item): array
+    private function line(CartItem $item, int $discount): array
     {
         $product = $item->product;
         $price = $product->priceIn($this->currency);
@@ -72,6 +101,8 @@ final class CartResource extends BaseResource
             'amount_minor' => $price?->effectiveMinor(),
             'list_amount_minor' => $price?->amount_minor,
             'is_on_sale' => $price?->isOnSale() ?? false,
+            // This line's share of the coupon, as checkout would split it.
+            'discount_minor' => $discount,
             'is_available' => $price !== null && $product->status->isSellable(),
         ];
     }

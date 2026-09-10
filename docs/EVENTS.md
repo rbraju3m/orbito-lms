@@ -147,6 +147,13 @@ gradebook (P13) should be able to treat both alike.
 listens for either yet; Phase 13's analytics is the first thing that will,
 and it should add them rather than reach into the Actions.
 
+**An order a coupon makes free fires no `PaymentCaptured`** (P16,
+`CompleteFreeOrder`). Nothing was captured, and its two listeners — revenue
+analytics and the `payment.captured` webhook — would each report a payment of
+nothing. The enrolments it grants fire `CourseEnrolled` as usual. There is no
+`CouponRedeemed` either: nothing would listen to it, and the redemption is a
+row the coupon screens already read.
+
 ### Certification
 
 | Event | Payload | Fired when |

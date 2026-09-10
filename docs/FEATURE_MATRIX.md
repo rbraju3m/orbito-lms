@@ -271,7 +271,7 @@ reads yet.
 | J6 | Payments table + gateway events | Partial | Yes | **P10 · M** | Unique `(gateway, external_id)` makes a replay a no-op |
 | J7 | Server-side payment verification / webhooks | Core | Yes | **P10 · M ⚠** | The only unauthenticated write in the system; each omitted middleware is load-bearing |
 | J8 | Refunds (full + partial) | Core | Yes | P16 | Deferred: the MVP needed one money path proven, not a refund engine |
-| J9 | Coupons (code + automatic, scoped, limits) | Core | Yes | P16 | `orders.discount_minor` exists and is always 0; see the note below |
+| J9 | Coupons (code + automatic, scoped, limits) | Core | Yes | **P16 ✅** (codes) | Percent or fixed; everything or chosen products; total and per-person limits, a window, a minimum spend. Automatic discounts not built. See COUPONS.md and the note below |
 | J10 | Tax rules by country/state | Core | Yes | P10 | |
 | J11 | Invoices (PDF, sequential numbering) | Pro | Yes | P10 | |
 | J12 | Multi-currency | — | — | **P10 · M** (model) | Minor units everywhere; a basket takes ONE currency and refuses a product without a price in it |
@@ -287,12 +287,11 @@ reads yet.
 | J22 | Coaching / bookable sessions | — | Yes | P16 | |
 | J23 | Gift a course | Core | — | Post-1.0 | |
 
-**When coupons land (J9), the revenue figures need attention.** Per-course
-analytics revenue is summed from order LINE ITEMS and platform revenue from the
-ORDER TOTAL. `discount_minor` is always 0 today so the two agree exactly; an
-order-level discount has to be allocated across its items — largest remainder,
-so the parts sum to the whole — or a dashboard will show them disagreeing by
-the discount.
+**Coupons and the revenue figures (J9) — handled.** Per-course analytics
+revenue is summed from order LINE ITEMS and platform revenue from the ORDER
+TOTAL. A coupon's discount is split across the lines by largest remainder and
+each line's total is net of its share (bundle allocations too), so the two
+still agree to the minor unit. `CouponRevenueTest` asserts it.
 
 ## K. Engagement
 

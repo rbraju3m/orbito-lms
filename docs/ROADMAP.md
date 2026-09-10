@@ -1321,8 +1321,36 @@ and logged. The integrator's reference is `docs/WEBHOOKS.md`.
   where the harness cannot observe listeners (EVENTS.md), so it has no
   end-to-end test; and webhooks are not a plan-gated feature.
 
+**Coupons — done.** Codes an academy hands out for money off: percentage or
+fixed, the whole basket or chosen courses, bundles and downloads, with total
+and per-person limits, a window and a minimum spend. Reference:
+`docs/COUPONS.md`.
+
+- **One set of rules, asked twice.** `CouponRules` is rendered by the basket (a
+  preview and a reason) and enforced by `PlaceOrder` under a lock on the
+  coupon's row. A coupon that stops applying while it sits in a basket blocks
+  checkout with its reason, rather than charging a price nobody was shown.
+- **The known debt is closed.** A discount is computed once and split across
+  the order's lines by largest remainder, and each line's total is net of its
+  share — bundle allocations too — so per-course revenue plus downloads still
+  equals the platform total to the minor unit. `CouponRevenueTest` asserts it
+  with an awkward 1001 across a bundle and a course.
+- **A use expires by the clock.** A redemption counts while its order is paid,
+  or unpaid and under an hour old; an abandoned checkout gives its use back
+  with nothing to sweep it.
+- **A free order completes at checkout.** A 100% coupon, or a fixed one worth
+  more than the basket, leaves nothing for a gateway to verify, so
+  `CompleteFreeOrder` marks it paid and delivers it through `GrantOrderAccess`
+  — extracted from `CapturePayment` so a free order and a paid one cannot be
+  delivered differently.
+- **Tutor's mistake avoided:** usage is keyed on the coupon's id, never its
+  mutable code; the code is snapshotted onto the order. A used coupon is
+  switched off, never deleted.
+- **Still open:** automatic discounts, stacking, category scope — and refunds,
+  which will have to decide whether a refunded order's use still counts.
+
 Still open in this phase: subscriptions and memberships, coaching, the blog,
-the page builder, multilingual, RTL.
+the page builder, multilingual, RTL, refunds.
 
 ### Phase 17 — AI
 Provider abstraction · outline / lesson / quiz / description / summary generation ·

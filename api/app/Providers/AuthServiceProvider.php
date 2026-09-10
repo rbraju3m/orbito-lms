@@ -20,7 +20,9 @@ use App\Domain\Catalog\Policies\CoursePolicy;
 use App\Domain\Catalog\Policies\DownloadPolicy;
 use App\Domain\Certification\Models\Certificate;
 use App\Domain\Certification\Policies\CertificatePolicy;
+use App\Domain\Commerce\Models\Coupon;
 use App\Domain\Commerce\Models\Order;
+use App\Domain\Commerce\Policies\CouponPolicy;
 use App\Domain\Commerce\Policies\OrderPolicy;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
@@ -75,6 +77,7 @@ final class AuthServiceProvider extends ServiceProvider
         Discussion::class => DiscussionPolicy::class,
         Announcement::class => AnnouncementPolicy::class,
         WebhookEndpoint::class => WebhookEndpointPolicy::class,
+        Coupon::class => CouponPolicy::class,
     ];
 
     public function boot(): void

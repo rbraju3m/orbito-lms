@@ -29,6 +29,8 @@ final class OrderResource extends BaseResource
             'grants_access' => $this->status->grantsAccess(),
 
             'currency' => $this->currency,
+            // As typed at checkout, frozen — never the coupon's current code.
+            'coupon_code' => $this->coupon_code,
             'subtotal_minor' => $this->subtotal_minor,
             'discount_minor' => $this->discount_minor,
             'total_minor' => $this->total_minor,

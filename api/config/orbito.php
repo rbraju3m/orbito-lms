@@ -122,6 +122,16 @@ return [
     ],
 
     /*
+    | Coupons. See docs/COUPONS.md.
+    */
+    'coupons' => [
+        // How long an UNPAID order holds the coupon use it took. After this,
+        // an abandoned checkout gives the use back — read from the clock by
+        // CouponRules, never swept.
+        'reservation_minutes' => (int) env('COUPON_RESERVATION_MINUTES', 60),
+    ],
+
+    /*
     | Outbound webhooks (ADR-12). See docs/WEBHOOKS.md.
     */
     'webhooks' => [

@@ -19,6 +19,21 @@ export interface CartLine {
   list_amount_minor: number | null;
   is_on_sale: boolean;
   is_available: boolean;
+  /** This line's share of the coupon, split the way checkout will split it. */
+  discount_minor: number;
+}
+
+/**
+ * The coupon on a basket, and the SERVER's answer about it — the same rules
+ * checkout enforces. `applies` false means it stopped applying while it sat
+ * here; `message` says why, and `is_checkoutable` is already false.
+ */
+export interface CartCoupon {
+  code: string;
+  description: string | null;
+  applies: boolean;
+  reason: string | null;
+  message: string | null;
 }
 
 export interface Cart {
@@ -32,6 +47,9 @@ export interface Cart {
    * promise.
    */
   estimated_total_minor: number;
+  estimated_subtotal_minor: number;
+  estimated_discount_minor: number;
+  coupon: CartCoupon | null;
   /** Decided by the server so the button cannot invent its own rule. */
   is_checkoutable: boolean;
   items: CartLine[];
@@ -42,6 +60,8 @@ export interface OrderItem {
   purchasable_type: string;
   purchasable_id: number;
   unit_amount_minor: number;
+  /** The line's share of the order's coupon; `total_minor` is net of it. */
+  discount_minor: number;
   total_minor: number;
 }
 
@@ -52,6 +72,8 @@ export interface Order {
   status_label: string;
   grants_access: boolean;
   currency: string;
+  /** The code as typed at checkout, frozen. */
+  coupon_code: string | null;
   subtotal_minor: number;
   discount_minor: number;
   total_minor: number;

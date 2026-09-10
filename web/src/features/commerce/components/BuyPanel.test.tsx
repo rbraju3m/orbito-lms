@@ -16,6 +16,9 @@ const emptyCart: Cart = {
   currency: 'USD',
   item_count: 0,
   estimated_total_minor: 0,
+  estimated_subtotal_minor: 0,
+  estimated_discount_minor: 0,
+  coupon: null,
   is_checkoutable: false,
   items: [],
 };
@@ -86,6 +89,7 @@ describe('BuyPanel', () => {
           list_amount_minor: null,
           is_on_sale: false,
           is_available: true,
+          discount_minor: 0,
         },
       ],
     });

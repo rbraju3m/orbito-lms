@@ -26,6 +26,7 @@ final class OrderItemResource extends BaseResource
             'purchasable_type' => $this->purchasable_type,
             'purchasable_id' => $this->purchasable_id,
             'unit_amount_minor' => $this->unit_amount_minor,
+            'discount_minor' => $this->discount_minor,
             'total_minor' => $this->total_minor,
         ];
     }

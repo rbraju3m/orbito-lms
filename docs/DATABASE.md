@@ -391,8 +391,15 @@ lesson_notes(id, user_id, course_item_id, course_id, body TEXT,
 > (a gap-free sequence tells every customer the academy's order count, and
 > needs a lock this phase does not otherwise want).
 >
-> Not built: `customers`, `currencies`, `exchange_rates`, coupons, tax,
-> invoices, refunds, earnings, payouts, `idempotency_keys`.
+> Not built: `customers`, `currencies`, `exchange_rates`, tax, invoices,
+> refunds, earnings, payouts, `idempotency_keys`.
+>
+> **Coupons are built (P16), narrower than sketched below** — see
+> `COUPONS.md`. No `type` (code-entered only), no `used_count` and no stored
+> `status`: a use is counted from `coupon_redemptions` joined to its order's
+> status and age, and the state is derived. Targets are products
+> (`coupon_products`), not a polymorphic `coupon_targets`. Each order line
+> carries its share in `order_items.discount_minor`.
 
 ```sql
 products(id, uuid, purchasable_type, purchasable_id,   -- course | bundle | download | plan | coaching

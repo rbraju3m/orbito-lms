@@ -21,6 +21,8 @@ use Illuminate\Support\Str;
  * @property int $user_id
  * @property OrderStatus $status
  * @property string $currency
+ * @property int|null $coupon_id
+ * @property string|null $coupon_code the code as typed, frozen at checkout
  * @property int $subtotal_minor
  * @property int $discount_minor
  * @property int $total_minor
@@ -34,7 +36,7 @@ final class Order extends Model
     use HasFactory;
 
     protected $fillable = [
-        'number', 'user_id', 'status', 'currency',
+        'number', 'user_id', 'status', 'currency', 'coupon_id', 'coupon_code',
         'subtotal_minor', 'discount_minor', 'total_minor',
         'placed_at', 'paid_at', 'cancelled_at',
     ];

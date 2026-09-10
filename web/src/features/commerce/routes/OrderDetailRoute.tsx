@@ -127,6 +127,26 @@ export function OrderDetailRoute() {
 
           <Divider />
 
+          {/* What the coupon took off, as frozen on the order at checkout. */}
+          {order.discount_minor > 0 ? (
+            <Stack gap={4} px="md" pt="md">
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">
+                  Subtotal
+                </Text>
+                <Text size="sm">{formatMinor(order.subtotal_minor, order.currency)}</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">
+                  Discount{order.coupon_code ? ` (${order.coupon_code})` : ''}
+                </Text>
+                <Text size="sm" c="green.7">
+                  −{formatMinor(order.discount_minor, order.currency)}
+                </Text>
+              </Group>
+            </Stack>
+          ) : null}
+
           <Group justify="space-between" p="md">
             <Text c="dimmed">Total</Text>
             <Title order={4}>{formatMinor(order.total_minor, order.currency)}</Title>

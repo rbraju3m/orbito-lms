@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Admin\PaymentGatewayController;
 use App\Http\Controllers\Api\V1\Commerce\CartController;
+use App\Http\Controllers\Api\V1\Commerce\CartCouponController;
 use App\Http\Controllers\Api\V1\Commerce\CheckoutController;
+use App\Http\Controllers\Api\V1\Commerce\CouponController;
 use App\Http\Controllers\Api\V1\Commerce\OrderController;
 use App\Http\Controllers\Api\V1\Commerce\PaymentWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +48,12 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
     Route::delete('cart/items/{cartItem}', [CartController::class, 'destroy'])->name('cart.items.destroy');
     Route::delete('cart', [CartController::class, 'clear'])->name('cart.clear');
 
+    // Throttled: a code is a guessable secret, and this is where it is guessed.
+    Route::post('cart/coupon', [CartCouponController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('cart.coupon.apply');
+    Route::delete('cart/coupon', [CartCouponController::class, 'destroy'])->name('cart.coupon.remove');
+
     /*
      * Throttled: checkout writes an order and empties a basket, and a
      * double-submitted button should not be able to produce a row per click.
@@ -84,4 +92,15 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])
             ->name('gateways.update');
         Route::delete('payment-gateways/{gateway}', [PaymentGatewayController::class, 'destroy'])
             ->name('gateways.destroy');
+
+        /*
+         * Coupons (`coupon.manage`). `products` is declared BEFORE
+         * `{coupon}` so it is never read as a coupon id (§ Phase 12).
+         */
+        Route::get('coupons', [CouponController::class, 'index'])->name('coupons.index');
+        Route::post('coupons', [CouponController::class, 'store'])->name('coupons.store');
+        Route::get('coupons/products', [CouponController::class, 'products'])->name('coupons.products');
+        Route::get('coupons/{coupon}', [CouponController::class, 'show'])->name('coupons.show');
+        Route::put('coupons/{coupon}', [CouponController::class, 'update'])->name('coupons.update');
+        Route::delete('coupons/{coupon}', [CouponController::class, 'destroy'])->name('coupons.destroy');
     });
