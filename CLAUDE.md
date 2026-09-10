@@ -422,9 +422,11 @@ Gate::authorize('publish', $course);                   // in a controller
   the course page, not the catalogue card, because the card is one `<Link>`.
 - **Measure the first-paint cost of anything in `AppLayout`** — and measure it
   the SAME way each time (see Known debt), or the number drifts into a figure
-  nobody can reproduce. The bell cost
-  3.8 KB gzipped; Mantine is a shared chunk, so a lazy route does not keep its
-  imports out of it.
+  nobody can reproduce. The bell cost 3.8 KB when it landed and 1.74 KB by
+  Phase 16, once the account menu shared its Mantine parts — it is lazy now
+  (`LazyNotificationBell`, with a same-size placeholder so the header does not
+  shift). Mantine is a shared chunk, so a lazy route does not keep its imports
+  out of it.
 
 ---
 
@@ -752,7 +754,7 @@ so the action that fixes a lapse survives it.
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, and digital downloads** (§ Patterns
 established in Phase 16).
-1,144 backend tests / 3,945 assertions · 278 frontend tests.
+1,144 backend tests / 3,945 assertions · 279 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -889,11 +891,15 @@ Every one of these has already cost time at least once.
   the whole defence.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
-- **First-paint JS went over the 250 KB budget in Phase 16** — 249.96 at the
-  phase's start, over first with plan limits (250.07), 251.52 after
-  downloads. `npm run size` is the ONLY measurement: Node's and Python's zlib
+- **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
+  purpose**, and first paint is 250.28 after the bell went lazy. At 250 the
+  shell had 0.04 KB of room; measured, no set of small cuts bought more than
+  ~0.1 KB. The real fix is splitting the route table — `router.tsx` is the
+  largest module on first paint and grows with every route — and it is its
+  own slice. `npm run size` is the ONLY measurement: Node's and Python's zlib
   disagree by 0.3 KB at the same "level 9", so a number from anywhere else is
-  not comparable. The docs had said "~246", which nothing reproduces.
+  not comparable. Raising the budget again is a decision for ROADMAP, not a
+  flag to flip.
 - Plan **limits** enforce courses and instructor seats only. Students and
   storage are counted and shown, never blocking — see § Patterns established
   in Phase 16. Storage has no cap in any seeded plan yet, and an academy

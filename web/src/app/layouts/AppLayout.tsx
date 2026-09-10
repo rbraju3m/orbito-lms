@@ -40,7 +40,7 @@ import {
 } from '@tabler/icons-react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 
-import { NotificationBell } from '@/features/notification/components/NotificationBell';
+import { LazyNotificationBell } from '@/features/notification/components/LazyNotificationBell';
 import { NoAcademyBanner } from '@/features/platform/NoAcademyBanner';
 import { SubscriptionBanner } from '@/features/platform/SubscriptionBanner';
 
@@ -181,7 +181,7 @@ export function AppLayout() {
           </Group>
 
           <Group gap="sm">
-            <NotificationBell />
+            <LazyNotificationBell />
             <ThemeToggle />
 
             <Menu position="bottom-end" width={220} withinPortal>

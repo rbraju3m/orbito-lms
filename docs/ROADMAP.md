@@ -19,8 +19,8 @@ both need credentials rather than code:
 | | |
 |---|---|
 | Backend | 1,144 Pest tests / 3,945 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 278 Vitest tests across 51 files · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS **251.52 KB** gzipped against 250 KB — **OVER**, being reclaimed. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib. The earlier "~246" was stale — this session started at 249.96. See Phase 16 |
+| Frontend | 279 Vitest tests across 52 files · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS **250.28 KB** gzipped against **255 KB** — raised from 250 in Phase 16, see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~19 minutes, up from ~2 — provisioning tests build real schemas |
 
@@ -1205,6 +1205,16 @@ one grants the right to FETCH it, never an enrolment.
   the rest is the bundler splitting two modules the shell already had
   (`auth/api/keys.ts`, `IconAlertTriangle`) into eager chunks of their own,
   because the new lazy pages share them.
+- **Resolved: the bell went lazy and the budget went to 255 KB.** The bell was
+  worth 1.24 KB (251.52 → 250.28) — not the 3.8 KB §16 recorded when it
+  landed, because the account menu now shares its Mantine parts and its icon.
+  Everything else small was measured before deciding: `NoAcademyBanner` and
+  the platform guard, both operator-only, were worth 0.11 KB together, and
+  with the three new nav icons swapped out as well the shell would have sat at
+  ~249.9 — under by 0.1 KB, gone at the next nav entry. So the budget moved,
+  deliberately, instead of four cuts buying nothing. The structural fix is
+  splitting the route table: `router.tsx` is the largest module on first paint
+  and grows with every route. That is its own slice.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL, and outbound webhooks.

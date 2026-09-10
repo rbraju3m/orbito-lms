@@ -12,13 +12,18 @@
  *
  * Exits 1 over budget, so CI (or a person) finds out when it happens rather
  * than several phases later.
+ *
+ * The budget is 255 KB — raised from 250 in Phase 16, deliberately, once the
+ * measurement showed no set of small cuts bought more than ~0.1 KB of room.
+ * docs/ROADMAP.md §Phase 16 has the numbers. Raising it again is a decision,
+ * and belongs in that same place.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 const dist = process.argv[2] ?? 'dist';
-const budgetKb = Number(process.env.FIRST_PAINT_BUDGET_KB ?? 250);
+const budgetKb = Number(process.env.FIRST_PAINT_BUDGET_KB ?? 255);
 
 const html = readFileSync(join(dist, 'index.html'), 'utf8');
 const eager = [

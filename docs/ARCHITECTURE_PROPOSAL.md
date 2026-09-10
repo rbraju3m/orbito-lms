@@ -476,7 +476,8 @@ See `TESTING.md`.
 - **Frontend**: TanStack Query dedupes and caches; route-level code splitting; images
   served in modern formats at request-time sizes; CDN in front of public media.
 - **Budgets** (enforced from Phase 2): p95 API < 200 ms for reads, < 500 ms for writes;
-  a course page < 5 queries; SPA initial JS < 250 KB gzipped.
+  a course page < 5 queries; SPA initial JS < 250 KB gzipped *(raised to 255 KB in
+  Phase 16 — the shell had 0.04 KB of room left; see ROADMAP §Phase 16)*.
 
 ---
 

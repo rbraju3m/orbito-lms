@@ -5,7 +5,7 @@ retrofit** (ADR-13) that reversed the single-tenant decision partway through.
 **Phase 16 is in progress**: plan limits, bundles, digital downloads, and — a
 hole bundles fell into — course pricing, which no endpoint could set until now.
 
-1,144 backend tests / 3,945 assertions · 278 frontend tests · Pint, PHPStan
+1,144 backend tests / 3,945 assertions · 279 frontend tests · Pint, PHPStan
 level 6, oxlint, tsc and build all clean.
 
 Audit, architecture, foundation, identity, course management, the curriculum

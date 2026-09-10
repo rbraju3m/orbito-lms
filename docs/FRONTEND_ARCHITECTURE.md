@@ -27,7 +27,8 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 > app-wide banner, not per button. `@mantine/dates`
 > is deliberately *not* installed — the one date field so far uses a native
 > `datetime-local` input converted at the edge by `shared/lib/datetime.ts`,
-> which costs nothing against the 250 KB first-paint budget.
+> which costs nothing against the first-paint budget (255 KB since Phase 16;
+> `npm run size` is the only measurement).
 
 ---
 
@@ -413,7 +414,8 @@ LearnLayout
 - Virtualise any list that can exceed ~200 rows (students, orders, question banks).
 - `<Image>` wrapper: explicit width/height, `loading="lazy"`, `decoding="async"`, blurred
   placeholder from the media record.
-- Budget: initial JS ≤ 250 KB gzipped; LCP < 2.5 s on a mid-tier phone over 4G.
+- Budget: initial JS ≤ 255 KB gzipped — raised from 250 in Phase 16, see
+  ROADMAP; measured only by `npm run size`. LCP < 2.5 s on a mid-tier phone over 4G.
 
 ---
 
