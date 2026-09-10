@@ -126,8 +126,16 @@ belongs somewhere. Each academy chooses whether it accepts sign-ups at all.
 credentials, not code. Commerce works end to end against `FakeGateway`; live
 learning works end to end with the manual provider.
 
-**Next: Phase 16 (Advanced Business)** — subscriptions, bundles, downloads,
-the blog and page builder, multilingual and RTL, plan limits, outbound
+**Phase 16 (Advanced Business) has started.** **Plan limits are enforced** —
+the oldest open item in the codebase, counted since P4 and read by nothing
+until now. `PlanLimits` answers "has this academy's plan room for one more?",
+and the answer is both rendered (`/admin/plan`) and enforced (402
+`plan_limit_reached`). Courses and instructor seats block at the cap; students
+and storage are counted and surfaced but never block, because a learner
+enrolling cannot change their academy's plan. See `ROADMAP.md` §Phase 16.
+
+Still ahead in the phase: subscriptions and memberships, bundles, downloads,
+coaching, the blog and page builder, multilingual and RTL, and outbound
 webhooks. It is markedly larger than the phases before it, and it is where the
 public marketing surface finally arrives — which is what webinar registration
 and lead capture have both been waiting for.

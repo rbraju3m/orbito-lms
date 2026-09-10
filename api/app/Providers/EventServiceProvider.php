@@ -32,6 +32,7 @@ use App\Domain\Engagement\Listeners\RefreshCourseRating;
 use App\Domain\Engagement\Listeners\RefreshDiscussionCounters;
 use App\Domain\Engagement\Listeners\RemoveFromWishlistOnEnrollment;
 use App\Domain\Enrollment\Events\CourseEnrolled;
+use App\Domain\Enrollment\Events\EnrollmentAccessChanged;
 use App\Domain\Gamification\Events\BadgeAwarded;
 use App\Domain\Gamification\Events\PointsAwarded;
 use App\Domain\Gamification\Events\StreakExtended;
@@ -58,6 +59,7 @@ use App\Domain\Platform\Actions\EnsurePlatformOwner;
 use App\Domain\Platform\Listeners\TrackCourseUsage;
 use App\Domain\Platform\Listeners\TrackInstructorUsage;
 use App\Domain\Platform\Listeners\TrackStorageUsage;
+use App\Domain\Platform\Listeners\TrackStudentUsage;
 use App\Domain\Progress\Events\CourseCompleted;
 use App\Domain\Progress\Events\ItemCompleted;
 use App\Domain\Progress\Listeners\RecountEnrollmentTotals;
@@ -100,6 +102,16 @@ final class EventServiceProvider extends ServiceProvider
         ],
         InstructorReviewed::class => [
             TrackInstructorUsage::class,
+        ],
+
+        /*
+         * The student seat count. A seat is held by a PERSON, so what matters
+         * is not which button was pressed but whether this enrolment started
+         * or stopped granting access — which is the only thing
+         * `EnrollmentAccessChanged` is fired for.
+         */
+        EnrollmentAccessChanged::class => [
+            [TrackStudentUsage::class, 'accessChanged'],
         ],
 
         // Curriculum fires; Catalog's denormalised counters follow. Progress
@@ -186,6 +198,7 @@ final class EventServiceProvider extends ServiceProvider
         CourseEnrolled::class => [
             RemoveFromWishlistOnEnrollment::class,
             RecordEnrollmentEvents::class,
+            [TrackStudentUsage::class, 'enrolled'],
         ],
 
         /*

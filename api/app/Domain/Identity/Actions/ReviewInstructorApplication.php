@@ -10,6 +10,8 @@ use App\Domain\Identity\Events\InstructorReviewed;
 use App\Domain\Identity\Exceptions\InstructorApplicationConflict;
 use App\Domain\Identity\Models\InstructorProfile;
 use App\Domain\Identity\Models\User;
+use App\Domain\Platform\Enums\UsageMetric;
+use App\Domain\Platform\Queries\PlanLimits;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -20,6 +22,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class ReviewInstructorApplication
 {
+    public function __construct(private readonly PlanLimits $limits) {}
+
     public function handle(
         InstructorProfile $profile,
         InstructorStatus $decision,
@@ -32,6 +36,18 @@ final class ReviewInstructorApplication
 
         if ($decision === InstructorStatus::Approved && $profile->status === InstructorStatus::Approved) {
             throw InstructorApplicationConflict::alreadyApproved();
+        }
+
+        /*
+         * The plan's instructor seats — checked only on approval, and only
+         * after the already-approved case above has been ruled out, so a
+         * re-approval never consumes a seat the applicant already holds.
+         *
+         * Rejecting and blocking are never capped: an academy at its seat
+         * limit must always be able to free one.
+         */
+        if ($decision === InstructorStatus::Approved) {
+            $this->limits->assert(UsageMetric::Instructors);
         }
 
         DB::transaction(function () use ($profile, $decision, $reviewer, $note): void {

@@ -17,6 +17,12 @@ const AREAS = [
     description: 'Who may sign up, and the link that lets them.',
     permission: 'settings.view',
   },
+  {
+    to: '/admin/plan',
+    title: 'Plan and usage',
+    description: 'What this academy has used against what its plan allows.',
+    permission: 'settings.view',
+  },
 ];
 
 export function AdminHomeRoute() {

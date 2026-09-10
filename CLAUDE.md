@@ -554,10 +554,65 @@ Gate::authorize('publish', $course);                   // in a controller
 
 ---
 
-## 20. Multi-tenancy — read this before touching a model or a query
+## 20. Patterns established in Phase 16 — reuse these
+
+- **`PlanLimits` is the ONLY answer to "does this academy's plan have room?"**
+  — the class the `plans` migration has named since Phase 1. Same shape as
+  `CourseAccess` (ADR-03): a shared service crossing contexts on purpose,
+  because a limit must be answered synchronously and an event cannot say no.
+  Adding a capped dimension is a `UsageMetric` case with a `planKey()`, never
+  a second check somewhere else.
+- **A counter's name and a plan's key are separate vocabularies.**
+  `courses_total` is what we count; `max_courses` is what an operator types
+  into a JSON column. `UsageMetric::planKey()` is the only place they meet, so
+  renaming a counter cannot silently uncap every academy.
+- **Cap the party who can DO something about it.** `isEnforced()` is that
+  decision, declared once. An academy's own actions (a course, a seat) are
+  blocked at the cap; a learner's enrolment never is, because they have just
+  paid and cannot change their academy's plan. Counting and surfacing a cap
+  without enforcing it is a legitimate answer, and the resource says which is
+  which — a panel that showed the student cap as a wall would be lying.
+- **Some checks CANNOT be atomic, and the comment has to say so.**
+  `usage_counters` is central; the rows it caps live in the academy's schema,
+  so no transaction spans both and `lockForUpdate()` is unavailable. Being one
+  over a billing cap is bounded and reconciled nightly. Do not copy this
+  reasoning to a seat limit — overselling a course costs a learner their
+  place.
+- **Over-limit is a STATE.** A downgrade puts an academy instantly over on
+  everything it already built. Nothing is deleted to make it fit, and every
+  read path has to be able to render a number larger than the allowance.
+- **An operation is not a transition, and a tally needs the transition.**
+  `suspend()` on a suspended row and `extend()` on a live one both fire their
+  event and change nothing; a counter driven off the event double-counts on
+  exactly those calls, and the previous status is gone by the time a listener
+  runs. `EnrollmentAccessChanged` fires only on a real flip and carries the
+  new answer — `CourseStatusChanged`'s `became()` / `left()`, reduced to a
+  boolean. Given that, one question settles both directions: does this person
+  hold any OTHER enrolment that grants access?
+- **A derived counter and its reconcile are ONE definition written twice.**
+  `TrackStudentUsage` and `ReconcileUsageCounters` must agree on what a
+  student is — access-granting, distinct by person — or the nightly job
+  reports drift that is not there and hides the drift that is.
+- **Two 402s are two problems.** `subscription_lapsed` and
+  `plan_limit_reached` share a status and nothing else. `ApiError` keys on the
+  CODE; keying on the status told somebody at their course cap to renew a
+  subscription they had already paid for.
+- **Never make a lookup shared to save a query.** `SubscriptionState` was
+  briefly a `scoped` binding so the write gate and `PlanLimits` would agree;
+  Laravel's container outlives a request under Octane and inside a test, so
+  the second read got the first read's plan. Third time this codebase has hit
+  it (§ Phase 9, `CourseAccess`).
+- **Mantine's `Alert` is `role="alert"` by default.** A standing explanation
+  that announces itself on every render teaches a screen-reader user to ignore
+  the one that matters. Use `role="note"` for the paragraph that is always
+  there.
+
+---
+
+## 21. Multi-tenancy — read this before touching a model or a query
 
 > Code comments cite this section as **`(§ Multi-tenancy)`**, by name and not
-> by number. It has been §16 through §20 as phases added their own
+> by number. It has been §16 through §21 as phases added their own
 > pattern sections, and thirty comments quietly pointed at the wrong place
 > each time. Cite any section of this file by its NAME.
 
@@ -629,11 +684,12 @@ so the action that fixes a lapse survives it.
 
 ---
 
-## 21. Current phase
+## 22. Current phase
 
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
-(T1–T7) that reversed the single-tenant decision.
-1,043 backend tests / 3,418 assertions · 249 frontend tests.
+(T1–T7) that reversed the single-tenant decision. **Phase 16 has started:
+plan limits are enforced** (§ Patterns established in Phase 16).
+1,063 backend tests / 3,484 assertions · 258 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -650,11 +706,13 @@ credentials, not code.
 **2. Zoom / Google Meet, likewise.** Both providers are written and have never
 been called. `ManualProvider` works and is what most academies will use.
 
-**3. Phase 16 (Advanced Business)** — subscriptions, bundles, downloads,
-coaching, blog, page builder, multilingual, RTL, plan limits, outbound
-webhooks. It is markedly larger than the phases before it, and it is where the
-public marketing surface finally arrives — which is what webinar registration
-and lead capture have both been waiting for.
+**3. Phase 16 (Advanced Business), continued.** Plan limits are done —
+`PlanLimits` enforces courses and instructor seats, `/admin/plan` renders the
+meter. Still ahead: subscriptions and memberships, bundles, downloads,
+coaching, blog, page builder, multilingual, RTL, outbound webhooks. It is
+markedly larger than the phases before it, and it is where the public
+marketing surface finally arrives — which is what webinar registration and
+lead capture have both been waiting for.
 
 ### The platform owner
 
@@ -748,8 +806,10 @@ Every one of these has already cost time at least once.
   so an academy that wants a controlled roster is not silently given open
   signup; the API refuses it as a value and the UI greys it out. Building it
   means an invitations table, an accept flow and an admin screen.
-- Plan **limits** are stored and counted but never enforced — the oldest open
-  item in the codebase. Phase 16.
+- Plan **limits** enforce courses and instructor seats only. Students and
+  storage are counted and shown, never blocking — see § Patterns established
+  in Phase 16. Storage has no cap in any seeded plan yet, and an academy
+  cannot change its own plan: `/admin/plan` reads, the operator writes.
 - **Playwright covers phases 2–3 only.** Two spec files, thirteen phases ago.
   The host cannot run it (Ubuntu 20.04); CI can.
 - **The platform UI covers the registry, not the platform.** `/platform/academies`

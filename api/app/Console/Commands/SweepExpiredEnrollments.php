@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Enrollment\Enums\EnrollmentStatus;
+use App\Domain\Enrollment\Events\EnrollmentAccessChanged;
 use App\Domain\Enrollment\Events\EnrollmentExpired;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Support\Console\RunsForEveryTenant;
@@ -62,6 +63,9 @@ final class SweepExpiredEnrollments extends Command
                     $enrollment->forceFill(['status' => EnrollmentStatus::Expired])->save();
 
                     EnrollmentExpired::dispatch($enrollment);
+                    // Always a real flip: the query above only selects rows
+                    // that were granting access a moment ago.
+                    EnrollmentAccessChanged::dispatch($enrollment, false);
                     $swept++;
                 }
             });

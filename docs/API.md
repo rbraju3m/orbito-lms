@@ -80,7 +80,7 @@ is a dead end.
 | 404 | Not found **or** not visible to this user (never leak existence) |
 | 409 | State conflict (`attempt_already_submitted`, `already_enrolled`) |
 | 422 | Validation failure — `details[]` is field-keyed |
-| 402 | The academy's subscription has lapsed — WRITES only, reads are never gated |
+| 402 | The academy owes money: `subscription_lapsed` (writes gated) or `plan_limit_reached` (its plan is full) |
 | 423 | Locked (drip not yet unlocked, access expired, not yet started) |
 | 429 | Rate limited (`Retry-After` header) |
 | 500 | Unhandled — `request_id` correlates to logs |
@@ -104,6 +104,11 @@ contract:
   returns `subscription_lapsed` when the academy's subscription has expired or
   been cancelled. Reading and exporting never stop. `POST /auth/logout` is
   exempt — nobody should be trapped in a lapsed academy.
+- **A 402 also means a full plan.** `plan_limit_reached` comes from a specific
+  write rather than the middleware, and its `meta` names the metric, the cap,
+  what is already used and the plan. Switch on the CODE, not the status: the
+  two are different problems with different remedies, and telling somebody at
+  their course cap to renew a paid subscription sends them nowhere.
 
 The one route with no authenticated user is the signed media download, which
 carries its academy inside the signed payload. Phase 10 webhooks will do the
@@ -542,6 +547,7 @@ GET    /admin/instructors?status=pending
 POST   /admin/instructors/{instructorProfile}/review   {decision, reason?}
 GET    /admin/roles · GET /admin/permissions
 GET    /admin/academy · PATCH                    {registration_mode?, support_email?}
+GET    /admin/academy/usage                      usage against the plan's limits
 GET    /health
 ```
 
@@ -555,6 +561,19 @@ It is a permission (`settings.view` / `settings.update`), not the operator
 flag: this is inside an academy, unlike `/admin/tenants`. The operator sees
 `registration_mode` on the registry screen but cannot change it — whose members
 an academy accepts is the academy's decision.
+
+**`/admin/academy/usage` is that academy's meter**, built from `PlanLimits` —
+the same class the write path consults, so a screen cannot promise room the
+server will refuse. Each row carries `used`, `limit` (**null is uncapped, never
+zero**), `remaining`, `fraction`, `at_limit`, `over_limit` and `enforced`.
+
+`enforced` is the important one. Courses and instructor seats block the write
+at the cap; students and storage are counted, surfaced, and never block. A
+learner enrolling — often having just paid — cannot change their academy's
+plan, so turning them away would punish the wrong person. `over_limit` is a
+normal state, not a corrupt one: an academy downgraded onto a smaller plan is
+instantly over on what it already built, and nothing is deleted to make it
+fit.
 
 ### Certification — live (P11)
 ```

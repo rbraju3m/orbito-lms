@@ -418,6 +418,19 @@ export const router = createBrowserRouter([
                         .AcademySettingsRoute,
                     }),
                   },
+                  /*
+                   * What the academy has used against its plan. Same
+                   * permission as its other settings — an academy reading its
+                   * own meter — and NOT the operator's registry, which shows
+                   * every academy's and lives under /platform.
+                   */
+                  {
+                    path: 'admin/plan',
+                    lazy: async () => ({
+                      Component: (await import('@/features/admin/routes/PlanUsageRoute'))
+                        .PlanUsageRoute,
+                    }),
+                  },
                 ],
               },
               /*

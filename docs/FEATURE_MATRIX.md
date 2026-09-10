@@ -390,7 +390,7 @@ the discount.
 | Q10 | Test suite (unit/feature/API) | Minimal | n/a | **P2 · M** | Pest |
 | Q11 | Static analysis | PHPCS | n/a | **P2 · M** | Larastan |
 | Q12 | CI/CD | — | n/a | P19 | |
-| Q13 | Plan limits / usage counters | — | Yes | P16 (counters **P4**) | Counted since P4 and **never enforced** — the oldest open item in the codebase |
+| Q13 | Plan limits / usage counters | — | Yes | P16 ✅ (counters **P4**) | Enforced through `PlanLimits`: courses and instructor seats BLOCK at the cap (402 `plan_limit_reached`); students and storage are counted and surfaced but never block. `GET /admin/academy/usage` + `/admin/plan` |
 | Q14 | Public roadmap / changelog | Yes | Yes | P19 | |
 | Q15 | Academy registry: provision, approve, reject, suspend, reinstate | — | n/a | **shipped** | `/platform/academies`; `available_actions` comes from the rule the write endpoint enforces |
 | Q16 | Permanent platform owner | — | n/a | **shipped** | Auto-created; cannot be deleted, suspended or demoted. Holds BOTH super-admin answers |

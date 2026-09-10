@@ -15,10 +15,12 @@ use Illuminate\Http\Request;
  * and `AssignPlanRequest` both validate `exists:mysql.plans,slug` — so it is
  * first here rather than the numeric id.
  *
- * `limits` is returned as stored. It is what an academy is ENTITLED to; what
- * it has USED lives in `usage_counters`, and nothing enforces the two against
- * each other yet (Phase 16). Rendering the entitlement is honest; implying it
- * is enforced would not be.
+ * `limits` is returned as stored — the entitlement alone, with no usage beside
+ * it, because this is the price list rather than one academy's meter. What a
+ * given academy has used against its own plan is `GET /admin/academy/usage`,
+ * built from `PlanLimits`; enforcement of the two against each other lives in
+ * that same class. Not every key here bites: `UsageMetric::isEnforced()` says
+ * which caps block a write and which are only counted.
  *
  * @mixin Plan
  */

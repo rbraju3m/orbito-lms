@@ -95,7 +95,7 @@ export function CartRoute() {
 
         {checkoutError && (
           <Alert
-            color={checkoutError.isSubscriptionLapsed ? 'yellow' : 'red'}
+            color={checkoutError.isBillingBlocked ? 'yellow' : 'red'}
             icon={<IconAlertTriangle size={16} />}
           >
             {checkoutError.message}

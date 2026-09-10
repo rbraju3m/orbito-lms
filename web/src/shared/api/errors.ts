@@ -75,8 +75,26 @@ export class ApiError extends Error {
   /**
    * 402 — the ACADEMY's subscription lapsed, not anything about this user.
    * Reads still work, so this only ever surfaces on a write.
+   *
+   * Keyed on the CODE, not the status. `plan_limit_reached` is also a 402 —
+   * both are "the academy owes money", which is what the status says — and
+   * telling somebody at their course cap that their subscription has lapsed
+   * sends them to renew a subscription that is already paid.
    */
   get isSubscriptionLapsed(): boolean {
+    return this.code === 'subscription_lapsed';
+  }
+
+  /**
+   * 402 — the academy's plan has no room for one more of something.
+   * `meta` carries which metric, the cap, and what is already used.
+   */
+  get isPlanLimitReached(): boolean {
+    return this.code === 'plan_limit_reached';
+  }
+
+  /** Either flavour of "this academy's billing is in the way". */
+  get isBillingBlocked(): boolean {
     return this.status === 402;
   }
 

@@ -82,7 +82,7 @@ export function EnrolStudentsModal({
 
             {apiError && (
               <Alert
-                color={apiError.isSubscriptionLapsed ? 'yellow' : 'red'}
+                color={apiError.isBillingBlocked ? 'yellow' : 'red'}
                 icon={<IconAlertTriangle size={16} />}
               >
                 {apiError.message}

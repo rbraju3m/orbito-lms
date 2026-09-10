@@ -4,7 +4,9 @@
 
 **Phases 0–15 are complete**, front and back, and the system was
 **retrofitted to multi-tenancy** partway through — a reversal of the
-single-tenant decision recorded as risk R4.
+single-tenant decision recorded as risk R4. **Phase 16 has started**: plan
+limits are enforced (see §Phase 16 below), closing the oldest open item in
+the codebase.
 
 **Two integrations are written and UNPROVEN.** Neither is called done, and
 both need credentials rather than code:
@@ -16,8 +18,8 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,043 Pest tests / 3,418 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 249 Vitest tests across 44 files · `tsc` clean · oxlint clean · build clean |
+| Backend | 1,063 Pest tests / 3,484 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 258 Vitest tests across 46 files · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS ~246 KB gzipped against 250 KB — see Phase 11 and Phase 13 |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~19 minutes, up from ~2 — provisioning tests build real schemas |
@@ -45,9 +47,10 @@ uploaded work, read the feedback and hand in again, attend a live class, ask a
 question, review the course, earn points and badges, download a verifiable
 certificate — and see all of it in a calendar, an inbox and a dashboard.
 
-**What is conspicuously missing:** everything in Phase 16 onward —
+**What is conspicuously missing:** most of Phase 16 onward —
 subscriptions, bundles, downloads, the blog and page builder, multilingual and
-RTL, plan-limit enforcement, and outbound webhooks. Plus the two unproven
+RTL, and outbound webhooks. (Plan-limit enforcement, long the oldest item on
+this list, has landed.) Plus the two unproven
 integrations above, and the Playwright gap, which has now outlasted thirteen
 phases. On the operator surface specifically: no cross-academy usage view, no
 audit of who approved what, and no screen for editing a plan — plans are still
@@ -1064,6 +1067,57 @@ beyond the API.
 ### Phase 16 — Advanced Business
 Subscriptions and memberships · bundles · digital downloads · coaching/booking · blog ·
 page builder (blocks) · multilingual content · RTL · plan limits and billing · webhooks out.
+
+**Plan limits — done.** The oldest open item in the codebase: counters have
+been maintained since P4 and nothing read them. `PlanLimits` — the class the
+`plans` migration has named since Phase 1 — is now the one answer to "does
+this academy's plan have room for one more?", and it is both rendered and
+enforced.
+
+- **Two kinds of cap, and the difference is deliberate.**
+  `UsageMetric::isEnforced()` says which. Courses and instructor seats are the
+  academy's OWN decisions, so the academy is the right party to stop: 402
+  `plan_limit_reached`, with `meta` naming the metric, the cap, the usage and
+  the plan. Students are not: a learner enrols, often having just paid, and
+  cannot change their academy's plan. That cap is counted, surfaced as
+  over-limit, and left to the operator. Storage the same until a plan
+  declares a byte cap.
+- **The student counter was declared and never incremented.** `UsageMetric`
+  has listed it since P4 with nothing behind it. `TrackStudentUsage` counts
+  DISTINCT people holding at least one access-granting enrolment, and
+  `usage:reconcile` recomputes it with `COUNT(DISTINCT user_id)` so the two
+  definitions cannot drift.
+- **An operation is not a transition.** The enrolment events announce that
+  somebody pressed suspend or extend, and both are reachable with nothing to
+  change — suspending an already-suspended row, extending a live one. A tally
+  driven off them double-counts on exactly those calls, and the previous
+  status is gone by the time a listener runs. `EnrollmentAccessChanged` fires
+  only on a real flip of `grantsAccess()` and carries the new answer, which is
+  what `CourseStatusChanged`'s `became()` / `left()` does for Catalog. With
+  that guarantee one question settles both directions: does this person hold
+  any OTHER enrolment that grants access?
+- **The check cannot be atomic with its insert, and says so.** `usage_counters`
+  is central; the rows it caps are in the academy's schema. No transaction
+  spans both connections, so the `lockForUpdate()` pattern the course seat
+  limit uses is unavailable. An academy can end up one over its cap under a
+  concurrent double-click; the nightly reconcile reports it, and nobody has
+  lost a seat they paid for. Overselling a COURSE costs a learner their place;
+  being one course over a billing cap costs a number.
+- **`over_limit` is a state, not a corruption.** A downgrade puts an academy
+  instantly over on everything it already built, and nothing is deleted to
+  make it fit.
+- **Two bugs found on the way.** `SubscriptionState` was briefly registered as
+  a shared binding so the write gate and `PlanLimits` would agree — which
+  handed the second read of a request the first read's plan, the same trap
+  `CourseAccess` was burned by in Phase 9. Reverted; two lookups is the price.
+  And `ApiError.isSubscriptionLapsed` keyed on **status 402**, so the new
+  limit error would have raised "your subscription has lapsed" at somebody
+  whose subscription is paid. It keys on the code now, with
+  `isPlanLimitReached` and `isBillingBlocked` beside it.
+
+Still open in this phase: subscriptions and memberships, bundles, downloads,
+coaching, the blog, the page builder, multilingual, RTL, and outbound
+webhooks.
 
 ### Phase 17 — AI
 Provider abstraction · outline / lesson / quiz / description / summary generation ·

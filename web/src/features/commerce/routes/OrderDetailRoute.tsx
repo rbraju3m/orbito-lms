@@ -122,7 +122,7 @@ export function OrderDetailRoute() {
 
         {payError && (
           <Alert
-            color={payError.isSubscriptionLapsed ? 'yellow' : 'red'}
+            color={payError.isBillingBlocked ? 'yellow' : 'red'}
             icon={<IconAlertTriangle size={16} />}
           >
             {payError.message}

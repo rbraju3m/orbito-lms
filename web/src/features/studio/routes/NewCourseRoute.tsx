@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Button,
   Card,
   Container,
@@ -14,10 +15,12 @@ import { IconAlertCircle } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { z } from 'zod';
 
 import { categoriesQuery } from '@/features/catalog/api/queries';
+import { useSession } from '@/features/auth/hooks/useSession';
+import { ApiError } from '@/shared/api/errors';
 import { applyServerErrors } from '@/shared/lib/form';
 import { PageHeader } from '@/shared/ui';
 
@@ -39,7 +42,18 @@ type Values = z.infer<typeof schema>;
  */
 export function NewCourseRoute() {
   const navigate = useNavigate();
+  const { can } = useSession();
   const [formError, setFormError] = useState<string | null>(null);
+  /*
+   * A plan limit is not a form error, so it does not go through
+   * `applyServerErrors` — nothing the author types will fix it. It is held
+   * apart so this screen can say what actually happened and who can undo it.
+   *
+   * There is no way to warn BEFORE the submit: the usage endpoint is behind
+   * `settings.view`, which an instructor does not hold, so for them the 402
+   * is the first and only place this can surface.
+   */
+  const [limitError, setLimitError] = useState<ApiError | null>(null);
   const { mutateAsync, isPending } = useCreateCourse();
   const { data: categories } = useQuery(categoriesQuery());
 
@@ -64,6 +78,7 @@ export function NewCourseRoute() {
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
+    setLimitError(null);
     try {
       const course = await mutateAsync({
         title: values.title,
@@ -72,6 +87,10 @@ export function NewCourseRoute() {
       });
       void navigate(`/studio/courses/${course.id}`, { replace: true });
     } catch (error) {
+      if (error instanceof ApiError && error.isPlanLimitReached) {
+        setLimitError(error);
+        return;
+      }
       setFormError(applyServerErrors(error, setError, ['title', 'subtitle', 'category_id']));
     }
   });
@@ -86,6 +105,23 @@ export function NewCourseRoute() {
       <Card>
         <form onSubmit={onSubmit} noValidate>
           <Stack gap="md">
+            {limitError ? (
+              <Alert color="warning" icon={<IconAlertCircle size={16} />} role="alert">
+                <Stack gap={4}>
+                  <Text size="sm">{limitError.message}</Text>
+                  <Text size="sm">
+                    {can('settings.view') ? (
+                      <Anchor component={Link} to="/admin/plan">
+                        See this academy&rsquo;s plan and usage
+                      </Anchor>
+                    ) : (
+                      'Ask an academy administrator to move this academy onto a larger plan, or to archive a course that is no longer needed.'
+                    )}
+                  </Text>
+                </Stack>
+              </Alert>
+            ) : null}
+
             {formError ? (
               <Alert color="danger" icon={<IconAlertCircle size={16} />} role="alert">
                 {formError}

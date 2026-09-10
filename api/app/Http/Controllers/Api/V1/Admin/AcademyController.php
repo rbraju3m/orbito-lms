@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Domain\Platform\Actions\UpdateAcademySettings;
 use App\Domain\Platform\Models\Tenant;
+use App\Domain\Platform\Queries\PlanLimits;
 use App\Http\Requests\Platform\UpdateAcademyRequest;
 use App\Http\Resources\Platform\AcademyResource;
+use App\Http\Resources\Platform\AcademyUsageResource;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,6 +46,22 @@ final class AcademyController
 
         return ApiResponse::ok(
             AcademyResource::make($action->handle($academy, $changes))->resolve($request)
+        );
+    }
+
+    /**
+     * What this academy has used, against what its plan allows.
+     *
+     * `settings.view`, not a platform permission: this is the academy reading
+     * its own meter. The operator's cross-academy view is a different screen
+     * for a different audience, and does not exist yet.
+     */
+    public function usage(Request $request, PlanLimits $limits): JsonResponse
+    {
+        Gate::authorize('view', $this->current($request));
+
+        return ApiResponse::ok(
+            AcademyUsageResource::make($limits->all(), $limits->plan())->resolve($request)
         );
     }
 

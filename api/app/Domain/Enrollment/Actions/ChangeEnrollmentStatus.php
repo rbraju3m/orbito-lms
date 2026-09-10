@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Enrollment\Actions;
 
 use App\Domain\Enrollment\Enums\EnrollmentStatus;
+use App\Domain\Enrollment\Events\EnrollmentAccessChanged;
 use App\Domain\Enrollment\Events\EnrollmentExtended;
 use App\Domain\Enrollment\Events\EnrollmentReinstated;
 use App\Domain\Enrollment\Events\EnrollmentRevoked;
@@ -29,6 +30,8 @@ final class ChangeEnrollmentStatus
             throw EnrollmentRejected::notSuspendable();
         }
 
+        $wasGranting = $enrollment->status->grantsAccess();
+
         $enrollment->forceFill([
             'status' => EnrollmentStatus::Suspended,
             'suspended_at' => now(),
@@ -36,6 +39,7 @@ final class ChangeEnrollmentStatus
         ])->save();
 
         EnrollmentSuspended::dispatch($enrollment, $reason);
+        $this->announceAccess($enrollment, $wasGranting);
 
         return $enrollment->refresh();
     }
@@ -46,6 +50,8 @@ final class ChangeEnrollmentStatus
      */
     public function reinstate(Enrollment $enrollment): Enrollment
     {
+        $wasGranting = $enrollment->status->grantsAccess();
+
         $enrollment->forceFill([
             'status' => $enrollment->completed_at !== null
                 ? EnrollmentStatus::Completed
@@ -55,6 +61,7 @@ final class ChangeEnrollmentStatus
         ])->save();
 
         EnrollmentReinstated::dispatch($enrollment);
+        $this->announceAccess($enrollment, $wasGranting);
 
         return $enrollment->refresh();
     }
@@ -66,6 +73,8 @@ final class ChangeEnrollmentStatus
      */
     public function revoke(Enrollment $enrollment): Enrollment
     {
+        $wasGranting = $enrollment->status->grantsAccess();
+
         $enrollment->forceFill([
             'status' => EnrollmentStatus::Cancelled,
             'suspended_at' => null,
@@ -73,6 +82,7 @@ final class ChangeEnrollmentStatus
         ])->save();
 
         EnrollmentRevoked::dispatch($enrollment);
+        $this->announceAccess($enrollment, $wasGranting);
 
         return $enrollment->refresh();
     }
@@ -84,6 +94,7 @@ final class ChangeEnrollmentStatus
      */
     public function extend(Enrollment $enrollment, ?CarbonInterface $expiresAt): Enrollment
     {
+        $wasGranting = $enrollment->status->grantsAccess();
         $attributes = ['expires_at' => $expiresAt];
 
         $reactivate = $enrollment->status === EnrollmentStatus::Expired
@@ -98,7 +109,25 @@ final class ChangeEnrollmentStatus
         $enrollment->forceFill($attributes)->save();
 
         EnrollmentExtended::dispatch($enrollment);
+        $this->announceAccess($enrollment, $wasGranting);
 
         return $enrollment->refresh();
+    }
+
+    /**
+     * Announce a real flip, and only a real flip.
+     *
+     * Every method above is reachable with nothing to change — suspending a
+     * suspended row, extending a live one — and a tally that treats the
+     * operation as the transition double-counts on exactly those calls. This
+     * compares before with after and stays quiet when they agree.
+     */
+    private function announceAccess(Enrollment $enrollment, bool $wasGranting): void
+    {
+        $grantsAccess = $enrollment->status->grantsAccess();
+
+        if ($grantsAccess !== $wasGranting) {
+            EnrollmentAccessChanged::dispatch($enrollment, $grantsAccess);
+        }
     }
 }

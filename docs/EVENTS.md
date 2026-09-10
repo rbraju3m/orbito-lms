@@ -73,7 +73,20 @@ grain would mean three subscriptions that must never disagree.
 | `EnrollmentRevoked` | `Enrollment $enrollment` | cancelled; the row and its progress are kept |
 | `EnrollmentExpired` | `Enrollment $enrollment` | the sweeper caught up with a lapsed date |
 | `EnrollmentExtended` | `Enrollment $enrollment` | `expires_at` moved |
+| `EnrollmentAccessChanged` | `Enrollment $enrollment`, `bool $grantsAccess` | access really started or stopped — **only on a flip** |
 | `TenantProvisioned` | `Tenant $tenant`, `User $owner` | an academy and its schema now exist (Platform) |
+
+**Why `EnrollmentAccessChanged` sits beside the five above rather than
+replacing them.** Those five announce an OPERATION — somebody pressed suspend,
+somebody pressed extend — which is what a notification or an audit log wants.
+A *tally* wants the TRANSITION, and the two are not the same: suspending an
+already-suspended row and extending a live one both fire their event and
+change nothing, and a listener cannot tell, because the previous status is
+gone by the time it runs. So `ChangeEnrollmentStatus` compares before with
+after and fires this only when `grantsAccess()` actually flipped. Same idea as
+`CourseStatusChanged`'s `became()` / `left()`, reduced to a boolean. The
+student seat counter is its only listener today; anything else counting people
+rather than clicks belongs here too.
 
 ### Progress
 

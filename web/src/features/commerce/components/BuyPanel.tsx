@@ -62,7 +62,7 @@ export function BuyPanel({
 
       {error && (
         <Alert
-          color={error.isSubscriptionLapsed ? 'yellow' : 'red'}
+          color={error.isBillingBlocked ? 'yellow' : 'red'}
           icon={<IconAlertTriangle size={16} />}
         >
           {error.message}

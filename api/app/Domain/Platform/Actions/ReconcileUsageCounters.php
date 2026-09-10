@@ -6,6 +6,8 @@ namespace App\Domain\Platform\Actions;
 
 use App\Domain\Catalog\Enums\CourseStatus;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Enrollment\Enums\EnrollmentStatus;
+use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Enums\InstructorStatus;
 use App\Domain\Identity\Models\InstructorProfile;
 use App\Domain\Identity\Models\User;
@@ -66,6 +68,21 @@ final class ReconcileUsageCounters
                 UsageMetric::Instructors,
                 null,
                 InstructorProfile::where('status', InstructorStatus::Approved)->count(),
+            ],
+            /*
+             * DISTINCT people, matching TrackStudentUsage's definition: one
+             * learner in four courses is one seat. `distinct()->count(...)`
+             * compiles to COUNT(DISTINCT user_id) — counting rows here would
+             * make the reconcile disagree with the listener every night and
+             * report drift that is not there.
+             */
+            [
+                UsageMetric::Students,
+                null,
+                Enrollment::query()
+                    ->whereIn('status', [EnrollmentStatus::Active, EnrollmentStatus::Completed])
+                    ->distinct()
+                    ->count('user_id'),
             ],
         ];
 

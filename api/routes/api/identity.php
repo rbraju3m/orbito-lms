@@ -33,6 +33,9 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
         // middleware has already resolved it.
         Route::get('academy', [AcademyController::class, 'show'])->name('academy.show');
         Route::patch('academy', [AcademyController::class, 'update'])->name('academy.update');
+        // Static segment after the parent, but there is no dynamic sibling to
+        // collide with here — `academy` takes no id at all, by design.
+        Route::get('academy/usage', [AcademyController::class, 'usage'])->name('academy.usage');
 
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
