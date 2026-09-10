@@ -84,6 +84,10 @@ convenience: a link in a year-old email has to still land somewhere.
 /dashboard                         continue learning + stats              ✅
 /dashboard/courses                 enrolled (in progress | completed | all)✅
 /certificates                      shipped at the root, not under /dashboard ✅
+/bundles/:slug                     a bundle: its courses, the saving, what you own ✅
+/downloads                         the academy's downloads                  ✅
+/downloads/:slug                   one download: buy, claim, or download     ✅
+/my-downloads                      everything you own, archived included     ✅
 /wishlist                          saved courses; empties itself on enrol  ✅
 /calendar                          the next month, grouped by local day     ✅
 /webinars                          open sessions, members-only              ✅
@@ -122,6 +126,8 @@ through, not a panel of the editor.
 /studio/courses/:id/grading                one queue: quizzes and assignments      ✅
 /studio/grading/quiz/:attemptId            mark the open questions                 ✅
 /studio/grading/assignment/:submissionId   mark, or hand back for another go       ✅
+/studio/bundles · /studio/bundles/:id      courses, price, publish checklist       ✅
+/studio/downloads · /studio/downloads/:id  file, price, publish checklist          ✅
 (quiz and assignment builders — reached through the curriculum item's editor
  drawer, not their own routes: both are edited in the context of the course
  they belong to)
@@ -142,6 +148,7 @@ through, not a panel of the editor.
 /admin/media
 /admin/analytics                   KPIs, trend, top courses, CSV           ✅
 /admin/academy                     who may sign up, and the link          ✅
+/admin/plan                        usage against the plan's limits        ✅
 /admin/roles · /admin/permissions
 /admin/settings/*
 
@@ -186,16 +193,18 @@ src/
 │   │   └── types.ts          Envelope<T>, Paginated<T>, CursorPaginated<T>, ApiErrorBody
 │   ├── ui/                   the design system (see DESIGN_SYSTEM.md)
 │   ├── hooks/                useDebounce, useMediaQuery, usePermission, useConfirm
-│   ├── lib/                  money.ts, date.ts, duration.ts, slug.ts, cn.ts
+│   ├── lib/                  money.ts, bytes.ts, date.ts, duration.ts, slug.ts, cn.ts
 │   └── i18n/
 └── features/
     ├── account/       ✅ profile, password, instructor application
-    ├── admin/         ✅ users, instructor approval queue, academy settings
+    ├── admin/         ✅ users, instructor approval queue, academy settings, plan usage
     ├── assignment/    ✅ authoring, the learner's pane, submission form
+    ├── bundle/        ✅ the bundle page; studio list and editor with its checklist
     ├── auth/          ✅
     ├── catalog/       ✅ public catalogue + course detail
     ├── curriculum/    ✅ the drag-and-drop builder, item editor drawer
     ├── dashboard/     ✅ continue learning, my courses
+    ├── download/      ✅ the shelf, one download, my downloads; studio list and editor
     ├── grading/       ✅ the shared queue + both grading screens
     ├── home/          ✅
     ├── learning/      ✅ the player
@@ -207,7 +216,7 @@ src/
     ├── commerce/      ✅ cart, orders, gateway admin
     ├── certification/ ✅ certificates, public verification, templates
     ├── engagement/    ✅ reviews, Q&A, announcements, wishlist
-    ├── notification/  ✅ the bell, the inbox, the preference matrix
+    ├── notification/  ✅ the bell (lazy — off first paint), the inbox, the preference matrix
     ├── analytics/     ✅ the academy dashboard, the course panel, the heatmap
     ├── gamification/  ✅ the badge wall, the boards, the opt-out
     ├── live/          ✅ the calendar, session cards, webinars

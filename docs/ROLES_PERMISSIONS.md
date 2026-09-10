@@ -155,12 +155,8 @@ or is assigned to"; policies resolve ownership.
 `course.review.submit` only.
 ² Only if the course allows self-reset.
 ³ Only for a course the student is enrolled in.
-⁴ INTENDED, NOT ENFORCED. `MediaCollection::uploadPermission()` was never
-called until Phase 16, and now gates only `download` (needs `download.manage`)
-and `certificate` (nobody — they are generated). The authoring collections
-still accept any `media.upload` holder, so a student can today write into, say,
-`lesson_video`. Known debt: the fix is choosing a permission per authoring
-collection.
+⁴ Only into `avatar` and `submission`. Each media collection names who may
+write into it — see *Upload permissions per collection* below.
 ⁵ Export sits beside view rather than above it: somebody who can see a figure
 and not save it will copy it out by hand. The ROWS are scoped to what the
 caller may open, so an instructor exports their own courses and nobody else's.
@@ -168,6 +164,32 @@ caller may open, so an instructor exports their own courses and nobody else's.
 description says so. The consequence is deliberate and worth knowing: they
 hold `course.publish.own`, but a PAID course cannot be published until it has
 a price, so the owner prices it and the manager runs it.
+
+### Upload permissions per collection
+
+Who may put bytes into each collection, from `MediaCollection::uploadPermissions()`.
+Any one of the listed permissions is enough, **held anywhere** —
+`holdsPermissionAnywhere()`, academy-wide or on any course — because an upload
+happens before the file is attached to anything, so there is no course to ask
+about. Attaching it is where the real check happens: the file must be the
+caller's own and of the right collection (`ValidatesOwnedMedia`), and the
+resource's own policy still applies.
+
+| Collection | Any of | Who that means |
+|---|---|---|
+| `avatar`, `submission` | `media.upload` | everybody |
+| `course_thumbnail` | `course.update.own/.any`, `bundle.manage`, `download.manage` | course authors; bundle and download covers |
+| `course_intro_video` | `course.update.own/.any` | course authors |
+| `lesson_video` | `curriculum.manage.own/.any` | curriculum authors, Course Managers |
+| `lesson_attachment` | `curriculum.manage.own/.any`, `assignment.manage.own/.any` | lesson and assignment authors |
+| `category_image` | `settings.update` | whoever manages categories |
+| `download` | `download.manage` | the academy's shop |
+| `certificate` | — | nobody: certificates are generated |
+
+The lists hold both `.own` and `.any` because admins hold the `.any` keys and
+not the `.own` ones. Until Phase 16 none of this was checked: every collection
+was open to any `media.upload` holder, and a student could put a 2 GB lesson
+video on the academy's storage bill.
 
 **Pricing is separate from editing on purpose.** `course.price.*` is not part
 of `course.update`, because what a course EARNS is a different decision from

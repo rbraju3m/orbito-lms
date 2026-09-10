@@ -182,6 +182,42 @@ trait HasRoles
     }
 
     /**
+     * Whether ANY active role grants ANY of these — academy-wide, or on any
+     * resource at all.
+     *
+     * The third question, beside hasPermission() ("may they do this HERE?")
+     * and hasScopedPermission() ("do they have a seat on THIS resource?"):
+     * "could they EVER do this kind of thing?". It exists for the one moment
+     * there is no resource to ask about yet — an upload, which happens before
+     * the file is attached to anything. A Course Manager granted on one course
+     * holds `curriculum.manage.own` only there, so asking with no scope would
+     * wrongly answer no; asking here answers yes.
+     *
+     * NEVER use it to authorize an action ON a resource. It answers true for a
+     * Course Manager on course 42 when the question is about course 7 — the
+     * same confusion the `.own` trap has cost four times (§ Authorization).
+     * Attaching the file is where the real check happens, and it happens there.
+     */
+    public function holdsPermissionAnywhere(string ...$permissions): bool
+    {
+        foreach ($this->activeRoleAssignments() as $assignment) {
+            $role = $assignment->role;
+
+            if ($role === null) {
+                continue;
+            }
+
+            foreach ($role->permissions as $permission) {
+                if (in_array($permission->key, $permissions, true)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Role membership. Deliberately NOT for authorization decisions — use
      * hasPermission() for those. This exists for seeding, admin UI and tests.
      */

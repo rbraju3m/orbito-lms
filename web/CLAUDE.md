@@ -15,9 +15,11 @@ specific to the web workspace.
   wrapper earns its place by encoding a decision — what an empty screen says,
   that an error carries a retry and a request id — not by being used twice.
   See `../docs/DESIGN_SYSTEM.md` §3 before adding a sixth.
-- **Measure anything you add to `AppLayout`.** Mantine is one shared chunk, so
-  a lazy route does not keep its imports off the first-paint path. Build
-  before and after and compare the gzipped `index-*.js`.
+- **Measure anything you add to `AppLayout` with `npm run size`.** It builds,
+  sums the first-paint JS — the entry script plus every `modulepreload`,
+  gzip-9 — and fails above the 255 KB budget. It is the ONLY measurement:
+  Node's and Python's zlib disagree by 0.3 KB at the same level. Mantine is one
+  shared chunk, so a lazy route does not keep its imports off first paint.
 - The academy a request resolves against comes from the SESSION, not from
   anything the client sends. A platform operator can be inside no academy at
   all, in which case tenant routes answer 409 `no_academy_selected` — handle

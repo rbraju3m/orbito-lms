@@ -225,6 +225,12 @@ Gate::authorize('publish', $course);                   // in a controller
   `hasScopedPermission()` / `hasAnyScopedPermission()`, which ignore global
   roles. Getting this wrong made every instructor staff on every course; the
   regression tests are in `CourseScopedAccessTest`.
+- **`holdsPermissionAnywhere(...$keys)` is the third question** — "could they
+  EVER do this kind of thing?", held academy-wide or on any resource. It exists
+  for the one moment with no resource to ask about: an upload, before the file
+  is attached. Asking `hasPermission()` there refuses a Course Manager their
+  own course's lesson video. NEVER use it to authorize an action on a
+  resource — it says yes to a manager of course 42 about course 7.
 - Policies are the only place authorization decisions live. `Gate::before`
   grants Super Admin everything; that is the one blanket bypass in the system.
   It has exactly one exception: when the subject of an ability is the **platform
@@ -752,9 +758,9 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
-plan limits, bundles, course pricing, and digital downloads** (§ Patterns
-established in Phase 16).
-1,144 backend tests / 3,945 assertions · 279 frontend tests.
+plan limits, bundles, course pricing, digital downloads, and upload
+permissions** (§ Patterns established in Phase 16).
+1,164 backend tests / 3,970 assertions · 279 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -772,12 +778,15 @@ through the API, which it could not be before.
 **2. Zoom / Google Meet, likewise.** Both providers are written and have never
 been called. `ManualProvider` works and is what most academies will use.
 
-**3. Phase 16 (Advanced Business), continued.** Plan limits, **bundles** and
-**digital downloads** are done — bundles closed a Phase 10 hole on the way
-(nothing could set a price) and downloads fixed two bugs bundles shipped
-(§ Patterns established in Phase 16). Still ahead: subscriptions and
-memberships, coaching, blog, page builder, multilingual, RTL, outbound
-webhooks. It is
+**3. Phase 16 (Advanced Business), continued.** Plan limits, **bundles**,
+**digital downloads** and **upload permissions** are done — bundles closed a
+Phase 10 hole on the way (nothing could set a price), downloads fixed two bugs
+bundles shipped, and uploads closed a hole downloads found (§ Patterns
+established in Phase 16). The most self-contained next slice is **outbound
+webhooks**; the quickest is **upload volume limits** (a per-user quota or an
+upload rate limit), which finishes what upload permissions started. Also
+ahead: subscriptions and memberships (after the Stripe test), coaching, blog,
+page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
 lead capture have both been waiting for.
@@ -819,6 +828,11 @@ there and generalise:
 
 Every one of these has already cost time at least once.
 
+- **Two Laravel SPAs on `localhost` share the `XSRF-TOKEN` cookie.** Cookies
+  are per host, not per port, so another local Laravel app breaks Orbito's
+  login with "CSRF token mismatch" while Orbito's own config is correct. Run
+  Orbito on `orbito.localhost` (`docs/RUNNING.md`); `phpunit.xml` pins its own
+  hosts, so the suite passes either way.
 - **The `.own` permission trap, four times over.** Every instructor holds the
   `.own` keys GLOBALLY, so `hasPermission('x.own', $course)` — global ∪ scoped
   — is true for every course in the academy. Use `hasAnyScopedPermission()` for
@@ -881,10 +895,10 @@ Every one of these has already cost time at least once.
   still names `course_id`: teaching it about downloads means a morph there, a
   grant that switches on type, and an allocation target that is not a course.
   Its own slice.
-- **Media upload permissions are enforced for two collections only.**
-  `download` needs `download.manage` and `certificate` refuses everybody; the
-  authoring collections still accept any `media.upload` holder, students
-  included. `ROLES_PERMISSIONS.md` footnote ⁴ says so.
+- **A learner can still upload `submission` files without limit** — 25 MB at a
+  time, at the general 120-per-minute API rate. Upload permissions now stop
+  writes into collections a person can never use; volume is a per-user quota or
+  an upload rate limit, not built. Nothing sweeps files never attached either.
 - **Nothing scans uploads**, and every byte goes through PHP — the
   direct-to-storage flow `MediaStatus::Pending` was declared for was never
   built. Downloads cap at 500 MB and allow no executables; that allowlist is
@@ -931,7 +945,8 @@ Every one of these has already cost time at least once.
 - `ItemEditorDrawer` issues **two sequential writes** (lesson body, then drip
   fields). Body first is deliberate; a failure between them is a partial save
   with no test.
-- The suite takes **~19 minutes**, up from ~2, because provisioning tests
+- The suite takes **~14 minutes** on a quiet machine, up from ~2, because
+  provisioning tests
   build real schemas. Provision one academy per FILE rather than per test
   where it hurts.
 - A test artifact (`storage/tenanttest/…pdf`) is committed in 998ee74 and

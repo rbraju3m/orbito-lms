@@ -382,7 +382,7 @@ the discount.
 | Q2 | Consistent error envelope | — | n/a | **P2 · M** | |
 | Q3 | Pagination contract (offset + cursor) | Partial | n/a | **P2 · M** | |
 | Q4 | Mobile-ready token auth | Pro | Yes | **P3 · M** | |
-| Q5 | Webhooks out (integrations) | — | Yes | P16 | Subscribes to the existing 39-event catalogue; no new vocabulary (ADR-12) |
+| Q5 | Webhooks out (integrations) | — | Yes | P16 | Subscribes to the existing 49-event catalogue; no new vocabulary (ADR-12) |
 | Q6 | Rate limiting | WP-level | Yes | **P2 · M** | |
 | Q7 | Queues + scheduler | WP-Cron + custom table | n/a | **P2 · M** | Redis + Horizon |
 | Q8 | Redis caching | Object cache | n/a | **P2 · M** | |
@@ -390,7 +390,7 @@ the discount.
 | Q10 | Test suite (unit/feature/API) | Minimal | n/a | **P2 · M** | Pest |
 | Q11 | Static analysis | PHPCS | n/a | **P2 · M** | Larastan |
 | Q12 | CI/CD | — | n/a | P19 | |
-| Q13 | Plan limits / usage counters | — | Yes | P16 ✅ (counters **P4**) | Enforced through `PlanLimits`: courses and instructor seats BLOCK at the cap (402 `plan_limit_reached`); students and storage are counted and surfaced but never block. `GET /admin/academy/usage` + `/admin/plan` |
+| Q13 | Plan limits / usage counters | — | Yes | P16 ✅ (counters **P4**) | Enforced through `PlanLimits`: courses, instructor seats and downloads BLOCK at the cap (402 `plan_limit_reached`); students and storage are counted and surfaced but never block. `GET /admin/academy/usage` + `/admin/plan` |
 | Q14 | Public roadmap / changelog | Yes | Yes | P19 | |
 | Q15 | Academy registry: provision, approve, reject, suspend, reinstate | — | n/a | **shipped** | `/platform/academies`; `available_actions` comes from the rule the write endpoint enforces |
 | Q16 | Permanent platform owner | — | n/a | **shipped** | Auto-created; cannot be deleted, suspended or demoted. Holds BOTH super-admin answers |

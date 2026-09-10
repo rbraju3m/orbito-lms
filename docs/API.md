@@ -284,9 +284,11 @@ buyers keep their files (402 gates writes); a non-owner gets **423**
 get it. Archiving takes a download off sale, never out of an owner's library.
 Full reasoning in `docs/DOWNLOADS.md`.
 
-**Uploading into a media collection needs that collection's permission.**
-`download` needs `download.manage`; `certificate` accepts nothing (they are
-generated). Other collections still need only `media.upload`.
+**Uploading into a media collection needs that collection's permission,**
+held anywhere — an upload has no course to ask about yet. Everybody may upload
+an `avatar` or a `submission`; the authoring collections need authoring
+permissions; `download` needs `download.manage`; `certificate` accepts nothing.
+A refusal is 403. The full table is in `ROLES_PERMISSIONS.md`.
 
 Course status moves only through `ChangeCourseStatus`, which owns the legal
 transitions; an author cannot approve their own submitted course.

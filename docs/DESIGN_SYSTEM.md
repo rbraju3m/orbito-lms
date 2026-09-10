@@ -79,7 +79,7 @@ Design mobile-first: the 360 px layout is the primary target, not a fallback.
 
 ## 3. Component inventory (`shared/ui`)
 
-> **What actually exists at Phase 15 is still those same five components**:
+> **What actually exists during Phase 16 is still those same five components**:
 > `EmptyState`, `ErrorState`, `LoadingState`, `PageHeader`, `ThemeToggle` — the
 > four that encode a *decision* (what an empty screen says, that an error
 > carries a retry and a request id, that a loading state matches the layout it

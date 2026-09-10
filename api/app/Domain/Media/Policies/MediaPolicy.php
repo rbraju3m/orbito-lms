@@ -9,9 +9,14 @@ use App\Domain\Media\Models\Media;
 
 final class MediaPolicy
 {
+    /**
+     * Held anywhere, not academy-wide: `media.upload` arrives through
+     * course-scoped roles too (Course Manager, TA), and an upload has no
+     * course to ask about yet. The collection decides the rest.
+     */
     public function upload(User $actor): bool
     {
-        return $actor->hasPermission('media.upload');
+        return $actor->holdsPermissionAnywhere('media.upload');
     }
 
     /**

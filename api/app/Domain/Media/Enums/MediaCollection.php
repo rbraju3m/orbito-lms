@@ -95,25 +95,47 @@ enum MediaCollection: string
     }
 
     /**
-     * Permission required to write into this collection, or null when nothing
-     * may upload into it at all.
+     * Who may write into this collection: ANY of these, held anywhere (see
+     * `HasRoles::holdsPermissionAnywhere()`), or nobody when null.
      *
-     * Declared from Phase 4 and never CALLED until Phase 16, so every
-     * collection was gated by `media.upload` alone — which a student holds,
-     * for their submissions. It is enforced now by `StoreMediaRequest`. Only
-     * the two collections below differ from before; tightening the authoring
-     * collections to authoring permissions is a separate decision, recorded as
-     * debt (docs/ROLES_PERMISSIONS.md footnote ⁴ claims it already happens).
+     * A list, not one key, because admins hold the `.any` permissions and not
+     * the `.own` ones — a single `.own` key here would lock them out.
+     *
+     * This decides who may put BYTES into a collection, which is what it
+     * costs to store them. It is not who may attach them: that is checked
+     * when the file is referenced, against its owner and its collection
+     * (`ValidatesOwnedMedia`), and against the resource's own policy.
+     *
+     * Declared from Phase 4 and never called until Phase 16, so every
+     * collection was open to any `media.upload` holder — a student could put a
+     * 2 GB `lesson_video` on the academy's storage bill.
+     *
+     * @return list<string>|null
      */
-    public function uploadPermission(): ?string
+    public function uploadPermissions(): ?array
     {
         return match ($this) {
+            // Everybody: a profile picture, and the work a learner hands in.
+            // `UpdateAssignmentRequest` also accepts submission files as
+            // assignment attachments, which this leaves working.
+            self::Avatar, self::Submission => ['media.upload'],
+            // Course covers — and bundle and download covers, which use this
+            // collection too.
+            self::CourseThumbnail => ['course.update.own', 'course.update.any', 'bundle.manage', 'download.manage'],
+            self::CourseIntroVideo => ['course.update.own', 'course.update.any'],
+            self::LessonVideo => ['curriculum.manage.own', 'curriculum.manage.any'],
+            // Lesson attachments and assignment attachments.
+            self::LessonAttachment => [
+                'curriculum.manage.own', 'curriculum.manage.any',
+                'assignment.manage.own', 'assignment.manage.any',
+            ],
+            // Whoever manages categories (CourseCategoryPolicy::manage).
+            self::CategoryImage => ['settings.update'],
             // Somebody who can upload into this can stock a shop.
-            self::Download => 'download.manage',
+            self::Download => ['download.manage'],
             // Rendered by the platform, never uploaded. A certificate a user
             // could upload is a certificate a user could forge.
             self::Certificate => null,
-            default => 'media.upload',
         };
     }
 }

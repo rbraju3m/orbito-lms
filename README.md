@@ -8,10 +8,12 @@ A production-grade, API-first Learning Management System.
 - **`CLAUDE.md`** — engineering rules; read before writing code
 
 **Status: Phases 0–15 complete**, front and back, plus a multi-tenancy
-retrofit — one database per academy.
+retrofit — one database per academy. **Phase 16 is under way**: plan limits,
+course pricing, bundles, digital downloads and per-collection upload
+permissions have shipped.
 [`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
 
-1,043 backend tests / 3,418 assertions · 249 frontend tests · PHPStan level 6.
+1,164 backend tests / 3,970 assertions · 279 frontend tests · PHPStan level 6.
 
 An instructor can build and publish a course with lessons, resources, quizzes,
 assignments and live sessions, price it, schedule cohorts, announce things,
@@ -28,6 +30,9 @@ A platform operator runs the academies themselves: provision one, approve or
 reject it, suspend and reinstate it, put it on a plan and renew it, and step
 inside any of them to use its own screens. Each academy decides whether anyone
 may sign up, and hands out its own signup link.
+
+An academy admin sees its usage against its plan, prices courses, and sells
+bundles of courses and digital downloads alongside them.
 
 **Two integrations are written and unproven, and need credentials rather than
 code:** `StripeGateway` has never contacted Stripe (commerce is complete and

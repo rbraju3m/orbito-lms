@@ -14,7 +14,8 @@ final class StoreMediaRequest extends FormRequest
     /**
      * The general upload permission AND the collection's own. The second was
      * declared on `MediaCollection` from Phase 4 and never checked, so any
-     * uploader could write into any collection.
+     * uploader could write into any collection. Both are asked the same way —
+     * held anywhere — so they cannot disagree about a course-scoped role.
      */
     public function authorize(): bool
     {
@@ -31,9 +32,12 @@ final class StoreMediaRequest extends FormRequest
             return true;
         }
 
-        $required = $collection->uploadPermission();
+        $required = $collection->uploadPermissions();
 
-        return $required !== null && $user->hasPermission($required);
+        // Held ANYWHERE: an upload has no course to ask about yet, and asking
+        // with no scope would refuse a Course Manager their own course's
+        // lesson video. Attaching the file is where the real check happens.
+        return $required !== null && $user->holdsPermissionAnywhere(...$required);
     }
 
     /** @return array<string, mixed> */

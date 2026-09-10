@@ -181,7 +181,8 @@ because a certificate a user could upload is one a user could forge. The
 authoring collections are unchanged, which means `ROLES_PERMISSIONS.md`
 footnote ⁴ — "only into `submission` and `avatar`" — is still not true. That
 is recorded as debt rather than fixed here, because choosing a permission per
-authoring collection is a decision of its own.
+authoring collection is a decision of its own. *(Closed later in Phase 16:
+every collection now names who may write into it — `ROLES_PERMISSIONS.md`.)*
 
 **Two bugs the bundles slice shipped, both fixed with regression tests:**
 

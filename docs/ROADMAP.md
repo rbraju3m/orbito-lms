@@ -18,11 +18,11 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,144 Pest tests / 3,945 assertions · PHPStan level 6 clean · Pint clean |
+| Backend | 1,164 Pest tests / 3,970 assertions · PHPStan level 6 clean · Pint clean |
 | Frontend | 279 Vitest tests across 52 files · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS **250.28 KB** gzipped against **255 KB** — raised from 250 in Phase 16, see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
-| Suite runtime | ~19 minutes, up from ~2 — provisioning tests build real schemas |
+| Suite runtime | ~14 minutes on a quiet machine (13–15 across Phase 16's runs), up from ~2 — provisioning tests build real schemas |
 
 Each completed phase below carries what it delivered, the decisions that shaped
 it, the bugs it found, and what it deliberately left. Where a phase's exit
@@ -41,11 +41,16 @@ the installation with its subscription, provision a new one, approve or reject
 a signup, suspend and reinstate, move an academy onto a plan and renew it, and
 step INSIDE any academy to use its own screens as a Super Admin.
 
-**What a learner can do:** find the course, buy it, enrol, learn through a
+**What an academy admin can do, as of Phase 16:** see the academy's usage
+against its plan, price any course — which, until Phase 16, nothing in the
+product could do — sell several courses as one bundle with the saving shown,
+and sell or give away digital downloads.
+
+**What a learner can do:** find a course or a bundle, buy it, enrol, learn through a
 player with video resume and notes, take a timed quiz, hand in written and
 uploaded work, read the feedback and hand in again, attend a live class, ask a
 question, review the course, earn points and badges, download a verifiable
-certificate — and see all of it in a calendar, an inbox and a dashboard.
+certificate or a file they bought — and see all of it in a calendar, an inbox and a dashboard.
 
 **What is conspicuously missing:** most of Phase 16 onward —
 subscriptions, the blog and page builder, multilingual and RTL, and outbound
@@ -1215,6 +1220,24 @@ one grants the right to FETCH it, never an enrolment.
   deliberately, instead of four cuts buying nothing. The structural fix is
   splitting the route table: `router.tsx` is the largest module on first paint
   and grows with every route. That is its own slice.
+
+**Upload permissions — done.** Found during downloads and closed on its own.
+Every media collection except two had been open to anybody holding
+`media.upload`, which every student does, so a learner could put a 2 GB
+`lesson_video` on the academy's storage bill — and `ROLES_PERMISSIONS.md`
+said they couldn't. Each collection now names who may write into it.
+
+- **An upload has no resource to ask about.** `hasPermission()` with no
+  scope counts academy-wide roles only, so asking it would refuse a Course
+  Manager — who holds `curriculum.manage.own` on their course alone — their
+  own lesson video. `holdsPermissionAnywhere()` is a third question beside
+  the two the codebase had, and it is documented as never being an
+  authorization for an action ON something.
+- **Lists, not keys.** Admins hold `.any` and not `.own`; a single `.own` key
+  per collection would have locked them out.
+- **Still open:** a learner can upload `submission` files without limit, 25 MB
+  at a time, at the general API rate. A per-user quota or an upload-specific
+  rate limit is its own item, and so is sweeping files never attached.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL, and outbound webhooks.

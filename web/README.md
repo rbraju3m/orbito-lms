@@ -29,6 +29,7 @@ npm run dev            # :5173
 npm run check          # oxlint + tsc + vitest — run before pushing
 npm run test:watch
 npm run build
+npm run size           # first-paint JS against its 255 KB budget
 npm run e2e            # Playwright (Ubuntu 22.04+ / macOS / CI only)
 ```
 

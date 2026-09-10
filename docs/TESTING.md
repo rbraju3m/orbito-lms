@@ -3,15 +3,17 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
-**Where it stands after Phase 15:** 1,043 backend tests / 3,418 assertions across
-18 Feature suites and 8 Unit suites · 249 frontend tests across 44 files ·
+**Where it stands during Phase 16:** 1,164 backend tests / 3,970 assertions across
+18 Feature suites and 9 Unit suites · 279 frontend tests across 52 files ·
 PHPStan level 6 clean · Pint, oxlint, `tsc` and `vite build` clean.
 
 **Playwright specs exist for phases 2 and 3 only** — two files, `auth.spec.ts`
 and `shell.spec.ts`. That gap has now outlasted thirteen phases and is the
 oldest untouched item in this document; see §4.
 
-**The suite takes ~19 minutes**, up from ~2 before tenancy. Provisioning tests
+**The suite takes ~14 minutes on a quiet machine** — 13 to 15 across Phase
+16's runs, 26 once when a production build ran alongside it — up from ~2
+before tenancy. Provisioning tests
 build real schemas, and that is the price of testing the isolation rather than
 trusting it. Provision one academy per FILE rather than per test where it
 hurts.
@@ -27,6 +29,13 @@ failure; it was a `db:seed` in another terminal dying with `Unknown database`
 partway through a tenant migration, because the suite had dropped the schema
 between two statements. Separate databases were not enough — the tenant prefix
 is the boundary the teardown scans, so the boundary is what had to differ.
+
+**The suite pins its own hosts, too.** `phpunit.xml` fixes `APP_URL`,
+`FRONTEND_URL`, `SESSION_DOMAIN` and `SANCTUM_STATEFUL_DOMAINS`. It used to read
+all but the second from the developer's `.env`, and a developer running Orbito
+on `orbito.localhost` (`docs/RUNNING.md`) would have made Sanctum stop treating
+the tests' Origin as first-party — failing every session login in the suite.
+Two test runs at once are still unsafe: each drops the other's tenant schemas.
 
 ---
 
@@ -65,6 +74,10 @@ any of them should run them:
 | `Tenancy/ScheduledCommandTest` | that a scheduled command walks academies. The ordinary harness leaves a tenant open, so it passes whether or not the command knows tenancy exists; this file calls `tenancy()->end()` first. **Every new scheduled command belongs here.** |
 | `Identity/CourseScopedAccessTest` | that a `.own` permission held globally does not make somebody staff on every course. Four phases have re-made that mistake. |
 | `Tenancy/CentralModelConnectionTest` | that every central model is pinned. Extend `CENTRAL_TABLES` when you add one. |
+| `Media/UploadPermissionTest` | who may write into each media collection, asked "held anywhere" — including a Course Manager whose only authoring role is on one course. |
+| `Unit/Commerce/RevenueAllocatorTest` | that a bundle's price splits across its courses to the exact minor unit, including a 200-run fuzz. The platform total and the per-course figures must stay one number. |
+| `Catalog/DownloadTest` | that owned is owned — archiving, a lapsed subscription and a file-delete attempt all leave a buyer their file — and that a paid download is actually granted. |
+| `Platform/PlanLimitsTest` | that an academy's own writes stop at its plan's cap and a learner's enrolment never does. |
 
 ---
 
@@ -155,7 +168,7 @@ composer check       # all three, in the order CI runs them
 ### Static analysis
 
 Larastan at **level 6** from Phase 2. The plan said level 8 by Phase 10; it is
-still 6 at Phase 15, and raising it is a deliberate un-taken decision rather
+still 6 in Phase 16, and raising it is a deliberate un-taken decision rather
 than an oversight — level 8 mostly argues with Eloquent's dynamic properties,
 and the model docblocks that would satisfy it are already written by hand for
 every model. Revisit if a real bug slips through the current level.

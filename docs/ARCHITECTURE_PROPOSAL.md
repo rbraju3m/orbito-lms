@@ -308,7 +308,7 @@ The app boots and every feature works with **no** provider configured.
 
 ### ADR-12 — Extension without plugins
 **Status: partly delivered.** The domain-event catalogue is real and load-
-bearing — **39 events across 13 contexts**, with Analytics, Gamification,
+bearing — **49 events across 13 contexts**, with Analytics, Gamification,
 Notification, Certification and Live all built entirely as listeners on
 events their source contexts know nothing about. Progress does not know
 certificates exist; it fires `CourseCompleted` and four contexts react.

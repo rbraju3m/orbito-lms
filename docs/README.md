@@ -3,9 +3,10 @@
 **Status: Phases 0–15 complete**, front and back, plus a **multi-tenancy
 retrofit** (ADR-13) that reversed the single-tenant decision partway through.
 **Phase 16 is in progress**: plan limits, bundles, digital downloads, and — a
-hole bundles fell into — course pricing, which no endpoint could set until now.
+hole bundles fell into — course pricing, which no endpoint could set until now —
+and per-collection upload permissions.
 
-1,144 backend tests / 3,945 assertions · 279 frontend tests · Pint, PHPStan
+1,164 backend tests / 3,970 assertions · 279 frontend tests · Pint, PHPStan
 level 6, oxlint, tsc and build all clean.
 
 Audit, architecture, foundation, identity, course management, the curriculum
@@ -55,7 +56,7 @@ is worth less than one that says "this came out differently, and here is why".
 | `FEATURE_MATRIX.md` | shipped rows are bolded and carry the decision that shaped them; ⚠ marks the two unproven integrations |
 | `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅; the header explains what tenancy removed |
 | `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is partly still a wish list, and says so |
-| `EVENTS.md` | current — 39 events across 13 contexts, with who listens, and §4 names the operator actions that deliberately fire nothing yet |
+| `EVENTS.md` | current — 49 events across 13 contexts, with who listens, and §4 names the operator actions that deliberately fire nothing yet |
 | `BUNDLES.md` | **built** — one Phase 16 slice, written before the code; §8 records what changed on the way |
 | `DOWNLOADS.md` | **built** — same format; §7 records what changed, including two bundle bugs fixed |
 | `RUNNING.md` | current — run it locally and sign in, on one page |
