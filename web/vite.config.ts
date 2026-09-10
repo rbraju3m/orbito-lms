@@ -53,6 +53,13 @@ export default defineConfig({
     // second on an idle machine and several times that when the workers are
     // all busy. The higher ceiling stops that showing up as a flake.
     testTimeout: 20_000,
+    // Pinned, the way phpunit.xml pins the API's hosts. Vitest reads the
+    // developer's own `.env`, and running beside another local Laravel app
+    // means pointing that at orbito.localhost — which moved the API off the
+    // `localhost:8000` a dozen test files mock, and failed them only locally.
+    env: {
+      VITE_API_URL: 'http://localhost:8000',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
