@@ -78,7 +78,7 @@ is a dead end.
 | 401 | Missing/invalid credentials |
 | 403 | Authenticated but not permitted (policy denial) |
 | 404 | Not found **or** not visible to this user (never leak existence) |
-| 409 | State conflict (`attempt_already_submitted`, `already_enrolled`, `bundle_transition_rejected`, `download_has_owners`, `download_requires_payment`, `media_in_use`) |
+| 409 | State conflict (`attempt_already_submitted`, `already_enrolled`, `bundle_transition_rejected`, `download_has_owners`, `download_requires_payment`, `media_in_use`, `upload_quota_exceeded`) |
 | 422 | Validation failure — `details[]` is field-keyed |
 | 402 | The academy owes money: `subscription_lapsed` (writes gated) or `plan_limit_reached` (its plan is full) |
 | 423 | Locked (drip not yet unlocked, access expired, not yet started) |
@@ -595,6 +595,17 @@ Every endpoint that *references* a file speaks in the numeric `ref`; the UUID
 addresses the file itself. Direct-to-S3 presigned upload (ADR-09) is **not** built —
 uploads currently stream through the API.
 
+**Volume.** `POST /media` is rate-limited per person (§5). Avatar and
+submission files also count against a per-person quota of **unused** files —
+512 MB by default (`MEDIA_UNATTACHED_QUOTA_MB`) of uploads nothing references
+yet. A file stops counting once it is handed in. Past the quota the upload is
+refused before any bytes are written: `409 upload_quota_exceeded`, with
+`meta: {used_bytes, limit_bytes, file_bytes}`. Authoring collections are not
+counted — they are the academy's storage, shown against its plan.
+
+**`DELETE` refuses a file somebody still needs** — `409 media_in_use` for the
+file behind a download, and for a file handed in with an assignment.
+
 ### Identity & Admin — live
 ```
 GET    /account/profile · PATCH                 · POST /account/password
@@ -850,6 +861,7 @@ GET    /admin/settings · PATCH /admin/settings
 | `webhooks` | 300/min per gateway IP, signature-gated |
 | `learn:watch` heartbeat | 1 per 15 s per item |
 | `analytics:track` | 60/min per user |
+| `POST /media` | 20/min per user, on top of the default. How much a person may *keep* is the upload quota (`409 upload_quota_exceeded`) |
 | Authenticated default | 120/min per user |
 | Unauthenticated default | 60/min per IP |
 

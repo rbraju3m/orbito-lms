@@ -138,4 +138,29 @@ enum MediaCollection: string
             self::Certificate => null,
         };
     }
+
+    /**
+     * Whether a person's UNUSED files here count against `UploadQuota`.
+     *
+     * The collections open to every account — the ones `uploadPermissions()`
+     * grants on `media.upload` alone, and a test holds the two together.
+     * Everything else is authoring, gated by an authoring permission, and
+     * what it stores is the academy's plan figure rather than one person's.
+     */
+    public function hasPersonalQuota(): bool
+    {
+        return match ($this) {
+            self::Avatar, self::Submission => true,
+            default => false,
+        };
+    }
+
+    /** @return list<string> */
+    public static function withPersonalQuota(): array
+    {
+        return array_values(array_map(
+            static fn (self $collection): string => $collection->value,
+            array_filter(self::cases(), static fn (self $collection): bool => $collection->hasPersonalQuota()),
+        ));
+    }
 }

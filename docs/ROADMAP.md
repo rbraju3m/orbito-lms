@@ -1235,9 +1235,45 @@ said they couldn't. Each collection now names who may write into it.
   authorization for an action ON something.
 - **Lists, not keys.** Admins hold `.any` and not `.own`; a single `.own` key
   per collection would have locked them out.
-- **Still open:** a learner can upload `submission` files without limit, 25 MB
-  at a time, at the general API rate. A per-user quota or an upload-specific
-  rate limit is its own item, and so is sweeping files never attached.
+- **Still open** at the time: upload volume — closed in the next slice.
+
+**Upload volume limits — done.** The half upload permissions left open: a
+learner could upload 25 MB submissions at the general 120-a-minute rate,
+forever, and never hand one in.
+
+- **The quota counts what is UNUSED.** A person may hold 512 MB
+  (`MEDIA_UNATTACHED_QUOTA_MB`) of avatar and submission files that nothing
+  references (`UploadQuota`). A file stops counting once it is handed in:
+  what a learner submits is already bounded by the assignment's file count,
+  size cap and attempts, and lands in front of somebody who marks it. A cap
+  on everything ever submitted would one day stop a diligent learner with
+  nothing they could do about it; this one always has an answer — hand the
+  files in, or remove them. The default fits the largest submission an
+  assignment may ask for (20 × 25 MB), and a test holds it there.
+- **Authoring collections are not counted.** What staff store is the
+  academy's storage — the plan's figure, not one person's.
+  `MediaCollection::hasPersonalQuota()` is exactly the collections open on
+  `media.upload` alone, and a test holds the two lists together.
+- **An `uploads` rate limit** — 20 a minute per person on `POST /media`, on
+  top of the general one. It stops a script; the quota decides how much a
+  person may keep.
+- **Removing a file from the submission form now deletes it.** It used to
+  drop the file from the list and leave it on the server — an orphan that
+  would now count against the learner's quota where they could never see it.
+- **A handed-in file can no longer be deleted.** Students hold
+  `media.delete.own` and `DeleteMedia` guarded only downloads, so a learner
+  could delete work waiting to be marked; the submission row copies the name
+  and size, not the bytes. Found while deciding what "remove some first" was
+  allowed to mean.
+- **Every 429 was missing `Retry-After`.** `ApiExceptionRenderer` rebuilt the
+  response and dropped the throttle's headers, on every limiter including
+  login's, while API.md §5 promised them.
+- **Still open:** a file abandoned in a form that was never submitted counts
+  until it is deleted, and no screen lists it. Sweeping never-attached files
+  is what keeps the quota fair over years, and it is its own item. An
+  assignment with unlimited attempts still takes 20 × 25 MB per attempt —
+  the instructor's setting, and visible in the grading queue. And nobody can
+  delete a handed-in file, admins included, which moderation will one day need.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL, and outbound webhooks.

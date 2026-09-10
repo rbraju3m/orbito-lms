@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Media\Actions;
 
+use App\Domain\Assessment\Models\AssignmentSubmissionFile;
 use App\Domain\Catalog\Models\Download;
 use App\Domain\Media\Events\MediaDeleted;
 use App\Domain\Media\Exceptions\MediaInUse;
@@ -29,6 +30,16 @@ final class DeleteMedia
 
         if ($usedBy !== null) {
             throw MediaInUse::byDownload((string) $usedBy);
+        }
+
+        /*
+         * Nor is a file somebody has HANDED IN — and its owner holds
+         * `media.delete.own`. The submission copies the name and size, not the
+         * bytes, so deleting this would leave whoever marks it a filename
+         * pointing at nothing. Handed in is handed in.
+         */
+        if (AssignmentSubmissionFile::query()->where('media_id', $media->id)->exists()) {
+            throw MediaInUse::bySubmission();
         }
 
         $ownerId = $media->owner_id;

@@ -68,7 +68,9 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
     Route::get('tags', [CategoryController::class, 'tags'])->name('tags.index');
 
     /* -------- Media -------- */
-    Route::post('media', [MediaController::class, 'store'])->name('media.store');
+    Route::post('media', [MediaController::class, 'store'])
+        ->middleware('throttle:uploads')
+        ->name('media.store');
     Route::get('media/{media}/url', [MediaController::class, 'url'])->name('media.url');
     Route::delete('media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
 

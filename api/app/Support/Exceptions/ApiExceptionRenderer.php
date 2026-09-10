@@ -63,9 +63,12 @@ final class ApiExceptionRenderer
                 'method_not_allowed', 'This method is not allowed for this endpoint.', 405,
             ),
 
+            // The throttle's headers ARE the answer to "when may I retry?" —
+            // `Retry-After` and `X-RateLimit-*`. Rebuilding the response
+            // dropped them, on every limiter, while API.md §5 promised them.
             $e instanceof TooManyRequestsHttpException => ApiResponse::error(
                 'rate_limited', 'Too many requests. Please slow down.', 429,
-            ),
+            )->withHeaders($e->getHeaders()),
 
             $e instanceof HttpExceptionInterface => ApiResponse::error(
                 'http_error',

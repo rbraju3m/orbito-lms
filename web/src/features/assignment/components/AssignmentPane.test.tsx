@@ -26,6 +26,30 @@ function briefHandler(brief: Record<string, unknown> = assignmentBriefFixture())
 const renderPane = (canSubmit = true) =>
   renderWithRouter(<AssignmentPane itemId={ITEM} title="Close reading" canSubmit={canSubmit} />);
 
+function uploadedFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'media-1',
+    ref: 11,
+    collection: 'submission',
+    mime: 'application/pdf',
+    size_bytes: 40_960,
+    width: null,
+    height: null,
+    original_name: 'essay.pdf',
+    is_private: true,
+    url: 'https://files.test/essay.pdf',
+    url_expires_at: '2026-09-10T12:15:00Z',
+    ...overrides,
+  };
+}
+
+async function attachFile(container: HTMLElement) {
+  await screen.findByRole('button', { name: 'Attach a file' });
+  const input = container.querySelector<HTMLInputElement>('input[type="file"]');
+  expect(input).not.toBeNull();
+  await userEvent.upload(input!, new File(['%PDF-1.4'], 'essay.pdf', { type: 'application/pdf' }));
+}
+
 describe('AssignmentPane', () => {
   it('shows the brief and what it is worth', async () => {
     server.use(briefHandler());
@@ -175,5 +199,76 @@ describe('AssignmentPane', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Hand in' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/deadline .* has passed/);
+  });
+
+  /* An unused upload counts against the learner's quota until it is DELETED. */
+  it('deletes a removed file on the server, not only from the list', async () => {
+    const deleted = vi.fn();
+    server.use(
+      briefHandler(),
+      http.post(apiUrl('/media'), () =>
+        HttpResponse.json({ data: uploadedFixture() }, { status: 201 }),
+      ),
+      http.delete(apiUrl('/media/media-1'), () => {
+        deleted();
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { container } = renderPane();
+
+    await attachFile(container);
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove essay.pdf' }));
+
+    await waitFor(() => expect(deleted).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.queryByText('essay.pdf')).not.toBeInTheDocument());
+  });
+
+  /* Already gone is the outcome the learner asked for. */
+  it('drops a file from the list when the server no longer has it', async () => {
+    server.use(
+      briefHandler(),
+      http.post(apiUrl('/media'), () =>
+        HttpResponse.json({ data: uploadedFixture() }, { status: 201 }),
+      ),
+      http.delete(apiUrl('/media/media-1'), () =>
+        HttpResponse.json(
+          { error: { code: 'not_found', message: 'Resource not found.', details: [] } },
+          { status: 404 },
+        ),
+      ),
+    );
+    const { container } = renderPane();
+
+    await attachFile(container);
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove essay.pdf' }));
+
+    await waitFor(() => expect(screen.queryByText('essay.pdf')).not.toBeInTheDocument());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('says why an upload was refused when the quota is full', async () => {
+    server.use(
+      briefHandler(),
+      http.post(apiUrl('/media'), () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'upload_quota_exceeded',
+              message:
+                'You have 500 MB of uploads you have not handed in yet, and this file would take you past the 512 MB limit. Hand in or remove some of them first.',
+              details: [],
+              meta: { used_bytes: 524_288_000, limit_bytes: 536_870_912, file_bytes: 20_971_520 },
+            },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const { container } = renderPane();
+
+    await attachFile(container);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/not handed in yet/);
+    expect(screen.queryByText('essay.pdf')).not.toBeInTheDocument();
   });
 });

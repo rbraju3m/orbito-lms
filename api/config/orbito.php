@@ -70,6 +70,9 @@ return [
         'analytics' => (int) env('RATE_LIMIT_ANALYTICS', 60),
         'watch' => (int) env('RATE_LIMIT_WATCH', 30),
         'webhook' => (int) env('RATE_LIMIT_WEBHOOK', 300),
+        // POST /media, per person. More than anybody attaches by hand; how
+        // much they may KEEP is the media quota below.
+        'uploads' => (int) env('RATE_LIMIT_UPLOADS', 20),
     ],
 
     /*
@@ -103,6 +106,13 @@ return [
 
     'media' => [
         'signed_url_ttl_minutes' => (int) env('MEDIA_SIGNED_URL_TTL', 15),
+        /*
+         * What one person may hold in avatar and submission files they have
+         * not used yet (`UploadQuota`). It must fit the largest submission an
+         * assignment can ask for — 20 files of 25 MB — or a learner could not
+         * assemble one; a test holds the default there.
+         */
+        'unattached_quota_bytes' => (int) env('MEDIA_UNATTACHED_QUOTA_MB', 512) * 1024 * 1024,
     ],
 
     /*

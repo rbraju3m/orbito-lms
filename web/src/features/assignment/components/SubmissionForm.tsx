@@ -2,7 +2,11 @@ import { ActionIcon, Alert, Button, FileButton, Group, Stack, Text, Textarea } f
 import { IconAlertTriangle, IconPaperclip, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 
-import { useUploadMedia, type UploadedMedia } from '@/features/media/api/queries';
+import {
+  useDeleteMedia,
+  useUploadMedia,
+  type UploadedMedia,
+} from '@/features/media/api/queries';
 import { ApiError } from '@/shared/api/errors';
 
 import { useSubmitAssignment } from '../api/queries';
@@ -17,6 +21,7 @@ export interface SubmissionFormProps {
 export function SubmissionForm({ itemId, assignment, rules }: SubmissionFormProps) {
   const submit = useSubmitAssignment(itemId);
   const upload = useUploadMedia();
+  const remove = useDeleteMedia();
 
   const [body, setBody] = useState('');
   const [files, setFiles] = useState<UploadedMedia[]>([]);
@@ -36,6 +41,27 @@ export function SubmissionForm({ itemId, assignment, rules }: SubmissionFormProp
           setError(err instanceof ApiError ? err.message : 'That file could not be uploaded.'),
       },
     );
+  };
+
+  const drop = (id: string) => setFiles((current) => current.filter((file) => file.id !== id));
+
+  /*
+   * Removing a file DELETES it. Dropping it from the list alone left it on the
+   * server, counting against the learner's upload quota where they could never
+   * find it again. Already gone is the outcome we wanted, so a 404 drops it too.
+   */
+  const detach = (file: UploadedMedia) => {
+    setError(null);
+    remove.mutate(file.id, {
+      onSuccess: () => drop(file.id),
+      onError: (err) => {
+        if (err instanceof ApiError && err.isNotFound) {
+          drop(file.id);
+          return;
+        }
+        setError(err instanceof ApiError ? err.message : 'That file could not be removed.');
+      },
+    });
   };
 
   const hand = () => {
@@ -115,7 +141,7 @@ export function SubmissionForm({ itemId, assignment, rules }: SubmissionFormProp
             </Text>
           </Group>
 
-          {files.map((file, index) => (
+          {files.map((file) => (
             <Group key={file.id} gap="xs" wrap="nowrap">
               <IconPaperclip size={14} />
               <Text size="sm" flex={1} lineClamp={1}>
@@ -125,7 +151,9 @@ export function SubmissionForm({ itemId, assignment, rules }: SubmissionFormProp
                 variant="subtle"
                 color="danger"
                 aria-label={`Remove ${file.original_name}`}
-                onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}
+                loading={remove.isPending && remove.variables === file.id}
+                disabled={remove.isPending}
+                onClick={() => detach(file)}
               >
                 <IconTrash size={16} />
               </ActionIcon>

@@ -676,6 +676,21 @@ Gate::authorize('publish', $course);                   // in a controller
   takes its bundles to draft; re-publishing it does not put them back on sale.
   The author may have removed a course or changed the price since, and a
   change elsewhere must not sell something on their behalf.
+- **A quota counts what NOTHING ELSE bounds.** `UploadQuota` charges a person
+  only for files nothing references. A handed-in file is already bounded by
+  the assignment's rules and seen by whoever marks it; a cap on everything
+  ever submitted would one day stop a diligent learner with nothing they could
+  do about it. Ask what the person over the limit can DO — here, hand the
+  files in or remove them.
+- **A form that removes an uploaded file must DELETE it.** Dropping it from
+  local state left an orphan its owner could never see again — harmless until
+  something counts it.
+- **Handed in is handed in.** A file a submission points at cannot be deleted:
+  the row copies the name and size, not the bytes. Same guard, same place, as
+  a download's file (`DeleteMedia`).
+- **A rejection's headers are part of its answer.** `ApiExceptionRenderer`
+  rebuilt every 429 without `Retry-After`, on every limiter. An envelope that
+  drops "when may I retry?" is a dead end — the 423 rule again.
 
 ---
 
@@ -758,9 +773,9 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
-plan limits, bundles, course pricing, digital downloads, and upload
-permissions** (§ Patterns established in Phase 16).
-1,164 backend tests / 3,970 assertions · 279 frontend tests.
+plan limits, bundles, course pricing, digital downloads, upload
+permissions and upload volume limits** (§ Patterns established in Phase 16).
+1,183 backend tests / 4,039 assertions · 282 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -779,13 +794,15 @@ through the API, which it could not be before.
 been called. `ManualProvider` works and is what most academies will use.
 
 **3. Phase 16 (Advanced Business), continued.** Plan limits, **bundles**,
-**digital downloads** and **upload permissions** are done — bundles closed a
-Phase 10 hole on the way (nothing could set a price), downloads fixed two bugs
-bundles shipped, and uploads closed a hole downloads found (§ Patterns
-established in Phase 16). The most self-contained next slice is **outbound
-webhooks**; the quickest is **upload volume limits** (a per-user quota or an
-upload rate limit), which finishes what upload permissions started. Also
-ahead: subscriptions and memberships (after the Stripe test), coaching, blog,
+**digital downloads**, **upload permissions** and **upload volume limits** are
+done — bundles closed a Phase 10 hole on the way (nothing could set a price),
+downloads fixed two bugs bundles shipped, uploads closed a hole downloads
+found, and volume limits closed the rest of it (§ Patterns established in
+Phase 16). The most self-contained next slice is **outbound webhooks**; the
+quickest is **sweeping never-used uploads** — a scheduled job that deletes
+unused avatar and submission files after a grace period, reading the SAME
+definition of "unused" `UploadQuota` counts, which is what keeps that quota
+fair over years. Also ahead: subscriptions and memberships (after the Stripe test), coaching, blog,
 page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
@@ -895,10 +912,13 @@ Every one of these has already cost time at least once.
   still names `course_id`: teaching it about downloads means a morph there, a
   grant that switches on type, and an allocation target that is not a course.
   Its own slice.
-- **A learner can still upload `submission` files without limit** — 25 MB at a
-  time, at the general 120-per-minute API rate. Upload permissions now stop
-  writes into collections a person can never use; volume is a per-user quota or
-  an upload rate limit, not built. Nothing sweeps files never attached either.
+- **Nothing sweeps uploads that were never used.** `UploadQuota` caps what a
+  person holds in unused avatar and submission files (512 MB) and the
+  submission form's remove button deletes, but a file left in a form that was
+  never submitted counts until it is deleted, and no screen lists it. A sweep
+  must read `UploadQuota`'s own definition of unused — two definitions would
+  disagree about which files are safe to delete. Nobody can delete a handed-in
+  file either, admins included; moderation will one day need that.
 - **Nothing scans uploads**, and every byte goes through PHP — the
   direct-to-storage flow `MediaStatus::Pending` was declared for was never
   built. Downloads cap at 500 MB and allow no executables; that allowlist is

@@ -98,6 +98,12 @@ final class AppServiceProvider extends ServiceProvider
             (int) config('orbito.rate_limits.watch')
         )->by('u:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // On top of `api`, on the one endpoint that writes to disk. How MUCH a
+        // person may hold is `UploadQuota`'s job; this stops a script.
+        RateLimiter::for('uploads', fn (Request $request) => Limit::perMinute(
+            (int) config('orbito.rate_limits.uploads')
+        )->by('u:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(
             (int) config('orbito.rate_limits.webhook')
         )->by('ip:'.$request->ip()));

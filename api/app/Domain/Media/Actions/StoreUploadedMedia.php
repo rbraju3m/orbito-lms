@@ -10,6 +10,7 @@ use App\Domain\Media\Enums\MediaStatus;
 use App\Domain\Media\Events\MediaUploaded;
 use App\Domain\Media\Exceptions\MediaRejected;
 use App\Domain\Media\Models\Media;
+use App\Domain\Media\Support\UploadQuota;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 
@@ -22,6 +23,8 @@ use Illuminate\Support\Str;
  */
 final class StoreUploadedMedia
 {
+    public function __construct(private readonly UploadQuota $quota) {}
+
     public function handle(
         User $owner,
         UploadedFile $file,
@@ -38,6 +41,10 @@ final class StoreUploadedMedia
         if ($size > $collection->maxBytes()) {
             throw MediaRejected::tooLarge($size, $collection->maxBytes());
         }
+
+        // After the file's own checks, so a file that is simply the wrong type
+        // says so, rather than blaming its owner's other uploads.
+        $this->quota->ensureRoomFor($owner, $collection, $size);
 
         $disk = $collection->disk();
         $extension = $this->safeExtension($file, $mime);

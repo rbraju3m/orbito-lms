@@ -16,6 +16,11 @@ final class MediaInUse extends DomainException
         ));
     }
 
+    public static function bySubmission(): self
+    {
+        return new self('This file has been handed in with an assignment, so it cannot be deleted.');
+    }
+
     public function errorCode(): string
     {
         return 'media_in_use';

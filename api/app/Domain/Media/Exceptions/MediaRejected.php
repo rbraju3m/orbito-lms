@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Media\Exceptions;
 
+use App\Domain\Media\Support\ByteSize;
 use App\Support\Exceptions\DomainException;
 
 final class MediaRejected extends DomainException
@@ -17,8 +18,8 @@ final class MediaRejected extends DomainException
     {
         return new self(sprintf(
             'That file is %s; the limit is %s.',
-            self::human($bytes),
-            self::human($max),
+            ByteSize::human($bytes),
+            ByteSize::human($max),
         ));
     }
 
@@ -30,19 +31,5 @@ final class MediaRejected extends DomainException
     public function status(): int
     {
         return 422;
-    }
-
-    private static function human(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $i = 0;
-        $value = (float) $bytes;
-
-        while ($value >= 1024 && $i < count($units) - 1) {
-            $value /= 1024;
-            $i++;
-        }
-
-        return round($value, 1).' '.$units[$i];
     }
 }

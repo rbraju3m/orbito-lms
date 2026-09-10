@@ -75,6 +75,7 @@ any of them should run them:
 | `Identity/CourseScopedAccessTest` | that a `.own` permission held globally does not make somebody staff on every course. Four phases have re-made that mistake. |
 | `Tenancy/CentralModelConnectionTest` | that every central model is pinned. Extend `CENTRAL_TABLES` when you add one. |
 | `Media/UploadPermissionTest` | who may write into each media collection, asked "held anywhere" — including a Course Manager whose only authoring role is on one course. |
+| `Media/UploadVolumeTest` | that the upload quota counts only UNUSED files — handing work in frees the room, the real submit endpoint proves it — that the default fits the largest legitimate submission, that a handed-in file cannot be deleted, and that a 429 carries `Retry-After`. |
 | `Unit/Commerce/RevenueAllocatorTest` | that a bundle's price splits across its courses to the exact minor unit, including a 200-run fuzz. The platform total and the per-course figures must stay one number. |
 | `Catalog/DownloadTest` | that owned is owned — archiving, a lapsed subscription and a file-delete attempt all leave a buyer their file — and that a paid download is actually granted. |
 | `Platform/PlanLimitsTest` | that an academy's own writes stop at its plan's cap and a learner's enrolment never does. |

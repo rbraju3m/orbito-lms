@@ -60,6 +60,7 @@
             "@php artisan dev"
         ],
         "test": [
+            "Composer\\Config::disableProcessTimeout",
             "@php artisan config:clear --ansi",
             "@php vendor/bin/pest"
         ],
@@ -86,6 +87,7 @@
             "@php vendor/bin/phpstan analyse --memory-limit=1G"
         ],
         "check": [
+            "Composer\\Config::disableProcessTimeout",
             "@lint:check",
             "@analyse",
             "@test"

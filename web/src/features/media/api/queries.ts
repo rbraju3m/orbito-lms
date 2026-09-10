@@ -61,3 +61,18 @@ export function useUploadMedia(onProgress?: (percent: number) => void) {
     },
   });
 }
+
+/**
+ * Deletes a file its owner uploaded, by UUID.
+ *
+ * A file taken out of a form before it is handed in must be deleted here, not
+ * only dropped from the list: an unused upload counts against its owner's
+ * upload quota until it is gone, and nothing else shows it to them again.
+ */
+export function useDeleteMedia() {
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      await http.delete(`/media/${id}`);
+    },
+  });
+}
