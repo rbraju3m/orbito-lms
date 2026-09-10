@@ -58,6 +58,7 @@ is worth less than one that says "this came out differently, and here is why".
 | `EVENTS.md` | current — 39 events across 13 contexts, with who listens, and §4 names the operator actions that deliberately fire nothing yet |
 | `BUNDLES.md` | **built** — one Phase 16 slice, written before the code; §8 records what changed on the way |
 | `DOWNLOADS.md` | **built** — same format; §7 records what changed, including two bundle bugs fixed |
+| `RUNNING.md` | current — run it locally and sign in, on one page |
 | `TESTING.md` | current, including the Playwright gap and why the suite has its own tenant prefix |
 | `ROLES_PERMISSIONS.md` | current — the policy table, the two unrelated "super admins", and §7 on the permanent owner |
 | `TUTOR_AUDIT.md`, `KLASIO_REFERENCE.md` | research, dated 2026-09-07; snapshots of external products, deliberately never updated |

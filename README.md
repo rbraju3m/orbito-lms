@@ -77,6 +77,8 @@ cp .env.example .env
 
 ## Running
 
+The one-page version, with sign-in and troubleshooting: [`docs/RUNNING.md`](docs/RUNNING.md).
+
 ```bash
 # terminal 1 — API on :8000
 cd api && php artisan serve
