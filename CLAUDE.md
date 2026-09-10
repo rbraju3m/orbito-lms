@@ -697,6 +697,19 @@ Gate::authorize('publish', $course);                   // in a controller
   the quota was charging for. And a thing nothing references YET (avatars) is
   not an orphan, it is unwired: sweep only what could have been used and
   wasn't.
+- **A request our servers make to a URL somebody typed is SSRF until proven
+  otherwise.** `WebhookTarget` vets EVERY address a host resolves to — when the
+  endpoint is saved and again before every send — and the delivery connects
+  to the address it vetted (`CURLOPT_RESOLVE`), with redirects refused.
+  Checking the name and then letting the HTTP client resolve it again is the
+  DNS-rebinding hole.
+- **Sign frozen bytes.** A webhook body is encoded once, when the event fires,
+  stored, and signed at send time. Re-encoding on a retry is a chance to send
+  different bytes under the same event id — and the receiver hashes the bytes.
+- **Retry state belongs on the row, not the queue.** `DeliverWebhook` counts
+  `attempts` in the database and `release()`s, which the sync test queue
+  ignores; tests drive each retry by running the job again. The alternative —
+  re-dispatching — retries eight times inside the request that fired the event.
 
 ---
 
@@ -780,8 +793,9 @@ so the action that fixes a lapse survives it.
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, digital downloads, upload
-permissions and upload volume limits** (§ Patterns established in Phase 16).
-1,201 backend tests / 4,080 assertions · 282 frontend tests.
+permissions, upload volume limits and outbound webhooks** (§ Patterns
+established in Phase 16).
+1,255 backend tests / 4,273 assertions · 296 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -805,7 +819,8 @@ done — bundles closed a Phase 10 hole on the way (nothing could set a price),
 downloads fixed two bugs bundles shipped, uploads closed a hole downloads
 found, and volume limits closed the rest of it (§ Patterns established in
 Phase 16), and a nightly sweep now deletes the submission uploads nothing
-used. The most self-contained next slice is **outbound webhooks**. Also ahead: subscriptions and memberships (after the Stripe test), coaching, blog,
+used. **Outbound webhooks** are done too (`docs/WEBHOOKS.md`). Also ahead:
+coupons — whose discount must be allocated across items (Known debt) — subscriptions and memberships (after the Stripe test), coaching, blog,
 page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
@@ -922,6 +937,11 @@ Every one of these has already cost time at least once.
   `MediaCollection::sweptWhenUnused()` for them; the other order deletes every
   profile picture two days after it is uploaded. Nobody can delete a
   handed-in file either, admins included; moderation will one day need that.
+- **Webhooks: no secret overlap on rotation**, no notification when an
+  endpoint switches itself off, and `enrollment.expired` has no end-to-end
+  test — it fires from the sweeper, where the harness cannot observe
+  listeners (`docs/EVENTS.md`). Not plan-gated either; if it becomes a paid
+  tier, the cap belongs in `PlanLimits`.
 - **Nothing scans uploads**, and every byte goes through PHP — the
   direct-to-storage flow `MediaStatus::Pending` was declared for was never
   built. Downloads cap at 500 MB and allow no executables; that allowlist is
@@ -929,7 +949,8 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 250.28 after the bell went lazy. At 250 the
+  purpose**, and first paint is 250.58 — 250.28 after the bell went lazy,
+  then +0.30 for the webhooks nav icon. At 250 the
   shell had 0.04 KB of room; measured, no set of small cuts bought more than
   ~0.1 KB. The real fix is splitting the route table — `router.tsx` is the
   largest module on first paint and grows with every route — and it is its

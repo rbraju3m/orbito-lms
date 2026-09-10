@@ -1293,8 +1293,36 @@ against their quota for good — this is what keeps the quota fair over years.
 - **Indexed on `(collection, created_at)`.** The sweep asks across every
   owner, which `(owner_id, collection)` cannot serve.
 
+**Outbound webhooks — done.** An academy's Super Admin points endpoints at
+other systems and picks what they receive; every delivery is signed, retried
+and logged. The integrator's reference is `docs/WEBHOOKS.md`.
+
+- **Fifteen topics, each one domain event** (ADR-12), under a dotted public
+  name. Curated rather than the whole catalogue: internal plumbing is not
+  offered, and neither is `UserLoggedIn`, which would stream everybody's
+  sessions to a third party.
+- **Names and emails ride along** with every person-event — a decision taken
+  explicitly, because an endpoint is a third party. It is also why
+  `webhook.manage` stays with the Super Admin alone.
+- **The payload is frozen bytes.** Built in the request when the event fires
+  (one indexed query when nobody is listening), stored, and signed and sent
+  unchanged on every attempt; only the HTTP is queued. The fan-out can never
+  throw into the request that fired the event.
+- **SSRF, closed three ways:** https to a public address, checked when the
+  endpoint is saved and again before every send; the connection pinned to the
+  address that was checked (`CURLOPT_RESOLVE`), so DNS rebinding has no second
+  lookup to win; redirects refused.
+- **Eight attempts over ~45 hours**, counted on the delivery row. Five
+  deliveries in a row that exhaust their attempts switch an endpoint off;
+  switching it back on resets the count. Redeliver reuses the event id; a
+  `ping` tests an endpoint; the log is pruned after 30 days.
+- **Still open:** no secret overlap on rotation; no notification when an
+  endpoint switches itself off; `enrollment.expired` fires from the sweeper,
+  where the harness cannot observe listeners (EVENTS.md), so it has no
+  end-to-end test; and webhooks are not a plan-gated feature.
+
 Still open in this phase: subscriptions and memberships, coaching, the blog,
-the page builder, multilingual, RTL, and outbound webhooks.
+the page builder, multilingual, RTL.
 
 ### Phase 17 — AI
 Provider abstraction · outline / lesson / quiz / description / summary generation ·

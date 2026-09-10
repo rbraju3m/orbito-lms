@@ -78,7 +78,7 @@ is a dead end.
 | 401 | Missing/invalid credentials |
 | 403 | Authenticated but not permitted (policy denial) |
 | 404 | Not found **or** not visible to this user (never leak existence) |
-| 409 | State conflict (`attempt_already_submitted`, `already_enrolled`, `bundle_transition_rejected`, `download_has_owners`, `download_requires_payment`, `media_in_use`, `upload_quota_exceeded`) |
+| 409 | State conflict (`attempt_already_submitted`, `already_enrolled`, `bundle_transition_rejected`, `download_has_owners`, `download_requires_payment`, `media_in_use`, `upload_quota_exceeded`, `webhook_endpoint_disabled`) |
 | 422 | Validation failure — `details[]` is field-keyed |
 | 402 | The academy owes money: `subscription_lapsed` (writes gated) or `plan_limit_reached` (its plan is full) |
 | 423 | Locked (drip not yet unlocked, access expired, not yet started) |
@@ -608,6 +608,27 @@ old (`MEDIA_UNUSED_GRACE_HOURS`): attach it to something within that window.
 **`DELETE` refuses a file somebody still needs** — `409 media_in_use` for the
 file behind a download, and for a file handed in with an assignment.
 
+### Webhooks — live (P16)
+```
+GET    /admin/webhooks                          endpoints; meta.topics lists what can be subscribed
+POST   /admin/webhooks                          {url, description?, events[]} → 201 + `secret`, ONCE
+GET    /admin/webhooks/{endpoint}
+PATCH  /admin/webhooks/{endpoint}               url · description · events · is_active
+DELETE /admin/webhooks/{endpoint}               deliveries still queued go with it
+POST   /admin/webhooks/{endpoint}/rotate-secret → new `secret`, ONCE; the old one stops at once
+POST   /admin/webhooks/{endpoint}/test          202 — queues a signed `ping`
+GET    /admin/webhooks/{endpoint}/deliveries    the log, newest first (?status=pending|succeeded|failed)
+POST   /admin/webhooks/{endpoint}/deliveries/{delivery}/redeliver   202 — same event id, new delivery
+```
+
+`webhook.manage` — the academy's Super Admin only, because an endpoint receives
+learners' names and email addresses. The `secret` appears in the create and
+rotate responses and nowhere else; no resource can emit it. A URL must be
+https and resolve to a public address, or `422 webhook_target_refused` says
+why. Testing or redelivering to a switched-off endpoint is
+`409 webhook_endpoint_disabled`. What arrives at the receiver — envelope,
+signature, retries, every topic's payload — is `docs/WEBHOOKS.md`.
+
 ### Identity & Admin — live
 ```
 GET    /account/profile · PATCH                 · POST /account/password
@@ -864,6 +885,7 @@ GET    /admin/settings · PATCH /admin/settings
 | `learn:watch` heartbeat | 1 per 15 s per item |
 | `analytics:track` | 60/min per user |
 | `POST /media` | 20/min per user, on top of the default. How much a person may *keep* is the upload quota (`409 upload_quota_exceeded`) |
+| `POST /admin/webhooks/{e}/test` · `…/redeliver` | 10/min · 30/min per user — each is an outbound request made on the academy's say-so |
 | Authenticated default | 120/min per user |
 | Unauthenticated default | 60/min per IP |
 

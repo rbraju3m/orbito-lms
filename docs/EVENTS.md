@@ -262,6 +262,7 @@ because starting again is worth knowing too.
 | `StreakExtended` | `EvaluateBadges@streak` | Gamification | **yes** |
 | `BadgeAwarded` | `NotifyOnBadgeAwarded` | Notification | **yes** |
 | `AttendanceRecorded` | `CompleteItemOnAttendance` | Live | **yes** |
+| the 15 events in `EventServiceProvider::$webhooks` | `SendWebhooks@<method>` | Webhook | payload built inline; **the HTTP is queued** (`DeliverWebhook`) |
 
 `RecountEnrollmentTotals` was the first `ShouldQueue` listener: adding one
 lesson changes the denominator for every enrolled learner, and ten thousand
@@ -349,6 +350,11 @@ vocabulary for the same fact.
 largest silent Action in the codebase. That is a known omission rather than an
 oversight: see the row above.
 
-Outbound webhooks (ADR-12) subscribe to this catalogue rather than to anything
-new: a webhook is one more listener, which is the whole reason extension does
-not need a plugin loader.
+**Outbound webhooks (ADR-12) are built on exactly this catalogue.** A webhook
+is one more listener, which is the whole reason extension does not need a
+plugin loader. Fifteen events are offered as topics, each under a dotted
+public name (`CourseEnrolled` → `enrollment.created`); they have their own map
+in `EventServiceProvider` because every entry there sends data to a third
+party. The payload is built inline — a frozen message about the moment the
+event fired — and only the HTTP is queued. Topics and payloads:
+`WEBHOOKS.md`.

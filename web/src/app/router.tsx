@@ -567,6 +567,25 @@ export const router = createBrowserRouter([
                   },
                 ],
               },
+              {
+                element: <RequirePermission anyOf={['webhook.manage']} />,
+                children: [
+                  {
+                    path: 'admin/webhooks',
+                    lazy: async () => ({
+                      Component: (await import('@/features/webhook/routes/WebhooksRoute'))
+                        .WebhooksRoute,
+                    }),
+                  },
+                  {
+                    path: 'admin/webhooks/:endpointId',
+                    lazy: async () => ({
+                      Component: (await import('@/features/webhook/routes/WebhookEndpointRoute'))
+                        .WebhookEndpointRoute,
+                    }),
+                  },
+                ],
+              },
             ],
           },
         ],

@@ -47,6 +47,8 @@ use App\Domain\Media\Models\Media;
 use App\Domain\Media\Policies\MediaPolicy;
 use App\Domain\Platform\Models\Tenant;
 use App\Domain\Platform\Policies\AcademyPolicy;
+use App\Domain\Webhook\Models\WebhookEndpoint;
+use App\Domain\Webhook\Policies\WebhookEndpointPolicy;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -72,6 +74,7 @@ final class AuthServiceProvider extends ServiceProvider
         Review::class => ReviewPolicy::class,
         Discussion::class => DiscussionPolicy::class,
         Announcement::class => AnnouncementPolicy::class,
+        WebhookEndpoint::class => WebhookEndpointPolicy::class,
     ];
 
     public function boot(): void

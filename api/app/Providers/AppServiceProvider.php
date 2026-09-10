@@ -6,6 +6,8 @@ namespace App\Providers;
 
 use App\Domain\Identity\Models\PersonalAccessToken;
 use App\Domain\Media\Support\MediaUrlGenerator;
+use App\Domain\Webhook\Support\DnsHostResolver;
+use App\Domain\Webhook\Support\HostResolver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +25,9 @@ final class AppServiceProvider extends ServiceProvider
             MediaUrlGenerator::class,
             fn () => new MediaUrlGenerator((int) config('orbito.media.signed_url_ttl_minutes', 15)),
         );
+
+        // Real DNS. Tests swap in a map, so they never depend on the network.
+        $this->app->bind(HostResolver::class, DnsHostResolver::class);
     }
 
     public function boot(): void

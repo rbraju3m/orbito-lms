@@ -122,6 +122,23 @@ return [
     ],
 
     /*
+    | Outbound webhooks (ADR-12). See docs/WEBHOOKS.md.
+    */
+    'webhooks' => [
+        // Per attempt. A receiver should answer fast and do its work later.
+        'timeout_seconds' => 10,
+        // First try plus seven retries, spread over ~45 hours (DeliverWebhook).
+        'max_attempts' => 8,
+        // Deliveries in a row that used up every attempt before the endpoint
+        // switches itself off — an address that has been dead for days.
+        'disable_after_failures' => 5,
+        // Settled deliveries are pruned after this; the log is for debugging.
+        'retention_days' => 30,
+        // A developer's own machine. Ignored in production (WebhookTarget).
+        'allow_private_targets' => (bool) env('WEBHOOKS_ALLOW_PRIVATE_TARGETS', false),
+    ],
+
+    /*
     | Tenancy. MULTI-tenant: one MySQL schema per academy, via stancl/tenancy.
     |
     | This reverses the single-tenant decision recorded as risk R4 in

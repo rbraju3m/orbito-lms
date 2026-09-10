@@ -37,6 +37,7 @@ import {
   IconTrophy,
   IconUser,
   IconUsers,
+  IconWebhook,
 } from '@tabler/icons-react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 
@@ -123,6 +124,8 @@ const NAV: NavItem[] = [
     icon: IconCreditCard,
     anyOf: ['gateway.manage'],
   },
+  // Super Admin only: an endpoint receives learners' names and emails.
+  { to: '/admin/webhooks', label: 'Webhooks', icon: IconWebhook, anyOf: ['webhook.manage'] },
   {
     to: '/admin/certificate-templates',
     label: 'Certificates',

@@ -44,6 +44,11 @@ Schedule::command('engagement:reconcile')->dailyAt('03:50')->withoutOverlapping(
  * waiting on it, and a nightly full-table scan for nothing is a nightly cost.
  */
 Schedule::command('analytics:prune')->weeklyOn(1, '04:20')->withoutOverlapping();
+/*
+ * The webhook delivery log carries names and emails in every payload, and is
+ * only for debugging an integration. Settled rows go after 30 days.
+ */
+Schedule::command('webhooks:prune')->weeklyOn(1, '04:40')->withoutOverlapping();
 
 /*
  * Analytics rollups (ADR-08). Dashboards read these and never the log.

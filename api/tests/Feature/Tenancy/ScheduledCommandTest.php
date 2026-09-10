@@ -106,6 +106,10 @@ it('sweeps unused uploads with no tenant open', function (): void {
     expect(Media::find($media->id))->toBeNull();
 });
 
+it('prunes webhook deliveries with no tenant open', function (): void {
+    ($this->centrally)('webhooks:prune');
+});
+
 it('builds analytics rollups with no tenant open', function (): void {
     // The one command here that WRITES derived rows rather than sweeping, so
     // a tenant-blind version would silently build them into the central

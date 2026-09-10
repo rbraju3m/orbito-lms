@@ -22,6 +22,7 @@ use App\Domain\Catalog\Events\CoursePricingChanged;
 use App\Domain\Catalog\Events\CourseStatusChanged;
 use App\Domain\Catalog\Events\DownloadCreated;
 use App\Domain\Catalog\Events\DownloadDeleted;
+use App\Domain\Catalog\Events\DownloadGranted;
 use App\Domain\Catalog\Events\DownloadPricingChanged;
 use App\Domain\Catalog\Events\DownloadStatusChanged;
 use App\Domain\Catalog\Listeners\ReconcileBundleSellability;
@@ -43,6 +44,10 @@ use App\Domain\Engagement\Listeners\RefreshDiscussionCounters;
 use App\Domain\Engagement\Listeners\RemoveFromWishlistOnEnrollment;
 use App\Domain\Enrollment\Events\CourseEnrolled;
 use App\Domain\Enrollment\Events\EnrollmentAccessChanged;
+use App\Domain\Enrollment\Events\EnrollmentExpired;
+use App\Domain\Enrollment\Events\EnrollmentReinstated;
+use App\Domain\Enrollment\Events\EnrollmentRevoked;
+use App\Domain\Enrollment\Events\EnrollmentSuspended;
 use App\Domain\Gamification\Events\BadgeAwarded;
 use App\Domain\Gamification\Events\PointsAwarded;
 use App\Domain\Gamification\Events\StreakExtended;
@@ -74,6 +79,7 @@ use App\Domain\Platform\Listeners\TrackStudentUsage;
 use App\Domain\Progress\Events\CourseCompleted;
 use App\Domain\Progress\Events\ItemCompleted;
 use App\Domain\Progress\Listeners\RecountEnrollmentTotals;
+use App\Domain\Webhook\Listeners\SendWebhooks;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -319,12 +325,44 @@ final class EventServiceProvider extends ServiceProvider
         ],
     ];
 
+    /**
+     * Outbound webhooks (ADR-12): one more listener per event, which is the
+     * whole reason extension needs no plugin loader. Kept as its own map
+     * rather than threaded through the one above, so "what can leave this
+     * system" reads as one list — every entry here sends data to a third
+     * party, and adding one is a decision about that, not a convenience.
+     * Each event is one `WebhookTopic`; see docs/WEBHOOKS.md for the payloads.
+     *
+     * @var array<class-string, string>
+     */
+    private array $webhooks = [
+        CourseEnrolled::class => 'enrolled',
+        EnrollmentSuspended::class => 'suspended',
+        EnrollmentReinstated::class => 'reinstated',
+        EnrollmentRevoked::class => 'revoked',
+        EnrollmentExpired::class => 'expired',
+        ItemCompleted::class => 'itemCompleted',
+        CourseCompleted::class => 'courseCompleted',
+        CourseStatusChanged::class => 'courseStatusChanged',
+        QuizAttemptGraded::class => 'quizGraded',
+        AssignmentSubmitted::class => 'assignmentSubmitted',
+        AssignmentGraded::class => 'assignmentGraded',
+        PaymentCaptured::class => 'paymentCaptured',
+        CertificateIssued::class => 'certificateIssued',
+        DownloadGranted::class => 'downloadGranted',
+        ReviewPublished::class => 'reviewPublished',
+    ];
+
     public function boot(): void
     {
         foreach ($this->listen as $event => $listeners) {
             foreach ($listeners as $listener) {
                 Event::listen($event, $listener);
             }
+        }
+
+        foreach ($this->webhooks as $event => $method) {
+            Event::listen($event, [SendWebhooks::class, $method]);
         }
 
         $this->ensurePlatformOwnerAfterMigrations();

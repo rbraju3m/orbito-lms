@@ -382,7 +382,7 @@ the discount.
 | Q2 | Consistent error envelope | — | n/a | **P2 · M** | |
 | Q3 | Pagination contract (offset + cursor) | Partial | n/a | **P2 · M** | |
 | Q4 | Mobile-ready token auth | Pro | Yes | **P3 · M** | |
-| Q5 | Webhooks out (integrations) | — | Yes | P16 | Subscribes to the existing 49-event catalogue; no new vocabulary (ADR-12) |
+| Q5 | Webhooks out (integrations) | — | Yes | **P16 · done** | 15 topics, each one event from the catalogue — no new vocabulary (ADR-12). Signed, retried, logged; see WEBHOOKS.md |
 | Q6 | Rate limiting | WP-level | Yes | **P2 · M** | |
 | Q7 | Queues + scheduler | WP-Cron + custom table | n/a | **P2 · M** | Redis + Horizon |
 | Q8 | Redis caching | Object cache | n/a | **P2 · M** | |

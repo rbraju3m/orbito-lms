@@ -316,9 +316,10 @@ certificates exist; it fires `CourseCompleted` and four contexts react.
 That is the seam working: five phases were added without reopening a single
 Action that should have fired.
 
-**Outbound webhooks and plan capability flags are still not built** (P16).
-Webhooks subscribe to this same catalogue rather than to anything new, which
-is the whole reason extension does not need a plugin loader.
+**Outbound webhooks are built** (P16): fifteen topics, each one event from this
+catalogue under a public name — see `WEBHOOKS.md`. A webhook is one more
+listener, which is the whole reason extension does not need a plugin loader.
+**Plan capability flags are still not built.**
 Three seams: (1) a documented domain-event catalogue, (2) outbound webhooks subscribing to
 those events, (3) capability flags per plan. No PHP plugin loader — that is the complexity
 that made Tutor's codebase what it is.

@@ -147,6 +147,7 @@ through, not a panel of the editor.
 /admin/reviews                     moderation                            ✅
 /admin/media
 /admin/analytics                   KPIs, trend, top courses, CSV           ✅
+/admin/webhooks · /admin/webhooks/:id   endpoints, secret shown once, log  ✅
 /admin/academy                     who may sign up, and the link          ✅
 /admin/plan                        usage against the plan's limits        ✅
 /admin/roles · /admin/permissions
