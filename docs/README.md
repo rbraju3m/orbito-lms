@@ -2,8 +2,10 @@
 
 **Status: Phases 0–15 complete**, front and back, plus a **multi-tenancy
 retrofit** (ADR-13) that reversed the single-tenant decision partway through.
+**Phase 16 is in progress**: plan limits, bundles, and — a hole bundles fell
+into — course pricing, which no endpoint could set until now.
 
-1,043 backend tests / 3,418 assertions · 249 frontend tests · Pint, PHPStan
+1,113 backend tests / 3,811 assertions · 268 frontend tests · Pint, PHPStan
 level 6, oxlint, tsc and build all clean.
 
 Audit, architecture, foundation, identity, course management, the curriculum
@@ -54,6 +56,7 @@ is worth less than one that says "this came out differently, and here is why".
 | `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅; the header explains what tenancy removed |
 | `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is partly still a wish list, and says so |
 | `EVENTS.md` | current — 39 events across 13 contexts, with who listens, and §4 names the operator actions that deliberately fire nothing yet |
+| `BUNDLES.md` | **built** — one Phase 16 slice, written before the code; §8 records what changed on the way |
 | `TESTING.md` | current, including the Playwright gap and why the suite has its own tenant prefix |
 | `ROLES_PERMISSIONS.md` | current — the policy table, the two unrelated "super admins", and §7 on the permanent owner |
 | `TUTOR_AUDIT.md`, `KLASIO_REFERENCE.md` | research, dated 2026-09-07; snapshots of external products, deliberately never updated |

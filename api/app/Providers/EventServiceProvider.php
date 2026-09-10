@@ -13,13 +13,18 @@ use App\Domain\Assessment\Events\AssignmentGraded;
 use App\Domain\Assessment\Events\AssignmentSubmitted;
 use App\Domain\Assessment\Events\QuizAttemptGraded;
 use App\Domain\Assessment\Events\QuizAttemptSubmitted;
+use App\Domain\Catalog\Events\BundleCreated;
+use App\Domain\Catalog\Events\BundleStatusChanged;
 use App\Domain\Catalog\Events\CourseCreated;
 use App\Domain\Catalog\Events\CourseDeleted;
+use App\Domain\Catalog\Events\CoursePricingChanged;
 use App\Domain\Catalog\Events\CourseStatusChanged;
+use App\Domain\Catalog\Listeners\ReconcileBundleSellability;
 use App\Domain\Certification\Events\CertificateIssued;
 use App\Domain\Certification\Listeners\IssueCertificateOnCompletion;
 use App\Domain\Certification\Listeners\RenderPdfOnIssue;
 use App\Domain\Commerce\Events\PaymentCaptured;
+use App\Domain\Commerce\Listeners\SyncProductForPurchasable;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
 use App\Domain\Engagement\Events\AnnouncementPublished;
@@ -87,9 +92,29 @@ final class EventServiceProvider extends ServiceProvider
         // metrics exist — that is the dependency rule working as intended.
         CourseCreated::class => [
             [TrackCourseUsage::class, 'created'],
+            [SyncProductForPurchasable::class, 'courseCreated'],
         ],
         CourseStatusChanged::class => [
             [TrackCourseUsage::class, 'statusChanged'],
+            [SyncProductForPurchasable::class, 'courseStatusChanged'],
+            // A course leaving `published` takes its bundles back to draft.
+            ReconcileBundleSellability::class,
+        ],
+
+        /*
+         * Catalog announces; Commerce decides whether there is anything to
+         * sell (P16). `SyncCourseProduct` was written in P10 and wired to
+         * NOTHING, so no product ever existed outside a factory — which meant
+         * no course could be priced and every paid course was unpublishable.
+         */
+        CoursePricingChanged::class => [
+            [SyncProductForPurchasable::class, 'coursePricingChanged'],
+        ],
+        BundleCreated::class => [
+            [SyncProductForPurchasable::class, 'bundleCreated'],
+        ],
+        BundleStatusChanged::class => [
+            [SyncProductForPurchasable::class, 'bundleStatusChanged'],
         ],
         CourseDeleted::class => [
             [TrackCourseUsage::class, 'deleted'],

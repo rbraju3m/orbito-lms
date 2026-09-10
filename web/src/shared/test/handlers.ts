@@ -44,7 +44,7 @@ export function sessionFixture(overrides: Record<string, unknown> = {}) {
     must_verify_email: false,
     is_platform_operator: false,
     is_platform_owner: false,
-    academy: { id: 'academy-1', slug: 'test-academy', name: 'Test Academy' },
+    academy: { id: 'academy-1', slug: 'test-academy', name: 'Test Academy', currency: 'USD' },
     ...overrides,
   };
 }

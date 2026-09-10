@@ -21,6 +21,7 @@ import {
   IconCalendar,
   IconChartBar,
   IconChalkboard,
+  IconPackages,
   IconLayoutDashboard,
   IconLogout,
   IconCertificate,
@@ -85,6 +86,9 @@ const NAV: NavItem[] = [
     icon: IconChalkboard,
     anyOf: ['course.create', 'course.update.own'],
   },
+  // Its own entry rather than a tab inside the studio: the audiences differ.
+  // An instructor holds the studio permissions and not this one.
+  { to: '/studio/bundles', label: 'Bundles', icon: IconPackages, anyOf: ['bundle.manage'] },
   {
     to: '/admin',
     label: 'Administration',

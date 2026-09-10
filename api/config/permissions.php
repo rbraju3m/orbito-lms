@@ -64,6 +64,8 @@ $permissions = [
         'course.duplicate' => 'Duplicate a course',
         'course.instructors.manage' => 'Add or remove course instructors',
         'course.settings.manage' => 'Change course settings',
+        'course.price.own' => 'Set the price of courses in scope',
+        'course.price.any' => 'Set the price of any course',
     ],
 
     'curriculum' => [
@@ -110,6 +112,13 @@ $permissions = [
         'order.refund' => 'Refund an order',
         'coupon.manage' => 'Manage coupons',
         'product.manage' => 'Manage products and pricing',
+        /*
+         * Bundles are an academy-level merchandising decision, not an
+         * instructor's: one can contain another instructor's courses, and
+         * pricing it decides what that instructor earns. So this is NOT
+         * granted to the instructor role, unlike `course.price.own`.
+         */
+        'bundle.manage' => 'Create, price and publish course bundles',
         'tax.manage' => 'Manage tax rules',
         'payout.request' => 'Request a payout',
         'payout.approve' => 'Approve a payout',
@@ -224,6 +233,7 @@ return [
                 'audit.view', 'queue.manage', 'webhook.manage',
                 // `.own` variants are meaningless for an admin who holds `.any`.
                 'course.update.own', 'course.delete.own', 'course.publish.own',
+                'course.price.own',
                 'curriculum.manage.own', 'quiz.manage.own', 'quiz.grade.own',
                 'assignment.manage.own', 'assignment.grade.own',
                 'order.view.own', 'earning.view.own',
@@ -260,6 +270,7 @@ return [
                 'course.update.own', 'course.delete.own', 'course.publish.own',
                 'course.review.submit', 'course.archive', 'course.duplicate',
                 'course.instructors.manage', 'course.settings.manage',
+                'course.price.own',
                 'curriculum.view.unpublished', 'curriculum.manage.own', 'curriculum.reorder',
                 'quiz.manage.own', 'quiz.grade.own', 'questionbank.manage',
                 'assignment.manage.own', 'assignment.grade.own',

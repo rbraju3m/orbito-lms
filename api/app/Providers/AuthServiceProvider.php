@@ -10,8 +10,10 @@ use App\Domain\Assessment\Models\Quiz;
 use App\Domain\Assessment\Models\QuizAttempt;
 use App\Domain\Assessment\Policies\AssignmentPolicy;
 use App\Domain\Assessment\Policies\QuizPolicy;
+use App\Domain\Catalog\Models\Bundle;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\CourseCategory;
+use App\Domain\Catalog\Policies\BundlePolicy;
 use App\Domain\Catalog\Policies\CourseCategoryPolicy;
 use App\Domain\Catalog\Policies\CoursePolicy;
 use App\Domain\Certification\Models\Certificate;
@@ -58,6 +60,7 @@ final class AuthServiceProvider extends ServiceProvider
         Role::class => RolePolicy::class,
         InstructorProfile::class => InstructorProfilePolicy::class,
         Course::class => CoursePolicy::class,
+        Bundle::class => BundlePolicy::class,
         CourseCategory::class => CourseCategoryPolicy::class,
         Media::class => MediaPolicy::class,
         Enrollment::class => EnrollmentPolicy::class,
@@ -130,6 +133,15 @@ final class AuthServiceProvider extends ServiceProvider
              */
             'review' => Review::class,
             'discussion_reply' => DiscussionReply::class,
+
+            /*
+             * Purchasables (P16). `products.purchasable_type` and
+             * `order_items.purchasable_type` both store this alias, and an
+             * order line is read years after somebody moves a class between
+             * namespaces — the same argument as the analytics subjects above,
+             * with money attached.
+             */
+            'bundle' => Bundle::class,
         ]);
     }
 

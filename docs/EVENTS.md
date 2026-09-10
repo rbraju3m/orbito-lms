@@ -74,7 +74,19 @@ grain would mean three subscriptions that must never disagree.
 | `EnrollmentExpired` | `Enrollment $enrollment` | the sweeper caught up with a lapsed date |
 | `EnrollmentExtended` | `Enrollment $enrollment` | `expires_at` moved |
 | `EnrollmentAccessChanged` | `Enrollment $enrollment`, `bool $grantsAccess` | access really started or stopped — **only on a flip** |
+| `BundleCreated` | `Bundle $bundle` | a bundle exists; Commerce gives it a (dormant) product |
+| `BundleStatusChanged` | `Bundle $bundle`, `BundleStatus $from`, `$to`, `?int $actorId` | draft ⇄ published ⇄ archived |
+| `CoursePricingChanged` | `Course $course`, `PricingModel $from`, `$to` | free ⇄ paid — **only on a real change** |
 | `TenantProvisioned` | `Tenant $tenant`, `User $owner` | an academy and its schema now exist (Platform) |
+
+**`CoursePricingChanged` is the wire Phase 10 never connected.**
+`SyncCourseProduct` existed from P10 and nothing called it, so no `Product`
+row was ever created outside a factory — no course could be priced, and
+`PublishChecklist` blocked every paid course anyway. Catalog owns
+`pricing_model`; Commerce owns whether there is something to sell; this is how
+the second finds out. Like `EnrollmentAccessChanged` below, it fires only on a
+real change, because an event that fires when nothing happened is one every
+listener has to re-derive the truth from.
 
 **Why `EnrollmentAccessChanged` sits beside the five above rather than
 replacing them.** Those five announce an OPERATION — somebody pressed suspend,

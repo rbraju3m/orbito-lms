@@ -4,9 +4,9 @@
 
 **Phases 0–15 are complete**, front and back, and the system was
 **retrofitted to multi-tenancy** partway through — a reversal of the
-single-tenant decision recorded as risk R4. **Phase 16 has started**: plan
-limits are enforced (see §Phase 16 below), closing the oldest open item in
-the codebase.
+single-tenant decision recorded as risk R4. **Phase 16 is in progress**: plan
+limits are enforced and bundles have shipped (see §Phase 16 below) — which
+also closed a Phase 10 hole that made every paid course unpublishable.
 
 **Two integrations are written and UNPROVEN.** Neither is called done, and
 both need credentials rather than code:
@@ -18,8 +18,8 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,063 Pest tests / 3,484 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 258 Vitest tests across 46 files · `tsc` clean · oxlint clean · build clean |
+| Backend | 1,113 Pest tests / 3,811 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 268 Vitest tests across 48 files · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS ~246 KB gzipped against 250 KB — see Phase 11 and Phase 13 |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~19 minutes, up from ~2 — provisioning tests build real schemas |
@@ -1115,7 +1115,57 @@ enforced.
   whose subscription is paid. It keys on the code now, with
   `isPlanLimitReached` and `isBillingBlocked` beside it.
 
-Still open in this phase: subscriptions and memberships, bundles, downloads,
+**Bundles — done**, and they fell into a Phase 10 hole on the way.
+
+- **A bundle owns no content.** It points at courses, and buying one fans out
+  into an enrolment each with `source = bundle`. `CourseAccess` is untouched
+  (ADR-03 still owns "may they consume this?"), so drip, progress, the roster
+  and certificates all worked on day one. The cost is stated rather than
+  hidden: a course added to a bundle after somebody bought it does not reach
+  them, and the explicit "grant to existing buyers" action is deliberately not
+  built — a silent backfill enrolling hundreds of people is not a side effect
+  of editing a form.
+- **Bundle money is allocated across its courses at ORDER time.**
+  `BuildDailyRollups::courseRevenue()` reads `order_items` where the
+  purchasable is a course, so a bundle line was invisible to it — an
+  instructor selling mainly through bundles would have read £0 on their own
+  dashboard. `RevenueAllocator` splits the price by list price, largest
+  remainder, summing EXACTLY to the line, with ties broken on `course_id` so
+  a re-run cannot move a penny. A fuzz test asserts the sum over 200 random
+  inputs. This is the coupon problem CLAUDE.md predicted, reached early.
+- **Partial overlap sells.** Owning two of five courses does not block the
+  bundle — the detail returns `owned_course_ids` so the page says what is new
+  before payment. Only owning ALL of them is refused, because that order has
+  nothing to deliver.
+- **`EnrollmentIntent::bundle()` bypasses prerequisites**, three lines below
+  `purchase()`, which deliberately does not. A curated path is the most
+  natural bundle there is; enforcing prerequisites would leave a buyer paid-up
+  and locked out of the half they bought it for.
+- **A course leaving `published` takes its bundles back to draft**, one way
+  only. Re-publishing does not re-publish the bundle: the author may have
+  changed it since.
+
+**The hole: nothing in the product could set a price.** Found because a bundle
+cannot be published without one. `SyncCourseProduct` was written in P10 and
+**wired to nothing**, so no `Product` row was ever created outside a factory;
+there was no endpoint that could write a price; and `PublishChecklist` passed
+`price_configured` only for FREE courses, under a comment saying pricing would
+land in P10. It did, and the check was never updated — **a paid course could
+not be published at all**, and the entire paid path was unreachable through
+the API. Every commerce test starts from `Product::factory()`, which mints the
+row the application never minted, so the suite could not see it.
+
+Closed rather than worked around: `SetProductPrice` is now the single write
+path for `product_prices`, `CoursePricingChanged` + `SyncProductForPurchasable`
+connect Catalog's events to Commerce, and `price_configured` asks whether
+there is a real price in the accounting currency. Pricing got its own
+permission (`course.price.own` / `.any`) rather than riding on `update`: what
+a course EARNS is a different decision from what it says.
+
+This also unblocks the Stripe sandbox test at the top of this file — you could
+not previously buy a course, because you could not price one.
+
+Still open in this phase: subscriptions and memberships, downloads,
 coaching, the blog, the page builder, multilingual, RTL, and outbound
 webhooks.
 

@@ -80,6 +80,9 @@ final readonly class EnrollmentIntent
     /**
      * Phase 10. Declared now so the payment path is visibly a first-class
      * intent rather than something bolted on with a flag later.
+     *
+     * Note what it does NOT bypass: prerequisites. Buying one course does not
+     * excuse you from the course it is built on.
      */
     public static function purchase(int $orderId, ?CarbonInterface $expiresAt = null): self
     {
@@ -88,6 +91,29 @@ final readonly class EnrollmentIntent
             sourceId: $orderId,
             expiresAt: $expiresAt,
             bypassPayment: true,
+        );
+    }
+
+    /**
+     * One course out of a bundle somebody just paid for.
+     *
+     * Unlike `purchase()` three lines up, this DOES bypass prerequisites, and
+     * the difference is deliberate. A curated path — course 3 builds on course
+     * 2 — is the most natural bundle there is, and enforcing prerequisites
+     * would fail to grant course 3 at the moment of purchase, leaving somebody
+     * paid-up and locked out of what they bought. Selling the sequence is the
+     * academy asserting the sequence.
+     *
+     * The seat limit is still not bypassed. Nothing bypasses that.
+     */
+    public static function bundle(int $orderId, ?CarbonInterface $expiresAt = null): self
+    {
+        return new self(
+            source: EnrollmentSource::Bundle,
+            sourceId: $orderId,
+            expiresAt: $expiresAt,
+            bypassPayment: true,
+            bypassPrerequisites: true,
         );
     }
 }

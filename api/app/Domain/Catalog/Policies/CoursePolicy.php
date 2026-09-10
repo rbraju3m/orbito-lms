@@ -85,6 +85,19 @@ final class CoursePolicy
                 && $actor->hasPermission('course.instructors.manage', $course));
     }
 
+    /**
+     * Setting what a course costs.
+     *
+     * Its own permission rather than part of `update`, because what a course
+     * earns is a different decision from what it says — an academy can let a
+     * TA fix a typo without letting them halve the price.
+     */
+    public function price(User $actor, Course $course): bool
+    {
+        return $actor->hasPermission('course.price.any')
+            || ($this->isCourseStaff($actor, $course) && $actor->hasPermission('course.price.own', $course));
+    }
+
     public function manageSettings(User $actor, Course $course): bool
     {
         return $actor->hasPermission('course.update.any')

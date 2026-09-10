@@ -72,8 +72,8 @@ or is assigned to"; policies resolve ownership.
 `enrollment.bulk`, `enrollment.suspend`, `enrollment.delete`
 **progress** — `progress.view.own`, `progress.view.any`, `progress.reset`
 **commerce** — `order.view.own`, `order.view.any`, `order.refund`, `order.update`,
-`coupon.manage`, `product.manage`, `tax.manage`, `payout.request`, `payout.approve`,
-`earning.view.own`, `earning.view.any`, `gateway.manage`
+`coupon.manage`, `product.manage`, `bundle.manage`, `tax.manage`, `payout.request`,
+`payout.approve`, `earning.view.own`, `earning.view.any`, `gateway.manage`
 **certification** — `certificate.view.own`, `certificate.view.any`, `certificate.issue`,
 `certificate.revoke`, `certificate.template.manage`
 **engagement** — `review.create`, `review.moderate`, `review.reply.own`, `review.delete`,
@@ -123,6 +123,8 @@ or is assigned to"; policies resolve ownership.
 | order.view | ✔ | any | any | — | own | — | — | — |
 | order.refund | ✔ | ✔ | — | — | — | — | — | — |
 | coupon.manage / product.manage / tax.manage | ✔ | ✔ | — | — | — | — | — | — |
+| course.price | ✔ | any | — | own | — | —⁶ | — | — |
+| bundle.manage | ✔ | ✔ | — | — | — | — | — | — |
 | earning.view | ✔ | any | — | own | — | — | — | — |
 | payout.request | — | — | — | ✔ | — | — | — | — |
 | payout.approve | ✔ | ✔ | — | — | — | — | — | — |
@@ -156,6 +158,18 @@ or is assigned to"; policies resolve ownership.
 ⁵ Export sits beside view rather than above it: somebody who can see a figure
 and not save it will copy it out by hand. The ROWS are scoped to what the
 caller may open, so an instructor exports their own courses and nobody else's.
+⁶ A Course Manager runs a course and does not touch its money — the role's own
+description says so. The consequence is deliberate and worth knowing: they
+hold `course.publish.own`, but a PAID course cannot be published until it has
+a price, so the owner prices it and the manager runs it.
+
+**Pricing is separate from editing on purpose.** `course.price.*` is not part
+of `course.update`, because what a course EARNS is a different decision from
+what it says — an academy can let a TA fix a typo without letting them halve
+the price. `bundle.manage` has no `.own` variant at all: a bundle has no
+owner, it can contain another instructor's courses, and pricing it decides
+what that instructor earns, so it is an academy-level decision rather than an
+author's.
 
 ---
 

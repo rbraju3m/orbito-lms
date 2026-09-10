@@ -46,6 +46,18 @@ final class AuthenticatedUserResource extends BaseResource
                 'id' => $this->resource->tenant->id,
                 'slug' => $this->resource->tenant->slug,
                 'name' => $this->resource->tenant->name,
+                /*
+                 * The accounting currency. Here because the studio's price
+                 * fields have to name a currency to submit one, and the only
+                 * alternatives were hardcoding it in the SPA or a second
+                 * request for a single string.
+                 *
+                 * It is a LABEL and an input default, never an authority: the
+                 * figure that charges is re-read at checkout, and
+                 * `SetProductPrice` validates the currency it is given
+                 * against the same config (ADR-05).
+                 */
+                'currency' => strtoupper((string) config('orbito.currency.base')),
             ] : null,
         ];
     }

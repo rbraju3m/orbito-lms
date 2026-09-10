@@ -217,7 +217,7 @@ submission re-opens the assignment and does not consume an attempt.
 | G5 | Enrollment expiry | Pro | Yes | **P9 ✅** | Suspend / reinstate / extend / revoke |
 | G6 | Suspension / revoke | Partial | Yes | **P9 · M** | |
 | G7 | Access via subscription | Pro | Yes | P16 | |
-| G8 | Access via bundle | Pro | Yes | P16 | |
+| G8 | Access via bundle | Pro | Yes | **P16 ✅** | `EnrollmentSource::Bundle`, granted at purchase. `CourseAccess` is untouched — a bundle is one of the ways an enrolment comes to exist, not a second gate |
 | G9 | Access via membership | Pro | Yes | P16 | |
 | G10 | Single access-resolution service | — | — | **P9 · M** | **One** `CourseAccess` service, all sources |
 | G11 | Guest / preview access to preview items | Core | Yes | **P9 · M** | |
@@ -263,7 +263,7 @@ reads yet.
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
-| J1 | Product abstraction (course/bundle/download/plan/coaching) | Partial | Yes | **P10 · M** | Courses only so far; the morph is the seam for the rest |
+| J1 | Product abstraction (course/bundle/download/plan/coaching) | Partial | Yes | **P10 · M** → **P16** | Courses and bundles. P16 also connected the wire P10 left dangling: `SyncCourseProduct` was called by nothing, so no product existed outside a factory and no price could be set at all |
 | J2 | Cart | Core | Yes | **P10 · M** | Takes the base currency at creation and never changes it |
 | J3 | Checkout | Core | Yes | **P10 · M** | Priced server-side from the DB; the client is never believed |
 | J4 | Guest checkout | Core | Yes | **Not possible** | Tenancy resolves from the authenticated user — there is no anonymous surface |
@@ -282,7 +282,7 @@ reads yet.
 | J17 | Withdrawals + maturity days | Core | n/a | Reconsider | See J16 — the platform holds no funds to withdraw |
 | J18 | Subscriptions / recurring | Pro | Yes | P16 | |
 | J19 | Memberships | Pro | Yes | P16 | |
-| J20 | Product bundles | Pro | Yes | P16 | |
+| J20 | Product bundles | Pro | Yes | **P16 ✅** | Owns no content: buying one fans out into an enrolment per course. Bundle price is allocated across its courses (largest remainder) so per-course revenue stays honest |
 | J21 | Digital downloads as products | — | Yes | P16 | |
 | J22 | Coaching / bookable sessions | — | Yes | P16 | |
 | J23 | Gift a course | Core | — | Post-1.0 | |

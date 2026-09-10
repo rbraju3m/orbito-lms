@@ -134,7 +134,11 @@ and the answer is both rendered (`/admin/plan`) and enforced (402
 and storage are counted and surfaced but never block, because a learner
 enrolling cannot change their academy's plan. See `ROADMAP.md` §Phase 16.
 
-Still ahead in the phase: subscriptions and memberships, bundles, downloads,
+**Bundles have shipped**, and closed a Phase 10 hole on the way: nothing in
+the product could set a price, so no paid course was publishable and the whole
+paid path was unreachable. See `ROADMAP.md` §Phase 16 and `BUNDLES.md`.
+
+Still ahead in the phase: subscriptions and memberships, downloads,
 coaching, the blog and page builder, multilingual and RTL, and outbound
 webhooks. It is markedly larger than the phases before it, and it is where the
 public marketing surface finally arrives — which is what webinar registration

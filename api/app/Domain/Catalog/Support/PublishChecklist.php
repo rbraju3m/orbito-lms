@@ -23,7 +23,7 @@ final class PublishChecklist
      */
     public function evaluate(Course $course): array
     {
-        $course->loadMissing(['detail', 'tags', 'sections.items', 'items']);
+        $course->loadMissing(['detail', 'tags', 'sections.items', 'items', 'product.prices']);
 
         return [
             $this->check(
@@ -50,11 +50,17 @@ final class PublishChecklist
             $this->check(
                 'price_configured',
                 'pricing_model',
-                'A paid course needs a price before it can be published.',
+                'A paid course needs a price in '.$this->baseCurrency().' before it can be published.',
                 blocking: true,
-                // Pricing lands in Phase 10; until then only free courses can
-                // satisfy this, which is honest rather than silently passing.
-                passed: $course->pricing_model === PricingModel::Free,
+                /*
+                 * This read `pricing_model === Free` from Phase 4 until Phase
+                 * 16, under a comment saying pricing would land in Phase 10.
+                 * It did, and this was never updated — so a paid course could
+                 * not be published, and the entire paid path was unreachable
+                 * through the API. Every commerce test starts from
+                 * `Product::factory()`, which is why the suite never saw it.
+                 */
+                passed: $this->isPriced($course),
             ),
             $this->check(
                 'has_section',
@@ -129,6 +135,27 @@ final class PublishChecklist
     public function isPublishable(Course $course): bool
     {
         return $this->blockingFailures($course) === [];
+    }
+
+    /**
+     * Free needs nothing. Paid needs a live product with a price in the
+     * accounting currency — a price in some other currency is a real price,
+     * but it is not one this academy's own reporting can read.
+     */
+    private function isPriced(Course $course): bool
+    {
+        if ($course->pricing_model === PricingModel::Free) {
+            return true;
+        }
+
+        $course->loadMissing('product.prices');
+
+        return $course->product?->priceIn($this->baseCurrency()) !== null;
+    }
+
+    private function baseCurrency(): string
+    {
+        return strtoupper((string) config('orbito.currency.base', 'USD'));
     }
 
     private function publishedItemCount(Course $course): int

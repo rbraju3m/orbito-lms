@@ -59,4 +59,10 @@ export interface SessionAcademy {
   id: string;
   slug: string;
   name: string;
+  /**
+   * The accounting currency. A LABEL and an input default for the studio's
+   * price fields — never an authority. The figure that charges is re-read at
+   * checkout (ADR-05), and the server validates whatever currency it is given.
+   */
+  currency: string;
 }

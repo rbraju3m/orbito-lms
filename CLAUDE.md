@@ -606,6 +606,44 @@ Gate::authorize('publish', $course);                   // in a controller
   that announces itself on every render teaches a screen-reader user to ignore
   the one that matters. Use `role="note"` for the paragraph that is always
   there.
+- **A new purchasable OWNS NO CONTENT.** A bundle points at courses and buying
+  one fans out into an enrolment each; `CourseAccess` never sees a bundle,
+  because ADR-03 still owns "may they consume this?" and a bundle is one of
+  the ways an enrolment comes to exist. What you bought, you keep — the
+  §Phase 9 rule that a prerequisite gates ENTRY, not continued presence.
+- **Money that arrives as one line must be SPLIT before it can be reported
+  per course.** `courseRevenue()` reads `order_items` where the purchasable is
+  a course, so a bundle line is invisible to it. `RevenueAllocator` allocates
+  at ORDER time — largest remainder, summing exactly to the line, ties broken
+  on `course_id` so a re-run cannot move a penny — and stores it. Anything
+  that rounds independently loses or invents money, and the platform total
+  then disagrees with the sum of its own parts.
+- **An allocation is a SNAPSHOT.** Repricing a course next month must not
+  rewrite what last month's report said it earned. Same rule as
+  `order_items.title_snapshot`.
+- **Partial overlap sells; total overlap does not.** Refusing a five-course
+  bundle over one purchase last year is hostile. Return what they already own
+  so the page can say what is new BEFORE payment, and refuse only the order
+  with nothing to deliver.
+- **A dead wire is invisible to a suite that starts downstream of it.**
+  `SyncCourseProduct` was written in P10 and called by nothing, so no product
+  existed outside a factory, no price could be set, and `PublishChecklist`
+  blocked every paid course. Every commerce test began at
+  `Product::factory()`, minting the row the application never minted. When a
+  fixture builds something the app is supposed to build, at least one test
+  must build it the app's way.
+- **A comment that says "until then" is a bomb with no timer.**
+  `price_configured` read `pricing_model === Free` for six phases under
+  "Pricing lands in Phase 10". Tie the temporary check to the thing that will
+  replace it, or it outlives everyone's memory of it.
+- **Two audiences for a price, too.** `PriceView` is the CATALOGUE's answer
+  and is null for anything not sellable — which a draft course's product
+  always is. The authoring endpoint returns `ProductPriceResource`: what is
+  stored, on sale or not. ADR-06 again.
+- **A lifecycle reconciliation goes ONE way.** A course leaving `published`
+  takes its bundles to draft; re-publishing it does not put them back on sale.
+  The author may have removed a course or changed the price since, and a
+  change elsewhere must not sell something on their behalf.
 
 ---
 
@@ -687,9 +725,10 @@ so the action that fixes a lapse survives it.
 ## 22. Current phase
 
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
-(T1–T7) that reversed the single-tenant decision. **Phase 16 has started:
-plan limits are enforced** (§ Patterns established in Phase 16).
-1,063 backend tests / 3,484 assertions · 258 frontend tests.
+(T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
+plan limits, bundles, and course pricing** (§ Patterns established in
+Phase 16).
+1,113 backend tests / 3,811 assertions · 268 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -701,15 +740,17 @@ touching anything.
 not signed off: its own definition (`docs/ROADMAP.md` §3) says a student "buys
 it with a real verified payment", and `StripeGateway` has never contacted
 Stripe. Commerce is complete and tested against `FakeGateway`. This needs
-credentials, not code.
+credentials, not code — and as of Phase 16 a course can finally be PRICED
+through the API, which it could not be before.
 
 **2. Zoom / Google Meet, likewise.** Both providers are written and have never
 been called. `ManualProvider` works and is what most academies will use.
 
-**3. Phase 16 (Advanced Business), continued.** Plan limits are done —
-`PlanLimits` enforces courses and instructor seats, `/admin/plan` renders the
-meter. Still ahead: subscriptions and memberships, bundles, downloads,
-coaching, blog, page builder, multilingual, RTL, outbound webhooks. It is
+**3. Phase 16 (Advanced Business), continued.** Plan limits and **bundles**
+are done, and bundles closed a Phase 10 hole on the way: nothing in the
+product could set a price at all (§ Patterns established in Phase 16). Still
+ahead: subscriptions and memberships, downloads, coaching, blog, page builder,
+multilingual, RTL, outbound webhooks. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
 lead capture have both been waiting for.
@@ -806,6 +847,13 @@ Every one of these has already cost time at least once.
   so an academy that wants a controlled roster is not silently given open
   signup; the API refuses it as a value and the UI greys it out. Building it
   means an invitations table, an accept flow and an admin screen.
+- **A course added to a bundle after purchase does not reach existing
+  buyers.** Deliberate: the fix is an explicit "grant to existing buyers"
+  action with its own confirmation, not a side effect of saving a form.
+- **Bundles of downloads or webinars are not built** — `bundle_items` names
+  `course_id` rather than a morph, because a download has no enrolment to fan
+  out to and the grant would switch on type anyway. Add the morph when
+  downloads land and it is real.
 - Plan **limits** enforce courses and instructor seats only. Students and
   storage are counted and shown, never blocking — see § Patterns established
   in Phase 16. Storage has no cap in any seeded plan yet, and an academy

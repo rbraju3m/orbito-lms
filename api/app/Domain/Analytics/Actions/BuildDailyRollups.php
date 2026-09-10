@@ -12,6 +12,7 @@ use App\Domain\Analytics\Models\DailyPlatformStat;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Commerce\Models\OrderItem;
+use App\Domain\Commerce\Models\OrderItemAllocation;
 use App\Domain\Identity\Models\User;
 use Carbon\CarbonImmutable;
 
@@ -239,8 +240,38 @@ final class BuildDailyRollups
      */
     private function courseRevenue(CarbonImmutable $from, CarbonImmutable $to, string $currency): array
     {
-        /** @var array<int, int> $map */
-        $map = OrderItem::query()
+        $map = [];
+
+        foreach ($this->directCourseRevenue($from, $to, $currency) as $courseId => $amount) {
+            $map[$courseId] = ($map[$courseId] ?? 0) + $amount;
+        }
+
+        /*
+         * Bundle money reaches its courses through the allocations written at
+         * order time. Without this half, a bundle counts in the platform total
+         * and in NO course figure — and an instructor selling mainly through
+         * bundles reads zero on their own dashboard.
+         *
+         * Summed in PHP rather than as one UNION query because the two halves
+         * group different tables by different columns, and the maps are tiny:
+         * one row per course that sold anything on one day.
+         */
+        foreach ($this->allocatedBundleRevenue($from, $to, $currency) as $courseId => $amount) {
+            $map[$courseId] = ($map[$courseId] ?? 0) + $amount;
+        }
+
+        return $map;
+    }
+
+    /**
+     * Courses bought directly. The line IS the attribution.
+     *
+     * @return array<int, int>
+     */
+    private function directCourseRevenue(CarbonImmutable $from, CarbonImmutable $to, string $currency): array
+    {
+        /** @var array<int, int> */
+        return OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('order_items.purchasable_type', (new Course)->getMorphClass())
             ->whereNotNull('orders.paid_at')
@@ -253,7 +284,30 @@ final class BuildDailyRollups
             ->get()
             ->mapWithKeys(fn (object $row): array => [(int) $row->course_id => (int) $row->revenue])
             ->all();
+    }
 
-        return $map;
+    /**
+     * Courses bought inside a bundle, at the share settled when the order was
+     * placed. Never recomputed — repricing a course must not rewrite what an
+     * old report said it earned.
+     *
+     * @return array<int, int>
+     */
+    private function allocatedBundleRevenue(CarbonImmutable $from, CarbonImmutable $to, string $currency): array
+    {
+        /** @var array<int, int> */
+        return OrderItemAllocation::query()
+            ->join('order_items', 'order_items.id', '=', 'order_item_allocations.order_item_id')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->whereNotNull('orders.paid_at')
+            ->where('orders.paid_at', '>=', $from)
+            ->where('orders.paid_at', '<', $to)
+            ->where('orders.currency', $currency)
+            ->groupBy('order_item_allocations.course_id')
+            ->selectRaw('order_item_allocations.course_id as course_id, SUM(order_item_allocations.amount_minor) as revenue')
+            ->toBase()
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [(int) $row->course_id => (int) $row->revenue])
+            ->all();
     }
 }

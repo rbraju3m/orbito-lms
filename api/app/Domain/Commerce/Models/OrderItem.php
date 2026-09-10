@@ -6,6 +6,7 @@ namespace App\Domain\Commerce\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
@@ -46,5 +47,19 @@ final class OrderItem extends Model
     public function purchasable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /**
+     * How this line's money is attributed to courses.
+     *
+     * Empty for a course line — the line IS the attribution. Populated for a
+     * bundle, whose price has to be split across what it contains or the
+     * money counts in the platform total and in no course figure at all.
+     *
+     * @return HasMany<OrderItemAllocation, $this>
+     */
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(OrderItemAllocation::class);
     }
 }

@@ -740,8 +740,25 @@ webinar_registrations(id, webinar_id, user_id NULL, email, name, status, registe
 
 enrollments.cohort_id NULL          -- which RUN they joined; null is self-paced
 
-bundles(id, title, slug, description, thumbnail_media_id, status)
-bundle_items(id, bundle_id, purchasable_type, purchasable_id, position)
+bundles(id, uuid, slug UNIQUE, title, subtitle, description,          -- BUILT P16
+      thumbnail_media_id NULL, status ENUM(draft,published,archived), published_at NULL)
+      INDEX (status, published_at)
+bundle_items(id, bundle_id, course_id, position)                      -- BUILT P16
+      UNIQUE (bundle_id, course_id), INDEX (bundle_id, position), INDEX (course_id)
+order_item_allocations(id, order_item_id, course_id, amount_minor)    -- BUILT P16
+      UNIQUE (order_item_id, course_id), INDEX (course_id)
+
+-- DIFFERS FROM THE SKETCH: `bundle_items` names `course_id` rather than the
+-- morph originally drawn here. A morph would anticipate bundles of downloads,
+-- but a download has no enrolment to fan out to, so the grant branch would
+-- still switch on type — the morph buys no polymorphism, only a table whose
+-- columns are half-meaningless. It goes in when downloads land and it is real.
+--
+-- `order_item_allocations` was NOT in the sketch and is what keeps per-course
+-- revenue honest: a bundle sells for less than its parts, so its money is
+-- split across them at ORDER time (largest remainder, summing EXACTLY to the
+-- line) and never recomputed. Without it a bundle counts in the platform
+-- total and in no course figure at all. See docs/BUNDLES.md §4.
 subscription_plans(id, product_id, interval ENUM(day,week,month,year), interval_count,
       trial_days, currency, amount_minor, status)
 subscriptions(id, uuid, user_id, plan_id, gateway, external_id,

@@ -2,13 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Catalog\BundleCatalogController;
 use App\Http\Controllers\Api\V1\Catalog\CategoryController;
 use App\Http\Controllers\Api\V1\Catalog\CourseCatalogController;
 use App\Http\Controllers\Api\V1\Media\MediaController;
+use App\Http\Controllers\Api\V1\Studio\BundleController;
+use App\Http\Controllers\Api\V1\Studio\BundleStatusController;
 use App\Http\Controllers\Api\V1\Studio\CourseController;
 use App\Http\Controllers\Api\V1\Studio\CourseInstructorController;
 use App\Http\Controllers\Api\V1\Studio\CourseSettingsController;
 use App\Http\Controllers\Api\V1\Studio\CourseStatusController;
+use App\Http\Controllers\Api\V1\Studio\PricingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,6 +42,13 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
     /* -------- Catalogue -------- */
     Route::get('courses', [CourseCatalogController::class, 'index'])->name('courses.index');
     Route::get('courses/{slug}', [CourseCatalogController::class, 'show'])->name('courses.show');
+    /*
+     * Bundles, as a buyer sees them. `bundles` is declared BEFORE any
+     * `{slug}` route so it is never read as a course slug (§ Phase 12).
+     */
+    Route::get('bundles', [BundleCatalogController::class, 'index'])->name('bundles.index');
+    Route::get('bundles/{slug}', [BundleCatalogController::class, 'show'])->name('bundles.show');
+
     Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
     Route::get('tags', [CategoryController::class, 'tags'])->name('tags.index');
@@ -57,6 +68,33 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
 
         Route::patch('courses/{course}/settings', [CourseSettingsController::class, 'update'])
             ->name('courses.settings.update');
+
+        /*
+         * What a course costs. Its own permission (`course.price.*`), because
+         * what a course EARNS is a different decision from what it says — an
+         * academy can let a TA fix a typo without letting them halve the
+         * price.
+         */
+        Route::put('courses/{course}/price', [PricingController::class, 'course'])
+            ->name('courses.price');
+
+        /* -------- Bundles -------- */
+        Route::get('bundles', [BundleController::class, 'index'])->name('bundles.index');
+        Route::post('bundles', [BundleController::class, 'store'])->name('bundles.store');
+        Route::get('bundles/{bundle}', [BundleController::class, 'show'])->name('bundles.show');
+        Route::patch('bundles/{bundle}', [BundleController::class, 'update'])->name('bundles.update');
+        Route::delete('bundles/{bundle}', [BundleController::class, 'destroy'])->name('bundles.destroy');
+
+        Route::put('bundles/{bundle}/price', [PricingController::class, 'bundle'])
+            ->name('bundles.price');
+
+        // Lifecycle as sub-resources, not a verb in a query string.
+        Route::post('bundles/{bundle}/publish', [BundleStatusController::class, 'publish'])
+            ->name('bundles.publish');
+        Route::post('bundles/{bundle}/unpublish', [BundleStatusController::class, 'unpublish'])
+            ->name('bundles.unpublish');
+        Route::post('bundles/{bundle}/archive', [BundleStatusController::class, 'archive'])
+            ->name('bundles.archive');
 
         // Lifecycle transitions are sub-resources, never a verb in a query string.
         Route::post('courses/{course}/publish', [CourseStatusController::class, 'publish'])

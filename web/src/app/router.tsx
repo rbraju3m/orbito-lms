@@ -45,6 +45,13 @@ export const router = createBrowserRouter([
                 .CourseDetailRoute,
             }),
           },
+          {
+            path: 'bundles/:slug',
+            lazy: async () => ({
+              Component: (await import('@/features/bundle/routes/BundleDetailRoute'))
+                .BundleDetailRoute,
+            }),
+          },
         ],
       },
       /*
@@ -301,6 +308,32 @@ export const router = createBrowserRouter([
             lazy: async () => ({
               Component: (await import('@/features/account/routes/SecurityRoute')).SecurityRoute,
             }),
+          },
+
+          /*
+           * Bundles are an academy-level merchandising decision, so they sit
+           * behind `bundle.manage` rather than the studio's own guard — one
+           * can contain another instructor's courses, and pricing it decides
+           * what that instructor earns.
+           */
+          {
+            element: <RequirePermission anyOf={['bundle.manage']} />,
+            children: [
+              {
+                path: 'studio/bundles',
+                lazy: async () => ({
+                  Component: (await import('@/features/bundle/routes/StudioBundlesRoute'))
+                    .StudioBundlesRoute,
+                }),
+              },
+              {
+                path: 'studio/bundles/:id',
+                lazy: async () => ({
+                  Component: (await import('@/features/bundle/routes/BundleEditorRoute'))
+                    .BundleEditorRoute,
+                }),
+              },
+            ],
           },
 
           {

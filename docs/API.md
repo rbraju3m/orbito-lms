@@ -78,7 +78,7 @@ is a dead end.
 | 401 | Missing/invalid credentials |
 | 403 | Authenticated but not permitted (policy denial) |
 | 404 | Not found **or** not visible to this user (never leak existence) |
-| 409 | State conflict (`attempt_already_submitted`, `already_enrolled`) |
+| 409 | State conflict (`attempt_already_submitted`, `already_enrolled`, `bundle_transition_rejected`) |
 | 422 | Validation failure — `details[]` is field-keyed |
 | 402 | The academy owes money: `subscription_lapsed` (writes gated) or `plan_limit_reached` (its plan is full) |
 | 423 | Locked (drip not yet unlocked, access expired, not yet started) |
@@ -210,6 +210,9 @@ GET    /courses                      the academy's catalogue; filters below
 GET    /courses/{slug}               detail, incl. preview-aware curriculum,
                                      prerequisites with per-course is_met,
                                      and seats_remaining (null = uncapped)
+GET    /bundles                      published bundles
+GET    /bundles/{slug}               detail: courses, parts_total_minor,
+                                     owned_course_ids for this reader
 GET    /categories · GET /categories/{category}
 GET    /tags
 
@@ -224,12 +227,38 @@ POST   /studio/courses/{course}/publish     · /unpublish · /archive
 POST   /studio/courses/{course}/submit-review
 POST   /studio/courses/{course}/approve-review · /reject-review
 POST   /studio/courses/{course}/instructors · DELETE /…/instructors/{user}
+PUT    /studio/courses/{course}/price       {currency, amount_minor, sale_*}
+
+# live — bundles (P16)
+GET    /studio/bundles · POST
+GET    /studio/bundles/{bundle}             + publish checklist, available_actions
+PATCH  /studio/bundles/{bundle}             course_ids is the WHOLE collection
+DELETE /studio/bundles/{bundle}
+PUT    /studio/bundles/{bundle}/price
+POST   /studio/bundles/{bundle}/publish · /unpublish · /archive
 
 # planned
 GET    /courses/{course}/instructors
 GET    /courses/{course}/reviews             (P12)
 POST   /studio/courses/{course}/duplicate
 ```
+
+**Pricing is its own permission** — `course.price.own` / `.any` for a course,
+`bundle.manage` for a bundle — rather than part of `update`. What a course
+EARNS is a different decision from what it says, and an academy can let a TA
+fix a typo without letting them halve the price.
+
+`PUT …/price` answers with the AUTHOR's view of the price (what is stored,
+whether or not it is currently sellable), not the catalogue's — a draft
+course's product is always inactive, and the catalogue's answer for that is
+`null`. Two audiences, two resources (ADR-06).
+
+**A bundle owns no content.** Buying one fans out into an enrolment per
+course with `source=bundle`, so `CourseAccess` never sees a bundle and drip,
+progress and certificates work unchanged. Partial overlap SELLS — the detail
+returns `owned_course_ids` so the page can say what is new before payment —
+and only a bundle whose every course is already owned is refused
+(`bundle_fully_owned`). Full reasoning in `docs/BUNDLES.md`.
 
 Course status moves only through `ChangeCourseStatus`, which owns the legal
 transitions; an author cannot approve their own submitted course.

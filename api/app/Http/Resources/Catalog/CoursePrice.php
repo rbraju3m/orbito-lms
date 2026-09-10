@@ -33,29 +33,8 @@ final class CoursePrice
             return null;
         }
 
-        $product = $course->product;
-
-        if ($product === null || ! $product->status->isSellable()) {
-            return null;
-        }
-
-        $price = $product->priceIn($currency);
-
-        if ($price === null) {
-            return null;
-        }
-
-        return [
-            // The id the basket speaks. Without it the buy button would have
-            // to look the product up by course, which is a second request for
-            // something the page already knows.
-            'product_id' => $product->uuid,
-            'currency' => $price->currency,
-            'amount_minor' => $price->effectiveMinor(),
-            // Present only during a sale, so "was £99" is a fact the UI can
-            // render rather than something it has to infer.
-            'list_amount_minor' => $price->isOnSale() ? $price->amount_minor : null,
-            'is_on_sale' => $price->isOnSale(),
-        ];
+        // The shape itself is shared with bundles — see PriceView. This class
+        // stays because the eager-load guard above is a COURSE rule.
+        return PriceView::for($course->product, $currency);
     }
 }

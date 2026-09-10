@@ -9,6 +9,7 @@ use App\Domain\Catalog\Enums\CompletionMode;
 use App\Domain\Catalog\Enums\CourseLevel;
 use App\Domain\Catalog\Enums\CourseVisibility;
 use App\Domain\Catalog\Enums\PricingModel;
+use App\Domain\Catalog\Events\CoursePricingChanged;
 use App\Domain\Catalog\Models\Course;
 use App\Support\Html\RichTextSanitizer;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,9 @@ final class UpdateCourse
      */
     public function handle(Course $course, CourseData $data, array $supplied): Course
     {
-        return DB::transaction(function () use ($course, $data, $supplied): Course {
+        $pricingWas = $course->pricing_model;
+
+        $updated = DB::transaction(function () use ($course, $data, $supplied): Course {
             $map = [
                 'title' => $data->title,
                 'subtitle' => $data->subtitle,
@@ -73,5 +76,16 @@ final class UpdateCourse
             return $course->fresh(['detail', 'setting', 'instructors.user', 'category', 'tags', 'thumbnail'])
                 ?? $course;
         });
+
+        /*
+         * Commerce needs to know when a course becomes sellable, and Catalog
+         * must not reach into it to say so. Announced only on a real change —
+         * every other save leaves the product alone.
+         */
+        if ($updated->pricing_model !== $pricingWas) {
+            CoursePricingChanged::dispatch($updated, $pricingWas, $updated->pricing_model);
+        }
+
+        return $updated;
     }
 }
