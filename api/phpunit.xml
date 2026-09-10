@@ -43,5 +43,14 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="FRONTEND_URL" value="http://localhost:5173"/>
+        <!--
+          Hosts are pinned so the suite never depends on a developer's .env.
+          Running Orbito on orbito.localhost (docs/RUNNING.md) moves every
+          one of these; without the pins, Sanctum stops treating the tests'
+          Origin as first-party and every session login fails.
+        -->
+        <env name="APP_URL" value="http://localhost:8000"/>
+        <env name="SESSION_DOMAIN" value="localhost"/>
+        <env name="SANCTUM_STATEFUL_DOMAINS" value="localhost:5173"/>
     </php>
 </phpunit>

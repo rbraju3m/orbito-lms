@@ -27,6 +27,33 @@ cp .env.example .env
 
 Both seed steps are safe to re-run.
 
+## Beside another local Laravel app — use `orbito.localhost`
+
+Two Laravel SPAs on `localhost` share cookies, and the second one to write
+`XSRF-TOKEN` breaks the other's login (*CSRF token mismatch*, below). Give
+Orbito its own hostname: browsers send every `*.localhost` name to your own
+machine, and cookies never cross hostnames.
+
+```ini
+# api/.env
+APP_URL=http://orbito.localhost:8000
+FRONTEND_URL=http://orbito.localhost:5173      # also the CORS origin
+SANCTUM_STATEFUL_DOMAINS=orbito.localhost:5173
+SESSION_DOMAIN=null                             # host-only: orbito.localhost and nothing else
+
+# web/.env
+VITE_API_URL=http://orbito.localhost:8000
+```
+
+Restart `php artisan serve` and `npm run dev`, then **clear the cookies for
+`localhost` once**: a cookie Orbito set on `localhost` before this change also
+covers `orbito.localhost`, because a domain cookie covers its subdomains.
+Then open <http://orbito.localhost:5173/login>.
+
+The test suite pins its own hosts in `api/phpunit.xml`, so it passes
+whichever you use. `.env.example` stays on plain `localhost`, which works for
+anybody running Orbito alone.
+
 ## Every time — three terminals
 
 ```bash
