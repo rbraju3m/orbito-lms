@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $new_enrollments
  * @property int $completions
  * @property int $revenue_minor
+ * @property int $download_revenue_minor
  * @property string $currency
  * @property int $active_learners
  */
@@ -38,6 +39,7 @@ final class DailyPlatformStat extends Model
             'new_users' => 'integer',
             'new_enrollments' => 'integer',
             'completions' => 'integer',
+            'download_revenue_minor' => 'integer',
             'revenue_minor' => 'integer',
             'active_learners' => 'integer',
         ];

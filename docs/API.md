@@ -78,7 +78,7 @@ is a dead end.
 | 401 | Missing/invalid credentials |
 | 403 | Authenticated but not permitted (policy denial) |
 | 404 | Not found **or** not visible to this user (never leak existence) |
-| 409 | State conflict (`attempt_already_submitted`, `already_enrolled`, `bundle_transition_rejected`) |
+| 409 | State conflict (`attempt_already_submitted`, `already_enrolled`, `bundle_transition_rejected`, `download_has_owners`, `download_requires_payment`, `media_in_use`) |
 | 422 | Validation failure — `details[]` is field-keyed |
 | 402 | The academy owes money: `subscription_lapsed` (writes gated) or `plan_limit_reached` (its plan is full) |
 | 423 | Locked (drip not yet unlocked, access expired, not yet started) |
@@ -210,6 +210,12 @@ GET    /courses                      the academy's catalogue; filters below
 GET    /courses/{slug}               detail, incl. preview-aware curriculum,
                                      prerequisites with per-course is_met,
                                      and seats_remaining (null = uncapped)
+GET    /downloads                    published downloads
+GET    /downloads/mine               what the reader owns, archived included
+GET    /downloads/{slug}             detail, incl. can_fetch for this reader
+POST   /downloads/{slug}/claim       a FREE download; idempotent
+GET    /downloads/{slug}/file        a fresh 15-minute signed link — the only
+                                     place one is minted; 423 if not owned
 GET    /bundles                      published bundles
 GET    /bundles/{slug}               detail: courses, parts_total_minor,
                                      owned_course_ids for this reader
@@ -237,6 +243,14 @@ DELETE /studio/bundles/{bundle}
 PUT    /studio/bundles/{bundle}/price
 POST   /studio/bundles/{bundle}/publish · /unpublish · /archive
 
+# live — downloads (P16)
+GET    /studio/downloads · POST
+GET    /studio/downloads/{download}         + publish checklist, available_actions
+PATCH  /studio/downloads/{download}         media_id replaces the LIVE file
+DELETE /studio/downloads/{download}         409 download_has_owners while owned
+PUT    /studio/downloads/{download}/price
+POST   /studio/downloads/{download}/publish · /unpublish · /archive
+
 # planned
 GET    /courses/{course}/instructors
 GET    /courses/{course}/reviews             (P12)
@@ -259,6 +273,20 @@ progress and certificates work unchanged. Partial overlap SELLS — the detail
 returns `owned_course_ids` so the page can say what is new before payment —
 and only a bundle whose every course is already owned is refused
 (`bundle_fully_owned`). Full reasoning in `docs/BUNDLES.md`.
+
+**A download is a file, and its link is never in a list.** `media.download`
+streams on the signature alone, so the only access check a file gets is the
+one made when its link is minted — `GET /downloads/{slug}/file` is the only
+place that happens, and no resource carries a URL. Re-downloads are unlimited:
+each fetch is a new 15-minute link. The fetch is a GET, so a lapsed academy's
+buyers keep their files (402 gates writes); a non-owner gets **423**
+`download_locked` with `meta.product_id` or `meta.pricing_model` saying how to
+get it. Archiving takes a download off sale, never out of an owner's library.
+Full reasoning in `docs/DOWNLOADS.md`.
+
+**Uploading into a media collection needs that collection's permission.**
+`download` needs `download.manage`; `certificate` accepts nothing (they are
+generated). Other collections still need only `media.upload`.
 
 Course status moves only through `ChangeCourseStatus`, which owns the legal
 transitions; an author cannot approve their own submitted course.

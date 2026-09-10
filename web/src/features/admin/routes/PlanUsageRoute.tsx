@@ -2,6 +2,7 @@ import { Alert, Badge, Card, Group, Progress, Stack, Text } from '@mantine/core'
 import { IconAlertTriangle, IconInfoCircle } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
+import { formatBytes } from '@/shared/lib/bytes';
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
 import { academyUsageQuery, type AcademyUsage, type LimitRow } from '../api/usage';
@@ -124,20 +125,4 @@ function LimitMeter({ row }: { row: LimitRow }) {
       )}
     </Stack>
   );
-}
-
-/** Binary units, one decimal, because a plan is sold in GB. */
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let value = bytes / 1024;
-  let unit = 0;
-
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-
-  return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
 }

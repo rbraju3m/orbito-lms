@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Button,
   Card,
   Container,
@@ -104,7 +105,19 @@ export function OrderDetailRoute() {
               {index > 0 && <Divider />}
               <Group justify="space-between" p="md" wrap="nowrap" gap="md">
                 {/* The snapshot: editing the course later must not rewrite this. */}
-                <Text truncate>{item.title}</Text>
+                <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
+                  <Text truncate>{item.title}</Text>
+                  {/*
+                    A download line points at where the file LIVES. The order
+                    line carries no slug, and does not need one: the library
+                    lists everything this reader owns.
+                  */}
+                  {item.purchasable_type === 'download' && order.status === 'paid' ? (
+                    <Anchor component={Link} to="/my-downloads" size="sm" style={{ whiteSpace: 'nowrap' }}>
+                      Download
+                    </Anchor>
+                  ) : null}
+                </Group>
                 <Text fw={500} style={{ whiteSpace: 'nowrap' }}>
                   {formatMinor(item.total_minor, order.currency)}
                 </Text>

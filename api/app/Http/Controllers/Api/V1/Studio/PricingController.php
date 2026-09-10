@@ -6,9 +6,11 @@ namespace App\Http\Controllers\Api\V1\Studio;
 
 use App\Domain\Catalog\Models\Bundle;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Catalog\Models\Download;
 use App\Domain\Commerce\Actions\SetProductPrice;
 use App\Domain\Commerce\Actions\SyncBundleProduct;
 use App\Domain\Commerce\Actions\SyncCourseProduct;
+use App\Domain\Commerce\Actions\SyncDownloadProduct;
 use App\Domain\Commerce\Exceptions\PricingRejected;
 use App\Domain\Commerce\Models\Product;
 use App\Http\Requests\Catalog\SetPriceRequest;
@@ -33,6 +35,7 @@ final class PricingController
         private readonly SetProductPrice $setPrice,
         private readonly SyncCourseProduct $syncCourse,
         private readonly SyncBundleProduct $syncBundle,
+        private readonly SyncDownloadProduct $syncDownload,
     ) {}
 
     public function course(SetPriceRequest $request, Course $course): JsonResponse
@@ -60,6 +63,20 @@ final class PricingController
         // Idempotent, and the bundle's product exists from creation — this is
         // belt and braces for one made before that listener existed.
         return $this->respond($request, $this->syncBundle->handle($bundle));
+    }
+
+    public function download(SetPriceRequest $request, Download $download): JsonResponse
+    {
+        Gate::authorize('price', $download);
+
+        // A free download has no product, exactly like a free course.
+        $product = $this->syncDownload->handle($download);
+
+        if ($product === null) {
+            throw PricingRejected::purchasableIsFree();
+        }
+
+        return $this->respond($request, $product);
     }
 
     private function respond(SetPriceRequest $request, Product $product): JsonResponse

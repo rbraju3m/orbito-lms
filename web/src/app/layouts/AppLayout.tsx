@@ -22,6 +22,8 @@ import {
   IconChartBar,
   IconChalkboard,
   IconPackages,
+  IconFileDownload,
+  IconFiles,
   IconLayoutDashboard,
   IconLogout,
   IconCertificate,
@@ -79,6 +81,7 @@ const NAV: NavItem[] = [
   { to: '/achievements', label: 'Achievements', icon: IconAward },
   { to: '/leaderboard', label: 'Leaderboard', icon: IconTrophy },
   { to: '/certificates', label: 'Certificates', icon: IconCertificate },
+  { to: '/downloads', label: 'Downloads', icon: IconFileDownload },
   { to: '/orders', label: 'Orders', icon: IconReceipt },
   {
     to: '/studio/courses',
@@ -89,6 +92,12 @@ const NAV: NavItem[] = [
   // Its own entry rather than a tab inside the studio: the audiences differ.
   // An instructor holds the studio permissions and not this one.
   { to: '/studio/bundles', label: 'Bundles', icon: IconPackages, anyOf: ['bundle.manage'] },
+  {
+    to: '/studio/downloads',
+    label: 'Manage downloads',
+    icon: IconFiles,
+    anyOf: ['download.manage'],
+  },
   {
     to: '/admin',
     label: 'Administration',

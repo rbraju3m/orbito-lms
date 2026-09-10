@@ -5,12 +5,20 @@ declare(strict_types=1);
 namespace App\Domain\Commerce\Listeners;
 
 use App\Domain\Catalog\Events\BundleCreated;
+use App\Domain\Catalog\Events\BundleDeleted;
 use App\Domain\Catalog\Events\BundleStatusChanged;
 use App\Domain\Catalog\Events\CourseCreated;
 use App\Domain\Catalog\Events\CoursePricingChanged;
 use App\Domain\Catalog\Events\CourseStatusChanged;
+use App\Domain\Catalog\Events\DownloadCreated;
+use App\Domain\Catalog\Events\DownloadDeleted;
+use App\Domain\Catalog\Events\DownloadPricingChanged;
+use App\Domain\Catalog\Events\DownloadStatusChanged;
 use App\Domain\Commerce\Actions\SyncBundleProduct;
 use App\Domain\Commerce\Actions\SyncCourseProduct;
+use App\Domain\Commerce\Actions\SyncDownloadProduct;
+use App\Domain\Commerce\Enums\ProductStatus;
+use App\Domain\Commerce\Models\Product;
 
 /**
  * Catalog announces; Commerce decides whether there is anything to sell.
@@ -26,6 +34,7 @@ final class SyncProductForPurchasable
     public function __construct(
         private readonly SyncCourseProduct $syncCourse,
         private readonly SyncBundleProduct $syncBundle,
+        private readonly SyncDownloadProduct $syncDownload,
     ) {}
 
     public function courseCreated(CourseCreated $event): void
@@ -57,5 +66,46 @@ final class SyncProductForPurchasable
     public function bundleStatusChanged(BundleStatusChanged $event): void
     {
         $this->syncBundle->handle($event->bundle);
+    }
+
+    public function downloadCreated(DownloadCreated $event): void
+    {
+        $this->syncDownload->handle($event->download);
+    }
+
+    public function downloadStatusChanged(DownloadStatusChanged $event): void
+    {
+        $this->syncDownload->handle($event->download);
+    }
+
+    public function downloadPricingChanged(DownloadPricingChanged $event): void
+    {
+        $this->syncDownload->handle($event->download);
+    }
+
+    /**
+     * A deleted purchasable must stop being sellable IMMEDIATELY.
+     *
+     * The bundles slice shipped without this: a deleted bundle's product
+     * stayed active, so a basket still holding it could check out, capture
+     * the payment, and grant nothing. Retired, not deleted — an order line
+     * that already references the product must keep making sense.
+     */
+    public function bundleDeleted(BundleDeleted $event): void
+    {
+        $this->retire('bundle', $event->bundleId);
+    }
+
+    public function downloadDeleted(DownloadDeleted $event): void
+    {
+        $this->retire('download', $event->downloadId);
+    }
+
+    private function retire(string $type, int $id): void
+    {
+        Product::query()
+            ->where('purchasable_type', $type)
+            ->where('purchasable_id', $id)
+            ->update(['status' => ProductStatus::Inactive]);
     }
 }

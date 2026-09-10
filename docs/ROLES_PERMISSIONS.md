@@ -72,7 +72,7 @@ or is assigned to"; policies resolve ownership.
 `enrollment.bulk`, `enrollment.suspend`, `enrollment.delete`
 **progress** — `progress.view.own`, `progress.view.any`, `progress.reset`
 **commerce** — `order.view.own`, `order.view.any`, `order.refund`, `order.update`,
-`coupon.manage`, `product.manage`, `bundle.manage`, `tax.manage`, `payout.request`,
+`coupon.manage`, `product.manage`, `bundle.manage`, `download.manage`, `tax.manage`, `payout.request`,
 `payout.approve`, `earning.view.own`, `earning.view.any`, `gateway.manage`
 **certification** — `certificate.view.own`, `certificate.view.any`, `certificate.issue`,
 `certificate.revoke`, `certificate.template.manage`
@@ -125,6 +125,7 @@ or is assigned to"; policies resolve ownership.
 | coupon.manage / product.manage / tax.manage | ✔ | ✔ | — | — | — | — | — | — |
 | course.price | ✔ | any | — | own | — | —⁶ | — | — |
 | bundle.manage | ✔ | ✔ | — | — | — | — | — | — |
+| download.manage | ✔ | ✔ | — | — | — | — | — | — |
 | earning.view | ✔ | any | — | own | — | — | — | — |
 | payout.request | — | — | — | ✔ | — | — | — | — |
 | payout.approve | ✔ | ✔ | — | — | — | — | — | — |
@@ -154,7 +155,12 @@ or is assigned to"; policies resolve ownership.
 `course.review.submit` only.
 ² Only if the course allows self-reset.
 ³ Only for a course the student is enrolled in.
-⁴ Only into the `submission` and `avatar` collections, with tighter size/type limits.
+⁴ INTENDED, NOT ENFORCED. `MediaCollection::uploadPermission()` was never
+called until Phase 16, and now gates only `download` (needs `download.manage`)
+and `certificate` (nobody — they are generated). The authoring collections
+still accept any `media.upload` holder, so a student can today write into, say,
+`lesson_video`. Known debt: the fix is choosing a permission per authoring
+collection.
 ⁵ Export sits beside view rather than above it: somebody who can see a figure
 and not save it will copy it out by hand. The ROWS are scoped to what the
 caller may open, so an instructor exports their own courses and nobody else's.

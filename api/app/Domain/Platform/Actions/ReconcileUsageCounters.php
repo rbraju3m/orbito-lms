@@ -6,6 +6,7 @@ namespace App\Domain\Platform\Actions;
 
 use App\Domain\Catalog\Enums\CourseStatus;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Catalog\Models\Download;
 use App\Domain\Enrollment\Enums\EnrollmentStatus;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Enums\InstructorStatus;
@@ -63,6 +64,7 @@ final class ReconcileUsageCounters
             [UsageMetric::CoursesTotal, null, Course::count()],
             [UsageMetric::CoursesPublished, null, Course::where('status', CourseStatus::Published)->count()],
             [UsageMetric::MediaFiles, null, Media::count()],
+            [UsageMetric::Downloads, null, Download::count()],
             [UsageMetric::StorageBytes, null, (int) Media::sum('size_bytes')],
             [
                 UsageMetric::Instructors,

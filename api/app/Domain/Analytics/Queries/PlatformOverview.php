@@ -61,6 +61,9 @@ final class PlatformOverview
             'new_enrollments' => (int) $rows->sum('new_enrollments'),
             'completions' => (int) $rows->sum('completions'),
             'revenue_minor' => (int) $rows->sum('revenue_minor'),
+            // Already INSIDE revenue_minor; reported beside it so a reader can
+            // see how much of the total came from downloads.
+            'download_revenue_minor' => (int) $rows->sum('download_revenue_minor'),
             /*
              * NOT summed. Active learners are distinct PEOPLE, and adding up
              * thirty daily counts counts a regular five times over. The
@@ -89,6 +92,7 @@ final class PlatformOverview
             'new_enrollments' => (int) ($byDate[$date]->new_enrollments ?? 0),
             'completions' => (int) ($byDate[$date]->completions ?? 0),
             'revenue_minor' => (int) ($byDate[$date]->revenue_minor ?? 0),
+            'download_revenue_minor' => (int) ($byDate[$date]->download_revenue_minor ?? 0),
             'active_learners' => (int) ($byDate[$date]->active_learners ?? 0),
         ], $range->dates());
     }

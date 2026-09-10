@@ -138,7 +138,10 @@ enrolling cannot change their academy's plan. See `ROADMAP.md` §Phase 16.
 the product could set a price, so no paid course was publishable and the whole
 paid path was unreachable. See `ROADMAP.md` §Phase 16 and `BUNDLES.md`.
 
-Still ahead in the phase: subscriptions and memberships, downloads,
+**Digital downloads have shipped** — academy-owned files, free or paid, each
+fetch a fresh signed link. See `DOWNLOADS.md`.
+
+Still ahead in the phase: subscriptions and memberships,
 coaching, the blog and page builder, multilingual and RTL, and outbound
 webhooks. It is markedly larger than the phases before it, and it is where the
 public marketing surface finally arrives — which is what webinar registration

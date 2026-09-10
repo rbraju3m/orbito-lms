@@ -764,8 +764,26 @@ subscription_plans(id, product_id, interval ENUM(day,week,month,year), interval_
 subscriptions(id, uuid, user_id, plan_id, gateway, external_id,
       status ENUM(trialing,active,past_due,cancelled,expired),
       current_period_start, current_period_end, cancel_at, cancelled_at)
-downloads(id, title, slug, description, media_id, file_size_bytes, download_limit, product_id)
-download_deliveries(id, download_id, user_id, order_id, token, downloads_count, expires_at)
+downloads(id, uuid, slug UNIQUE, title, subtitle, description,        -- BUILT P16
+      media_id NULL, thumbnail_media_id NULL, pricing_model ENUM(free,one_time),
+      status ENUM(draft,published,archived), published_at NULL)
+      INDEX (status, published_at), INDEX (media_id)
+download_grants(id, download_id, user_id, source ENUM(purchase,free,manual),  -- BUILT P16
+      order_id NULL, granted_at, revoked_at NULL)
+      UNIQUE (download_id, user_id), INDEX (user_id, revoked_at)
+analytics_daily_platform + download_revenue_minor                    -- BUILT P16
+
+-- DIFFERS FROM THE SKETCH, which drew `download_deliveries(token,
+-- downloads_count, expires_at)` and `downloads.download_limit`. Delivery is the
+-- signed media URL certificates already use; a per-purchase token would have
+-- been a second delivery mechanism that could not even count what it claimed
+-- to, because `media.download` streams on the signature with no user. The row
+-- is the ENTITLEMENT (`download_grants`), and `revoked_at` exists before
+-- refunds do. `file_size_bytes` lives on the media row, where it already was.
+--
+-- `media_id` is NOT a restricting foreign key, on purpose: `DeleteMedia`
+-- soft-deletes, which no foreign key sees. The guard is in the action.
+-- See docs/DOWNLOADS.md §7.
 
 posts(id, uuid, slug UNIQUE, author_id, title, excerpt, body LONGTEXT,
       cover_media_id, status ENUM(draft,published,archived), published_at,

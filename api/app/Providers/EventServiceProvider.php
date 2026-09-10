@@ -14,11 +14,16 @@ use App\Domain\Assessment\Events\AssignmentSubmitted;
 use App\Domain\Assessment\Events\QuizAttemptGraded;
 use App\Domain\Assessment\Events\QuizAttemptSubmitted;
 use App\Domain\Catalog\Events\BundleCreated;
+use App\Domain\Catalog\Events\BundleDeleted;
 use App\Domain\Catalog\Events\BundleStatusChanged;
 use App\Domain\Catalog\Events\CourseCreated;
 use App\Domain\Catalog\Events\CourseDeleted;
 use App\Domain\Catalog\Events\CoursePricingChanged;
 use App\Domain\Catalog\Events\CourseStatusChanged;
+use App\Domain\Catalog\Events\DownloadCreated;
+use App\Domain\Catalog\Events\DownloadDeleted;
+use App\Domain\Catalog\Events\DownloadPricingChanged;
+use App\Domain\Catalog\Events\DownloadStatusChanged;
 use App\Domain\Catalog\Listeners\ReconcileBundleSellability;
 use App\Domain\Certification\Events\CertificateIssued;
 use App\Domain\Certification\Listeners\IssueCertificateOnCompletion;
@@ -62,6 +67,7 @@ use App\Domain\Notification\Listeners\NotifyOnDiscussionReplied;
 use App\Domain\Notification\Listeners\NotifyStaffOnQuestionAsked;
 use App\Domain\Platform\Actions\EnsurePlatformOwner;
 use App\Domain\Platform\Listeners\TrackCourseUsage;
+use App\Domain\Platform\Listeners\TrackDownloadUsage;
 use App\Domain\Platform\Listeners\TrackInstructorUsage;
 use App\Domain\Platform\Listeners\TrackStorageUsage;
 use App\Domain\Platform\Listeners\TrackStudentUsage;
@@ -115,6 +121,26 @@ final class EventServiceProvider extends ServiceProvider
         ],
         BundleStatusChanged::class => [
             [SyncProductForPurchasable::class, 'bundleStatusChanged'],
+        ],
+        // A deleted purchasable stops being sellable at once. See the listener.
+        BundleDeleted::class => [
+            [SyncProductForPurchasable::class, 'bundleDeleted'],
+        ],
+
+        /* Downloads (P16). Catalog announces; Commerce and Platform follow. */
+        DownloadCreated::class => [
+            [SyncProductForPurchasable::class, 'downloadCreated'],
+            [TrackDownloadUsage::class, 'created'],
+        ],
+        DownloadStatusChanged::class => [
+            [SyncProductForPurchasable::class, 'downloadStatusChanged'],
+        ],
+        DownloadPricingChanged::class => [
+            [SyncProductForPurchasable::class, 'downloadPricingChanged'],
+        ],
+        DownloadDeleted::class => [
+            [SyncProductForPurchasable::class, 'downloadDeleted'],
+            [TrackDownloadUsage::class, 'deleted'],
         ],
         CourseDeleted::class => [
             [TrackCourseUsage::class, 'deleted'],

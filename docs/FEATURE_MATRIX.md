@@ -263,7 +263,7 @@ reads yet.
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
-| J1 | Product abstraction (course/bundle/download/plan/coaching) | Partial | Yes | **P10 · M** → **P16** | Courses and bundles. P16 also connected the wire P10 left dangling: `SyncCourseProduct` was called by nothing, so no product existed outside a factory and no price could be set at all |
+| J1 | Product abstraction (course/bundle/download/plan/coaching) | Partial | Yes | **P10 · M** → **P16** | Courses, bundles and downloads. P16 also connected the wire P10 left dangling: `SyncCourseProduct` was called by nothing, so no product existed outside a factory and no price could be set at all |
 | J2 | Cart | Core | Yes | **P10 · M** | Takes the base currency at creation and never changes it |
 | J3 | Checkout | Core | Yes | **P10 · M** | Priced server-side from the DB; the client is never believed |
 | J4 | Guest checkout | Core | Yes | **Not possible** | Tenancy resolves from the authenticated user — there is no anonymous surface |
@@ -283,7 +283,7 @@ reads yet.
 | J18 | Subscriptions / recurring | Pro | Yes | P16 | |
 | J19 | Memberships | Pro | Yes | P16 | |
 | J20 | Product bundles | Pro | Yes | **P16 ✅** | Owns no content: buying one fans out into an enrolment per course. Bundle price is allocated across its courses (largest remainder) so per-course revenue stays honest |
-| J21 | Digital downloads as products | — | Yes | P16 | |
+| J21 | Digital downloads as products | — | Yes | **P16 ✅** | Academy-owned, free or paid. Delivery is a fresh 15-minute signed link per fetch, unlimited; archiving never takes a file back; the file cannot be deleted while it is sold. Revenue has its own platform line |
 | J22 | Coaching / bookable sessions | — | Yes | P16 | |
 | J23 | Gift a course | Core | — | Post-1.0 | |
 

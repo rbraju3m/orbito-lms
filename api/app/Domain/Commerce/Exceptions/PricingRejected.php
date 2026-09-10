@@ -26,10 +26,10 @@ final class PricingRejected extends DomainException
      */
     public static function purchasableIsFree(): self
     {
-        $exception = new self('This course is free, so it has nothing to price. Set it to paid first.');
+        $exception = new self('This is free, so it has nothing to price. Set it to paid first.');
         $exception->details = [[
             'field' => 'pricing_model',
-            'code' => 'course_is_free',
+            'code' => 'is_free',
             'message' => 'Change the pricing model to paid before setting a price.',
         ]];
 

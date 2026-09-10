@@ -19,6 +19,7 @@ enum UsageMetric: string
     case MediaFiles = 'media_files';
     case Students = 'students';
     case Instructors = 'instructors';
+    case Downloads = 'downloads';
 
     public function label(): string
     {
@@ -29,6 +30,7 @@ enum UsageMetric: string
             self::MediaFiles => 'Media files',
             self::Students => 'Students',
             self::Instructors => 'Instructors',
+            self::Downloads => 'Digital downloads',
         };
     }
 
@@ -49,6 +51,8 @@ enum UsageMetric: string
             self::Instructors => 'max_instructors',
             self::StorageBytes => 'max_storage_bytes',
             self::MediaFiles => 'max_media_files',
+            // Klasio meters this: 25 → unlimited (KLASIO_REFERENCE §3).
+            self::Downloads => 'max_downloads',
             // Publishing is a lifecycle state, not an allowance. Capping it
             // would mean unpublishing somebody's live course to make room.
             self::CoursesPublished => null,
@@ -68,7 +72,9 @@ enum UsageMetric: string
     public function isEnforced(): bool
     {
         return match ($this) {
-            self::CoursesTotal, self::Instructors => true,
+            // A download is stocked by the academy, so the academy is the
+            // right party to stop — the same argument as courses.
+            self::CoursesTotal, self::Instructors, self::Downloads => true,
             default => false,
         };
     }

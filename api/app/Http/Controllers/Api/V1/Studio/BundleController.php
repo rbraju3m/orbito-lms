@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Studio;
 
 use App\Domain\Catalog\Actions\CreateBundle;
+use App\Domain\Catalog\Actions\DeleteBundle;
 use App\Domain\Catalog\Actions\UpdateBundle;
 use App\Domain\Catalog\Models\Bundle;
 use App\Domain\Catalog\Support\BundlePublishChecklist;
@@ -85,11 +86,11 @@ final class BundleController
      * granted are enrolments like any other, and `order_items` keeps its own
      * title snapshot, so an old receipt still reads correctly.
      */
-    public function destroy(Bundle $bundle): JsonResponse
+    public function destroy(Bundle $bundle, DeleteBundle $action): JsonResponse
     {
         Gate::authorize('delete', $bundle);
 
-        $bundle->delete();
+        $action->handle($bundle);
 
         return ApiResponse::noContent();
     }

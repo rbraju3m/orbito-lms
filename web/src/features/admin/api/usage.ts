@@ -10,7 +10,8 @@ export type UsageMetric =
   | 'storage_bytes'
   | 'media_files'
   | 'students'
-  | 'instructors';
+  | 'instructors'
+  | 'downloads';
 
 export interface LimitRow {
   metric: UsageMetric;

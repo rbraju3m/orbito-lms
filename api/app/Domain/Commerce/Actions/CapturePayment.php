@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domain\Commerce\Actions;
 
+use App\Domain\Catalog\Actions\GrantDownload;
+use App\Domain\Catalog\Enums\DownloadSource;
 use App\Domain\Catalog\Models\Bundle;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Catalog\Models\Download;
 use App\Domain\Commerce\Data\WebhookEvent;
 use App\Domain\Commerce\Enums\OrderStatus;
 use App\Domain\Commerce\Enums\PaymentStatus;
@@ -29,7 +32,10 @@ use Illuminate\Support\Facades\Log;
  */
 final class CapturePayment
 {
-    public function __construct(private readonly EnrollInCourse $enroll) {}
+    public function __construct(
+        private readonly EnrollInCourse $enroll,
+        private readonly GrantDownload $grants,
+    ) {}
 
     public function handle(Payment $payment, WebhookEvent $event): Payment
     {
@@ -108,6 +114,7 @@ final class CapturePayment
             match ($item->purchasable_type) {
                 'course' => $this->grantCourse($order, $user, (int) $item->purchasable_id),
                 'bundle' => $this->grantBundle($order, $user, (int) $item->purchasable_id),
+                'download' => $this->grantDownload($order, $user, (int) $item->purchasable_id),
                 // A product type with no grant path yet — a download, a
                 // coaching slot. Silence here is deliberate: the order is paid
                 // and its other lines must still be delivered.
@@ -162,6 +169,27 @@ final class CapturePayment
         foreach ($bundle->courses as $course) {
             $this->enrolOne($order, $user, $course, EnrollmentIntent::bundle($order->id));
         }
+    }
+
+    /**
+     * Without this branch, the `default => null` below would have taken the
+     * money for a download and granted nothing, silently. Idempotent: a
+     * webhook delivered twice finds the grant the first delivery made.
+     */
+    private function grantDownload(Order $order, User $user, int $downloadId): void
+    {
+        $download = Download::find($downloadId);
+
+        if ($download === null) {
+            Log::error('Paid order references a download that no longer exists.', [
+                'order' => $order->uuid,
+                'download_id' => $downloadId,
+            ]);
+
+            return;
+        }
+
+        $this->grants->handle($user, $download, DownloadSource::Purchase, $order->id);
     }
 
     private function enrolOne(Order $order, User $user, Course $course, EnrollmentIntent $intent): void

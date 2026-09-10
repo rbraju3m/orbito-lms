@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\Catalog\BundleCatalogController;
 use App\Http\Controllers\Api\V1\Catalog\CategoryController;
 use App\Http\Controllers\Api\V1\Catalog\CourseCatalogController;
+use App\Http\Controllers\Api\V1\Catalog\DownloadCatalogController;
 use App\Http\Controllers\Api\V1\Media\MediaController;
 use App\Http\Controllers\Api\V1\Studio\BundleController;
 use App\Http\Controllers\Api\V1\Studio\BundleStatusController;
@@ -12,6 +13,8 @@ use App\Http\Controllers\Api\V1\Studio\CourseController;
 use App\Http\Controllers\Api\V1\Studio\CourseInstructorController;
 use App\Http\Controllers\Api\V1\Studio\CourseSettingsController;
 use App\Http\Controllers\Api\V1\Studio\CourseStatusController;
+use App\Http\Controllers\Api\V1\Studio\DownloadController;
+use App\Http\Controllers\Api\V1\Studio\DownloadStatusController;
 use App\Http\Controllers\Api\V1\Studio\PricingController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +51,17 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
      */
     Route::get('bundles', [BundleCatalogController::class, 'index'])->name('bundles.index');
     Route::get('bundles/{slug}', [BundleCatalogController::class, 'show'])->name('bundles.show');
+
+    /*
+     * Digital downloads (P16). `mine` is declared BEFORE `{slug}` so it is
+     * never read as a download called "mine" (§ Phase 12).
+     */
+    Route::get('downloads', [DownloadCatalogController::class, 'index'])->name('downloads.index');
+    Route::get('downloads/mine', [DownloadCatalogController::class, 'mine'])->name('downloads.mine');
+    Route::get('downloads/{slug}', [DownloadCatalogController::class, 'show'])->name('downloads.show');
+    Route::post('downloads/{slug}/claim', [DownloadCatalogController::class, 'claim'])->name('downloads.claim');
+    // A GET, so a lapsed academy's buyers keep their files — 402 gates writes.
+    Route::get('downloads/{slug}/file', [DownloadCatalogController::class, 'file'])->name('downloads.file');
 
     Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
@@ -95,6 +109,23 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
             ->name('bundles.unpublish');
         Route::post('bundles/{bundle}/archive', [BundleStatusController::class, 'archive'])
             ->name('bundles.archive');
+
+        /* -------- Downloads -------- */
+        Route::get('downloads', [DownloadController::class, 'index'])->name('downloads.index');
+        Route::post('downloads', [DownloadController::class, 'store'])->name('downloads.store');
+        Route::get('downloads/{download}', [DownloadController::class, 'show'])->name('downloads.show');
+        Route::patch('downloads/{download}', [DownloadController::class, 'update'])->name('downloads.update');
+        Route::delete('downloads/{download}', [DownloadController::class, 'destroy'])->name('downloads.destroy');
+
+        Route::put('downloads/{download}/price', [PricingController::class, 'download'])
+            ->name('downloads.price');
+
+        Route::post('downloads/{download}/publish', [DownloadStatusController::class, 'publish'])
+            ->name('downloads.publish');
+        Route::post('downloads/{download}/unpublish', [DownloadStatusController::class, 'unpublish'])
+            ->name('downloads.unpublish');
+        Route::post('downloads/{download}/archive', [DownloadStatusController::class, 'archive'])
+            ->name('downloads.archive');
 
         // Lifecycle transitions are sub-resources, never a verb in a query string.
         Route::post('courses/{course}/publish', [CourseStatusController::class, 'publish'])

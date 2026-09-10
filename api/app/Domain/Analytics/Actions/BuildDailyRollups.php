@@ -160,12 +160,15 @@ final class BuildDailyRollups
             /*
              * What was actually CHARGED, from the order total.
              *
-             * Today `orders.discount_minor` is always 0 — coupons are P16 —
-             * so this equals the sum of the per-course figures above exactly.
-             * When coupons land, the order-level discount has to be allocated
-             * across its items (largest remainder, so the parts sum to the
-             * whole) or the two will disagree by the discount and a dashboard
-             * will show it.
+             * This equals the per-course figures PLUS `download_revenue_minor`
+             * below — exactly, and a test asserts it. Bundles are already in
+             * the course figures, through their allocations. Downloads have no
+             * course, so they need their own line or the platform total would
+             * silently stop matching its parts.
+             *
+             * `orders.discount_minor` is still always 0. When coupons land, an
+             * order-level discount has to be allocated across its items
+             * (largest remainder, as `RevenueAllocator` does) or this breaks.
              */
             'revenue_minor' => (int) Order::query()
                 ->whereNotNull('paid_at')
@@ -173,14 +176,28 @@ final class BuildDailyRollups
                 ->where('paid_at', '<', $to)
                 ->where('currency', $currency)
                 ->sum('total_minor'),
+            'download_revenue_minor' => $this->downloadRevenue($from, $to, $currency),
             'currency' => $currency,
             'active_learners' => $active,
             'created_at' => now(),
             'updated_at' => now(),
         ]], ['date'], [
             'new_users', 'new_enrollments', 'completions',
-            'revenue_minor', 'currency', 'active_learners', 'updated_at',
+            'revenue_minor', 'download_revenue_minor', 'currency', 'active_learners', 'updated_at',
         ]);
+    }
+
+    /** Downloads sold, from the order lines — the snapshot of what was charged. */
+    private function downloadRevenue(CarbonImmutable $from, CarbonImmutable $to, string $currency): int
+    {
+        return (int) OrderItem::query()
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('order_items.purchasable_type', 'download')
+            ->whereNotNull('orders.paid_at')
+            ->where('orders.paid_at', '>=', $from)
+            ->where('orders.paid_at', '<', $to)
+            ->where('orders.currency', $currency)
+            ->sum('order_items.total_minor');
     }
 
     private function instructor(CarbonImmutable $date, string $currency): void

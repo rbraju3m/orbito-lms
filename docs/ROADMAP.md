@@ -18,9 +18,9 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,113 Pest tests / 3,811 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 268 Vitest tests across 48 files · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS ~246 KB gzipped against 250 KB — see Phase 11 and Phase 13 |
+| Backend | 1,144 Pest tests / 3,945 assertions · PHPStan level 6 clean · Pint clean |
+| Frontend | 278 Vitest tests across 51 files · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS **251.52 KB** gzipped against 250 KB — **OVER**, being reclaimed. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib. The earlier "~246" was stale — this session started at 249.96. See Phase 16 |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~19 minutes, up from ~2 — provisioning tests build real schemas |
 
@@ -48,8 +48,8 @@ question, review the course, earn points and badges, download a verifiable
 certificate — and see all of it in a calendar, an inbox and a dashboard.
 
 **What is conspicuously missing:** most of Phase 16 onward —
-subscriptions, bundles, downloads, the blog and page builder, multilingual and
-RTL, and outbound webhooks. (Plan-limit enforcement, long the oldest item on
+subscriptions, the blog and page builder, multilingual and RTL, and outbound
+webhooks. (Plan-limit enforcement, long the oldest item on
 this list, has landed.) Plus the two unproven
 integrations above, and the Playwright gap, which has now outlasted thirteen
 phases. On the operator surface specifically: no cross-academy usage view, no
@@ -1165,9 +1165,49 @@ a course EARNS is a different decision from what it says.
 This also unblocks the Stripe sandbox test at the top of this file — you could
 not previously buy a course, because you could not price one.
 
-Still open in this phase: subscriptions and memberships, downloads,
-coaching, the blog, the page builder, multilingual, RTL, and outbound
-webhooks.
+**Digital downloads — done.** A file an academy sells, free or paid. Buying
+one grants the right to FETCH it, never an enrolment.
+
+- **Delivery is the signed media URL certificates already use** — a fresh
+  15-minute link per fetch, unlimited. The `DATABASE.md` sketch drew a
+  per-purchase token with a count and an expiry; it would have been a second
+  delivery mechanism that could not even count what it claimed to, because
+  `media.download` streams on the signature alone, with no user. The fetch
+  endpoint is the ONLY place a link is minted, and no resource carries one.
+- **Owned is owned.** Archiving takes a download off sale, never out of an
+  owner's library; a lapsed academy's buyers keep fetching (the fetch is a
+  GET); a download with owners cannot be deleted, only archived; and the FILE
+  behind any download cannot be deleted at all.
+- **`DeleteMedia` soft-deletes, so no foreign key could guard that file.** The
+  planned RESTRICT would have been false comfort — the bytes go before the
+  row, and a soft delete is invisible to a foreign key. The guard is in the
+  action, before anything is removed.
+- **Downloads have their own revenue line.** A download has no course, so
+  without `download_revenue_minor` the platform total would have silently
+  stopped equalling the sum of its parts. The invariant is now "courses +
+  downloads = platform", and a test asserts it.
+- **`MediaCollection::uploadPermission()` had never been called** — every
+  collection was gated by `media.upload` alone, which students hold. It is
+  enforced now for `download` and `certificate`; the authoring collections
+  are recorded as debt (ROLES_PERMISSIONS footnote ⁴ claimed otherwise).
+- **Two bundle bugs fixed on the way**: deleting a published bundle left its
+  product active — a paid basket could grant nothing — and the bundle requests
+  checked media ids with `exists` alone. Both have regression tests.
+- **First paint went over its 250 KB budget during this phase.** Measured
+  with `npm run size` at every commit: **249.96 KB** at the start of the
+  phase (0.04 KB of headroom), **250.07** after plan limits — the first
+  crossing — **250.41** after bundles, **251.52** after downloads. The budget
+  row had said "~246": stale, produced by a method nobody could reproduce,
+  and the reason `npm run size` now exists. Even "gzip level 9" is not a
+  definition on its own — Node's and Python's zlib disagree by 0.3 KB on the
+  same files — so the script IS the definition.
+  Of the downloads slice's 1.1 KB, the three new nav icons are 0.25; most of
+  the rest is the bundler splitting two modules the shell already had
+  (`auth/api/keys.ts`, `IconAlertTriangle`) into eager chunks of their own,
+  because the new lazy pages share them.
+
+Still open in this phase: subscriptions and memberships, coaching, the blog,
+the page builder, multilingual, RTL, and outbound webhooks.
 
 ### Phase 17 — AI
 Provider abstraction · outline / lesson / quiz / description / summary generation ·

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "size": "vite build --logLevel warn && node scripts/first-paint.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "oxlint src",

@@ -11,9 +11,29 @@ use Illuminate\Validation\Rule;
 
 final class StoreMediaRequest extends FormRequest
 {
+    /**
+     * The general upload permission AND the collection's own. The second was
+     * declared on `MediaCollection` from Phase 4 and never checked, so any
+     * uploader could write into any collection.
+     */
     public function authorize(): bool
     {
-        return $this->user()?->can('upload', Media::class) ?? false;
+        $user = $this->user();
+
+        if ($user === null || ! $user->can('upload', Media::class)) {
+            return false;
+        }
+
+        // An unknown collection is the validator's job, not a 403.
+        $collection = MediaCollection::tryFrom((string) $this->input('collection'));
+
+        if ($collection === null) {
+            return true;
+        }
+
+        $required = $collection->uploadPermission();
+
+        return $required !== null && $user->hasPermission($required);
     }
 
     /** @return array<string, mixed> */

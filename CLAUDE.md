@@ -420,7 +420,9 @@ Gate::authorize('publish', $course);                   // in a controller
   a link in a year-old email has to still land somewhere.
 - **A button inside an anchor is not a button.** The wishlist toggle lives on
   the course page, not the catalogue card, because the card is one `<Link>`.
-- **Measure the first-paint cost of anything in `AppLayout`.** The bell cost
+- **Measure the first-paint cost of anything in `AppLayout`** — and measure it
+  the SAME way each time (see Known debt), or the number drifts into a figure
+  nobody can reproduce. The bell cost
   3.8 KB gzipped; Mantine is a shared chunk, so a lazy route does not keep its
   imports out of it.
 
@@ -640,6 +642,28 @@ Gate::authorize('publish', $course);                   // in a controller
   and is null for anything not sellable — which a draft course's product
   always is. The authoring endpoint returns `ProductPriceResource`: what is
   stored, on sale or not. ADR-06 again.
+- **A signed URL is the credential, so mint it in ONE place.** `media.download`
+  streams on the signature alone — no user — so the only access check a file
+  ever gets is at mint time. Downloads mint in `GET /downloads/{slug}/file`
+  and nowhere else; no resource carries a link, or a list would hand out one
+  per row. Want a count? You can only count MINTS; a cap on those spends a
+  download every time a transfer fails halfway.
+- **A soft delete is invisible to a foreign key.** `DeleteMedia` soft-deletes
+  the row and removes the bytes FIRST, so a RESTRICT on a column pointing at
+  media guards nothing. A "may this be deleted?" rule belongs in the Action,
+  before anything is removed.
+- **A declared permission hook that nothing calls is not a permission.**
+  `MediaCollection::uploadPermission()` existed from Phase 4 and was never
+  read, while a doc footnote claimed students could upload only into two
+  collections. Grep for the CALL site, not the definition.
+- **Deleting a purchasable must retire its product.** A product that outlives
+  its purchasable can still be checked out of somebody's basket; the capture
+  then takes the money and finds nothing to grant. `BundleDeleted` /
+  `DownloadDeleted` → `SyncProductForPurchasable` retires it. Retire, never
+  delete: an order line already points at it.
+- **Owned is owned, for every kind of product.** Archiving takes something off
+  sale, never out of an owner's hands; a lapsed academy's buyers keep reading
+  (GETs are not gated); a thing with owners is archived, not deleted.
 - **A lifecycle reconciliation goes ONE way.** A course leaving `published`
   takes its bundles to draft; re-publishing it does not put them back on sale.
   The author may have removed a course or changed the price since, and a
@@ -726,9 +750,9 @@ so the action that fixes a lapse survives it.
 
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
-plan limits, bundles, and course pricing** (§ Patterns established in
-Phase 16).
-1,113 backend tests / 3,811 assertions · 268 frontend tests.
+plan limits, bundles, course pricing, and digital downloads** (§ Patterns
+established in Phase 16).
+1,144 backend tests / 3,945 assertions · 278 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -746,11 +770,12 @@ through the API, which it could not be before.
 **2. Zoom / Google Meet, likewise.** Both providers are written and have never
 been called. `ManualProvider` works and is what most academies will use.
 
-**3. Phase 16 (Advanced Business), continued.** Plan limits and **bundles**
-are done, and bundles closed a Phase 10 hole on the way: nothing in the
-product could set a price at all (§ Patterns established in Phase 16). Still
-ahead: subscriptions and memberships, downloads, coaching, blog, page builder,
-multilingual, RTL, outbound webhooks. It is
+**3. Phase 16 (Advanced Business), continued.** Plan limits, **bundles** and
+**digital downloads** are done — bundles closed a Phase 10 hole on the way
+(nothing could set a price) and downloads fixed two bugs bundles shipped
+(§ Patterns established in Phase 16). Still ahead: subscriptions and
+memberships, coaching, blog, page builder, multilingual, RTL, outbound
+webhooks. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
 lead capture have both been waiting for.
@@ -850,10 +875,25 @@ Every one of these has already cost time at least once.
 - **A course added to a bundle after purchase does not reach existing
   buyers.** Deliberate: the fix is an explicit "grant to existing buyers"
   action with its own confirmation, not a side effect of saving a form.
-- **Bundles of downloads or webinars are not built** — `bundle_items` names
-  `course_id` rather than a morph, because a download has no enrolment to fan
-  out to and the grant would switch on type anyway. Add the morph when
-  downloads land and it is real.
+- **Bundles cannot hold downloads.** Downloads exist now, but `bundle_items`
+  still names `course_id`: teaching it about downloads means a morph there, a
+  grant that switches on type, and an allocation target that is not a course.
+  Its own slice.
+- **Media upload permissions are enforced for two collections only.**
+  `download` needs `download.manage` and `certificate` refuses everybody; the
+  authoring collections still accept any `media.upload` holder, students
+  included. `ROLES_PERMISSIONS.md` footnote ⁴ says so.
+- **Nothing scans uploads**, and every byte goes through PHP — the
+  direct-to-storage flow `MediaStatus::Pending` was declared for was never
+  built. Downloads cap at 500 MB and allow no executables; that allowlist is
+  the whole defence.
+- `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
+  owned-media check that `ValidatesOwnedMedia` now shares.
+- **First-paint JS went over the 250 KB budget in Phase 16** — 249.96 at the
+  phase's start, over first with plan limits (250.07), 251.52 after
+  downloads. `npm run size` is the ONLY measurement: Node's and Python's zlib
+  disagree by 0.3 KB at the same "level 9", so a number from anywhere else is
+  not comparable. The docs had said "~246", which nothing reproduces.
 - Plan **limits** enforce courses and instructor seats only. Students and
   storage are counted and shown, never blocking — see § Patterns established
   in Phase 16. Storage has no cap in any seeded plan yet, and an academy

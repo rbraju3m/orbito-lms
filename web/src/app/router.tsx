@@ -52,6 +52,27 @@ export const router = createBrowserRouter([
                 .BundleDetailRoute,
             }),
           },
+          {
+            path: 'downloads',
+            lazy: async () => ({
+              Component: (await import('@/features/download/routes/DownloadsRoute')).DownloadsRoute,
+            }),
+          },
+          {
+            path: 'downloads/:slug',
+            lazy: async () => ({
+              Component: (await import('@/features/download/routes/DownloadDetailRoute'))
+                .DownloadDetailRoute,
+            }),
+          },
+          // Its own path rather than `downloads/mine`: the library is a
+          // different page from the shelf, not a filter on it.
+          {
+            path: 'my-downloads',
+            lazy: async () => ({
+              Component: (await import('@/features/download/routes/MyDownloadsRoute')).MyDownloadsRoute,
+            }),
+          },
         ],
       },
       /*
@@ -316,6 +337,30 @@ export const router = createBrowserRouter([
            * can contain another instructor's courses, and pricing it decides
            * what that instructor earns.
            */
+          /*
+           * Downloads are the academy's stock, not an instructor's, so the
+           * studio side sits behind `download.manage` like bundles do.
+           */
+          {
+            element: <RequirePermission anyOf={['download.manage']} />,
+            children: [
+              {
+                path: 'studio/downloads',
+                lazy: async () => ({
+                  Component: (await import('@/features/download/routes/StudioDownloadsRoute'))
+                    .StudioDownloadsRoute,
+                }),
+              },
+              {
+                path: 'studio/downloads/:id',
+                lazy: async () => ({
+                  Component: (await import('@/features/download/routes/DownloadEditorRoute'))
+                    .DownloadEditorRoute,
+                }),
+              },
+            ],
+          },
+
           {
             element: <RequirePermission anyOf={['bundle.manage']} />,
             children: [

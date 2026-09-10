@@ -6,6 +6,7 @@ namespace App\Domain\Commerce\Actions;
 
 use App\Domain\Catalog\Models\Bundle;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Catalog\Models\DownloadGrant;
 use App\Domain\Commerce\Enums\OrderStatus;
 use App\Domain\Commerce\Exceptions\CheckoutRejected;
 use App\Domain\Commerce\Models\Cart;
@@ -146,6 +147,22 @@ final class PlaceOrder
 
         if ($product->purchasable_type === 'bundle') {
             $this->assertBundleHasSomethingToDeliver($user, $product);
+
+            return;
+        }
+
+        // A download owned once is owned. A REVOKED grant does not count —
+        // somebody refunded may buy it again.
+        if ($product->purchasable_type === 'download') {
+            $owned = DownloadGrant::query()
+                ->where('download_id', $product->purchasable_id)
+                ->where('user_id', $user->id)
+                ->active()
+                ->exists();
+
+            if ($owned) {
+                throw CheckoutRejected::alreadyOwned($product->title);
+            }
         }
     }
 

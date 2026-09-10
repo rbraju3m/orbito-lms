@@ -119,6 +119,13 @@ $permissions = [
          * granted to the instructor role, unlike `course.price.own`.
          */
         'bundle.manage' => 'Create, price and publish course bundles',
+        /*
+         * Downloads are the academy's stock, not an instructor's (see
+         * docs/DOWNLOADS.md §1) — so, like bundles, there is no `.own`
+         * variant and the instructor role does not hold this. Uploading into
+         * the `download` media collection requires it too.
+         */
+        'download.manage' => 'Create, price and publish digital downloads',
         'tax.manage' => 'Manage tax rules',
         'payout.request' => 'Request a payout',
         'payout.approve' => 'Approve a payout',

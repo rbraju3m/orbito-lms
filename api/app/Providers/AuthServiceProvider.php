@@ -13,9 +13,11 @@ use App\Domain\Assessment\Policies\QuizPolicy;
 use App\Domain\Catalog\Models\Bundle;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\CourseCategory;
+use App\Domain\Catalog\Models\Download;
 use App\Domain\Catalog\Policies\BundlePolicy;
 use App\Domain\Catalog\Policies\CourseCategoryPolicy;
 use App\Domain\Catalog\Policies\CoursePolicy;
+use App\Domain\Catalog\Policies\DownloadPolicy;
 use App\Domain\Certification\Models\Certificate;
 use App\Domain\Certification\Policies\CertificatePolicy;
 use App\Domain\Commerce\Models\Order;
@@ -61,6 +63,7 @@ final class AuthServiceProvider extends ServiceProvider
         InstructorProfile::class => InstructorProfilePolicy::class,
         Course::class => CoursePolicy::class,
         Bundle::class => BundlePolicy::class,
+        Download::class => DownloadPolicy::class,
         CourseCategory::class => CourseCategoryPolicy::class,
         Media::class => MediaPolicy::class,
         Enrollment::class => EnrollmentPolicy::class,
@@ -142,6 +145,7 @@ final class AuthServiceProvider extends ServiceProvider
              * with money attached.
              */
             'bundle' => Bundle::class,
+            'download' => Download::class,
         ]);
     }
 
