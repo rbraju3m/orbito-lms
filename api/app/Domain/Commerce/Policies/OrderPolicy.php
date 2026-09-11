@@ -36,4 +36,13 @@ final class OrderPolicy
     {
         return $order->user_id === $actor->id;
     }
+
+    /**
+     * Staff with `order.refund` (Admin, Super Admin) — and NOT the learner,
+     * even on their own order. A learner asks; the academy decides.
+     */
+    public function refund(User $actor, Order $order): bool
+    {
+        return $actor->hasPermission('order.refund');
+    }
 }

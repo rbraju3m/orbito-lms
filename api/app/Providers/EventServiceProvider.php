@@ -30,6 +30,7 @@ use App\Domain\Certification\Events\CertificateIssued;
 use App\Domain\Certification\Listeners\IssueCertificateOnCompletion;
 use App\Domain\Certification\Listeners\RenderPdfOnIssue;
 use App\Domain\Commerce\Events\PaymentCaptured;
+use App\Domain\Commerce\Events\RefundIssued;
 use App\Domain\Commerce\Listeners\SyncProductForPurchasable;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
@@ -348,6 +349,7 @@ final class EventServiceProvider extends ServiceProvider
         AssignmentSubmitted::class => 'assignmentSubmitted',
         AssignmentGraded::class => 'assignmentGraded',
         PaymentCaptured::class => 'paymentCaptured',
+        RefundIssued::class => 'refundIssued',
         CertificateIssued::class => 'certificateIssued',
         DownloadGranted::class => 'downloadGranted',
         ReviewPublished::class => 'reviewPublished',

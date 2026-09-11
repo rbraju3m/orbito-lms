@@ -516,8 +516,9 @@ instead of an unresolved slug.
 
 ### Commerce — live (P10)
 
-The money path is reachable, and coupons are live (P16 — `COUPONS.md`).
-Refunds, tax, invoices and the earnings/payout surface are **not** — see
+The money path is reachable, and coupons and refunds are live (P16 —
+`COUPONS.md`, `REFUNDS.md`). Tax, invoices and the earnings/payout surface are
+**not** — see
 `ROADMAP.md` Phase 10 for why each was deferred rather than half-built.
 
 ```
@@ -539,10 +540,19 @@ GET    /admin/coupons · POST                    coupon.manage; list carries tim
 GET    /admin/coupons/products                  what a coupon can be scoped to: everything for sale
 GET · PUT · DELETE /admin/coupons/{coupon}      PUT REPLACES; DELETE is 409 coupon_in_use once used
 
+POST   /admin/orders/{order}/refunds           order.refund; {amount_minor, method, reason?, revoke_access?}
+
 # planned
 GET    /orders/{uuid}/invoice
-POST   /admin/orders/{uuid}/refund
 ```
+
+**Refunds.** `method` is `gateway` (back through the provider that took it) or
+`external` (made elsewhere, recorded here). 201 with the refund, `completed` or
+`pending`; a provider refusal is `503 gateway_unavailable` and the refund is
+kept as `failed`. `422 refund_rejected` carries `meta.reason` — `not_paid`,
+`nothing_left`, `too_much` (with `refundable_minor`), `no_payment`. OUTSIDE the
+subscription gate: a lapsed academy can still give money back. The order detail
+gains `refunded_minor`, `refundable_minor` and `refunds[]`. See `REFUNDS.md`.
 
 **Coupons.** One set of rules (`CouponRules`) prices the basket's preview and
 enforces the order, so the two agree; a coupon that stops applying blocks

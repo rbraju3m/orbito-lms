@@ -1349,8 +1349,35 @@ and per-person limits, a window and a minimum spend. Reference:
 - **Still open:** automatic discounts, stacking, category scope — and refunds,
   which will have to decide whether a refunded order's use still counts.
 
+**Refunds — done.** Money given back on an order, all of it or part of it,
+through the gateway or recorded when made elsewhere. Reference:
+`docs/REFUNDS.md`.
+
+- **Claim, move, complete.** The amount is claimed under a lock on the ORDER row
+  and written pending before anything leaves, so two refunds cannot give back
+  the last of it twice. A provider that refuses leaves it failed, freeing the
+  amount; one that accepts without settling leaves it pending.
+- **A full refund takes away what that order granted** — its enrolments and
+  downloads, never access from anywhere else — unless the admin opts out for a
+  goodwill refund. A partial refund never touches access.
+- **Split by what each line has LEFT**, down to bundle courses, so a run of
+  partials lands on zero everywhere; and taken off revenue on the day it
+  COMPLETED, never the day of the sale. Daily revenue is net and can be
+  negative, so the rollup columns became signed; courses plus downloads still
+  equal the platform total on every day.
+- **Coupons:** a fully refunded order is no longer a sale and gives its use
+  back (`OrderStatus::sales()`).
+- **`RefundIssued`**, named since Phase 10, is built with its first consumer:
+  the `refund.issued` webhook.
+- **Found on the way:** the refund request first had a `method()` accessor,
+  which silently overrides `Request::method()` — the HTTP verb. PHPStan's
+  return-type check caught it before it shipped.
+- **Still open:** provider refund webhooks (a refund made in Stripe's
+  dashboard is invisible until recorded, and a pending Stripe refund waits for
+  an operator), refunding a single chosen line, and credit notes with invoices.
+
 Still open in this phase: subscriptions and memberships, coaching, the blog,
-the page builder, multilingual, RTL, refunds.
+the page builder, multilingual, RTL.
 
 ### Phase 17 — AI
 Provider abstraction · outline / lesson / quiz / description / summary generation ·

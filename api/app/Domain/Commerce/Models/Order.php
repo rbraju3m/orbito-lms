@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
  * @property int $subtotal_minor
  * @property int $discount_minor
  * @property int $total_minor
+ * @property int $refunded_minor sum of COMPLETED refunds, kept by CompleteRefund
  * @property CarbonInterface|null $placed_at
  * @property CarbonInterface|null $paid_at
  * @property CarbonInterface|null $cancelled_at
@@ -37,7 +38,7 @@ final class Order extends Model
 
     protected $fillable = [
         'number', 'user_id', 'status', 'currency', 'coupon_id', 'coupon_code',
-        'subtotal_minor', 'discount_minor', 'total_minor',
+        'subtotal_minor', 'discount_minor', 'total_minor', 'refunded_minor',
         'placed_at', 'paid_at', 'cancelled_at',
     ];
 
@@ -49,6 +50,7 @@ final class Order extends Model
             'subtotal_minor' => 'integer',
             'discount_minor' => 'integer',
             'total_minor' => 'integer',
+            'refunded_minor' => 'integer',
             'placed_at' => 'datetime',
             'paid_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -77,6 +79,26 @@ final class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /** @return HasMany<Refund, $this> */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    /**
+     * What can still be refunded: the total less every refund that holds part
+     * of it — pending ones too, so two cannot race for the same money. From
+     * the LOADED refunds, for display; `ClaimRefund` asks again under a lock.
+     */
+    public function refundableMinor(): int
+    {
+        $claimed = $this->refunds
+            ->filter(static fn (Refund $refund): bool => $refund->status->claimsAmount())
+            ->sum('amount_minor');
+
+        return max(0, $this->total_minor - (int) $claimed);
     }
 
     /** @return BelongsTo<User, $this> */

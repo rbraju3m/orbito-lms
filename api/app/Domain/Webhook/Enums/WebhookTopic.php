@@ -35,6 +35,7 @@ enum WebhookTopic: string
     case AssignmentGraded = 'assignment.graded';
 
     case PaymentCaptured = 'payment.captured';
+    case RefundIssued = 'refund.issued';
     case CertificateIssued = 'certificate.issued';
     case DownloadGranted = 'download.granted';
     case ReviewPublished = 'review.published';
@@ -57,6 +58,7 @@ enum WebhookTopic: string
             self::AssignmentSubmitted => 'Assignment submitted',
             self::AssignmentGraded => 'Assignment graded',
             self::PaymentCaptured => 'Payment captured',
+            self::RefundIssued => 'Refund issued',
             self::CertificateIssued => 'Certificate issued',
             self::DownloadGranted => 'Download granted',
             self::ReviewPublished => 'Review published',
@@ -72,7 +74,7 @@ enum WebhookTopic: string
             self::EnrollmentRevoked, self::EnrollmentExpired => 'Enrolment',
             self::ItemCompleted, self::CourseCompleted => 'Progress',
             self::QuizGraded, self::AssignmentSubmitted, self::AssignmentGraded => 'Assessment',
-            self::PaymentCaptured, self::DownloadGranted => 'Commerce',
+            self::PaymentCaptured, self::RefundIssued, self::DownloadGranted => 'Commerce',
             self::CertificateIssued => 'Certification',
             self::CourseStatusChanged => 'Catalogue',
             self::ReviewPublished => 'Engagement',

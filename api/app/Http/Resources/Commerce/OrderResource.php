@@ -34,6 +34,11 @@ final class OrderResource extends BaseResource
             'subtotal_minor' => $this->subtotal_minor,
             'discount_minor' => $this->discount_minor,
             'total_minor' => $this->total_minor,
+            'refunded_minor' => $this->refunded_minor,
+            // Only with the refunds loaded (the detail) — it is computed from
+            // them, and a list must not cost a query per row for it.
+            'refundable_minor' => $this->whenLoaded('refunds', fn (): int => $this->resource->refundableMinor()),
+            'refunds' => RefundResource::collection($this->whenLoaded('refunds')),
 
             'placed_at' => $this->placed_at?->toIso8601String(),
             'paid_at' => $this->paid_at?->toIso8601String(),

@@ -109,7 +109,7 @@ final class CouponController
     private function withUsage(Builder $query): Builder
     {
         return $query->withCount(['redemptions as paid_redemptions_count' => fn (Builder $redemptions) => $redemptions
-            ->whereHas('order', fn (Builder $order) => $order->where('status', OrderStatus::Paid)),
+            ->whereHas('order', fn (Builder $order) => $order->whereIn('status', OrderStatus::sales())),
         ]);
     }
 

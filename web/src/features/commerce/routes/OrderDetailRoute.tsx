@@ -22,6 +22,7 @@ import { formatMinor } from '@/shared/lib/money';
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
 import { OrderStatusBadge } from '../components/OrderStatusBadge';
+import { RefundPanel } from '../components/RefundPanel';
 import { orderQuery, usePayOrder } from '../api/queries';
 
 /**
@@ -151,7 +152,18 @@ export function OrderDetailRoute() {
             <Text c="dimmed">Total</Text>
             <Title order={4}>{formatMinor(order.total_minor, order.currency)}</Title>
           </Group>
+
+          {order.refunded_minor > 0 ? (
+            <Group justify="space-between" px="md" pb="md">
+              <Text size="sm" c="dimmed">
+                Refunded
+              </Text>
+              <Text size="sm">−{formatMinor(order.refunded_minor, order.currency)}</Text>
+            </Group>
+          ) : null}
         </Card>
+
+        <RefundPanel order={order} />
 
         {payError && (
           <Alert

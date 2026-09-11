@@ -153,6 +153,7 @@ not recognise.
 | `assignment.submitted` | `AssignmentSubmitted` | `submission_id`, `attempt_number`, `is_late`, `submitted_at`, `learner`, `course`, `item` |
 | `assignment.graded` | `AssignmentGraded` | as above, plus `passed`, `points_earned`, `late_penalty_points`, `graded_at` |
 | `payment.captured` | `PaymentCaptured` | `order {id, number, total_minor, currency, items[]}`, `payment {id, gateway, amount_minor, currency, captured_at}`, `learner` |
+| `refund.issued` | `RefundIssued` | `refund {id, amount_minor, currency, method, reason, completed_at}`, `order {id, number, total_minor, refunded_minor, status}`, `fully_refunded`, `access_revoked`, `learner` — sent when a refund COMPLETES, not when it is asked for |
 | `certificate.issued` | `CertificateIssued` | `certificate {id, number, issued_at, expires_at}`, `learner`, `course` |
 | `download.granted` | `DownloadGranted` | `download {id, slug, title}`, `learner`, `source`, `granted_at` |
 | `review.published` | `ReviewPublished` | `review {id, rating, title, body, published_at}`, `learner`, `course` |

@@ -49,16 +49,19 @@ is worth less than one that says "this came out differently, and here is why".
 
 | Document | How much of it is built |
 |---|---|
-| `ROADMAP.md` | Phases 0–15 and Phase T carry delivery notes; each retro opens with what the phase decided and closes with what it deliberately left |
+| `ROADMAP.md` | Phases 0–15, Phase T and every Phase 16 slice so far carry delivery notes; each retro opens with what the phase decided and closes with what it deliberately left |
 | `ARCHITECTURE_PROPOSAL.md` | every ADR carries a delivery status; ADR-13 records the tenancy reversal, and risk R4 says why its own estimate was wrong |
 | `API.md` | endpoints are marked **live** or **planned**; §2a explains why nothing is public any more |
 | `DATABASE.md` | §0 is the central/tenant boundary and is authoritative — including what lives in `tenants.data` rather than a column; every context matches the migrations, and each records where the built schema DIFFERS from the sketch and why |
 | `FEATURE_MATRIX.md` | shipped rows are bolded and carry the decision that shaped them; ⚠ marks the two unproven integrations |
 | `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅; the header explains what tenancy removed |
 | `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is partly still a wish list, and says so |
-| `EVENTS.md` | current — 49 events across 13 contexts, with who listens, and §4 names the operator actions that deliberately fire nothing yet |
+| `EVENTS.md` | current — 50 events across 13 contexts, with who listens, and §4 names the operator actions that deliberately fire nothing yet |
 | `BUNDLES.md` | **built** — one Phase 16 slice, written before the code; §8 records what changed on the way |
 | `DOWNLOADS.md` | **built** — same format; §7 records what changed, including two bundle bugs fixed |
+| `WEBHOOKS.md` | **built** — the integrator's reference: the envelope, verifying the signature, retries, every topic's payload, and where requests may never go |
+| `COUPONS.md` | **built** — one set of rules for the basket and the checkout, the discount split across lines, and when a use counts |
+| `REFUNDS.md` | **built** — claim, move, complete; what a refund does to access, to coupons and to the revenue reports |
 | `RUNNING.md` | current — run it locally and sign in, on one page |
 | `TESTING.md` | current, including the Playwright gap and why the suite has its own tenant prefix |
 | `ROLES_PERMISSIONS.md` | current — the policy table, the two unrelated "super admins", and §7 on the permanent owner |
@@ -87,6 +90,9 @@ is worth less than one that says "this came out differently, and here is why".
 
 13. [`EVENTS.md`](EVENTS.md) — the domain event catalogue and who listens
 14. [`TESTING.md`](TESTING.md) — test strategy, tooling, CI
+15. One per Phase 16 slice, written with the code: [`BUNDLES.md`](BUNDLES.md) ·
+    [`DOWNLOADS.md`](DOWNLOADS.md) · [`WEBHOOKS.md`](WEBHOOKS.md) ·
+    [`COUPONS.md`](COUPONS.md) · [`REFUNDS.md`](REFUNDS.md)
 
 **Before writing any code** → [`../CLAUDE.md`](../CLAUDE.md)
 

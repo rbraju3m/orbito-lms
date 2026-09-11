@@ -6,7 +6,14 @@
  * Access arrives through a webhook the browser never sees.
  */
 
-export type OrderStatus = 'pending' | 'awaiting_payment' | 'paid' | 'cancelled' | 'failed';
+export type OrderStatus =
+  | 'pending'
+  | 'awaiting_payment'
+  | 'paid'
+  | 'partially_refunded'
+  | 'refunded'
+  | 'cancelled'
+  | 'failed';
 
 export interface CartLine {
   id: string;
@@ -77,10 +84,33 @@ export interface Order {
   subtotal_minor: number;
   discount_minor: number;
   total_minor: number;
+  /** Completed refunds only. */
+  refunded_minor: number;
+  /** What can still be refunded — on the detail only, never in a list. */
+  refundable_minor?: number;
   placed_at: string | null;
   paid_at: string | null;
   cancelled_at: string | null;
   items?: OrderItem[];
+  refunds?: Refund[];
+}
+
+export type RefundStatus = 'pending' | 'completed' | 'failed';
+
+/** Shown to the learner too — `reason` is written for them. */
+export interface Refund {
+  id: string;
+  amount_minor: number;
+  currency: string;
+  method: 'gateway' | 'external';
+  method_label: string;
+  status: RefundStatus;
+  status_label: string;
+  reason: string | null;
+  revokes_access: boolean;
+  failure_reason: string | null;
+  completed_at: string | null;
+  created_at: string;
 }
 
 /**

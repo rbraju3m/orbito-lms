@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Commerce\CartCouponController;
 use App\Http\Controllers\Api\V1\Commerce\CheckoutController;
 use App\Http\Controllers\Api\V1\Commerce\CouponController;
 use App\Http\Controllers\Api\V1\Commerce\OrderController;
+use App\Http\Controllers\Api\V1\Commerce\OrderRefundController;
 use App\Http\Controllers\Api\V1\Commerce\PaymentWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -75,6 +76,18 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 });
+
+/*
+ * Refunds (`order.refund`). OUTSIDE the subscription gate on purpose: a lapsed
+ * academy must still be able to give a learner their money back. Its own bill
+ * is no reason to keep somebody else's. Throttled: each one moves money.
+ */
+Route::middleware(['auth:sanctum', 'tenant'])
+    ->prefix('admin')->name('admin.')->group(function (): void {
+        Route::post('orders/{order}/refunds', [OrderRefundController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('orders.refunds.store');
+    });
 
 /*
  * An academy connecting its own gateway (ADR-13).

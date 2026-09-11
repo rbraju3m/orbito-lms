@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Commerce\Gateways;
 
 use App\Domain\Commerce\Data\GatewayHandoff;
+use App\Domain\Commerce\Data\GatewayRefund;
 use App\Domain\Commerce\Data\WebhookEvent;
 use App\Domain\Commerce\Models\Order;
+use App\Domain\Commerce\Models\Payment;
 use Illuminate\Http\Request;
 
 /**
@@ -37,4 +39,14 @@ interface PaymentGateway
      * check pointless, because the payload would be attacker-controlled.
      */
     public function verifyWebhook(Request $request, GatewayAccount $account): WebhookEvent;
+
+    /**
+     * Give money back on a captured payment — all of it or part of it.
+     *
+     * MUST throw (GatewayUnavailable) when the provider refuses, so the refund
+     * is marked failed and its amount freed, never completed. The idempotency
+     * key is the refund's own id: a retried request after a timeout must not
+     * give the money back twice.
+     */
+    public function refund(Payment $payment, int $amountMinor, string $idempotencyKey, GatewayAccount $account): GatewayRefund;
 }

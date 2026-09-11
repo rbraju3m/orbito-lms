@@ -65,9 +65,10 @@ Where this differs from the `DATABASE.md` sketch:
 - **No token, limit or expiry** — delivery is signed media URLs (§1).
 - **`download_grants`, not `download_deliveries`.** The row is the
   ENTITLEMENT, not a delivery.
-- **`revoked_at` exists before refunds do.** `order.refund` is declared and
-  not built anywhere. When it lands, a refund revokes the grant rather than
-  deleting the record of the sale.
+- **A full refund revokes the grant** (P16, `RevokeOrderAccess`) — sets
+  `revoked_at` rather than deleting the record of the sale, unless the admin
+  opts out for a goodwill refund. A partial refund leaves it alone. Buying the
+  download again afterwards is a new grant (REFUNDS.md §3).
 - **Free downloads exist**, with no product, exactly like a free course.
   Because nothing is anonymous yet (§ Multi-tenancy), "free" means free to
   signed-in members of the academy.
@@ -149,7 +150,7 @@ fetching opens a fresh link, dark mode, 360px.
 ## 6. Deliberately out of this slice
 
 - **Bundles containing downloads** (§1).
-- **Refunds** — not built anywhere; `revoked_at` is ready for them.
+- ~~Refunds~~ — built in P16; a full refund sets `revoked_at` (REFUNDS.md).
 - **Upload scanning** — none exists for any upload today. The allowlist
   without executables is this slice's defence.
 - **Direct-to-storage uploads for large files** — what `MediaStatus::Pending`

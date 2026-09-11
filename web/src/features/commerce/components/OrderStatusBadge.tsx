@@ -11,6 +11,9 @@ const COLOURS: Record<OrderStatus, string> = {
   pending: 'gray',
   awaiting_payment: 'blue',
   paid: 'green',
+  // Some of it given back: still a sale, so not grey — but not plain success.
+  partially_refunded: 'yellow',
+  refunded: 'gray',
   cancelled: 'gray',
   failed: 'red',
 };

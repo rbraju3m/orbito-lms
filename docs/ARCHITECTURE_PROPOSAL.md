@@ -53,7 +53,7 @@ Events in **bold** exist today; the rest arrive with their phase.
 | **Assessment** | quizzes, questions, attempts, assignments, submissions | **`QuizAttemptSubmitted`**, **`QuizAttemptGraded`**, **`AssignmentSubmitted`**, **`AssignmentGraded`**, **`AssignmentReturned`** |
 | **Enrollment** | enrollments, access grants, access resolution | **`CourseEnrolled`**, `EnrollmentRevoked` |
 | **Progress** | item_progress, course_progress, watch state | **`ItemCompleted`**, **`CourseCompleted`** |
-| **Commerce** | products, cart, orders, payments, gateway accounts | **`PaymentCaptured`** — `OrderPlaced` / `RefundIssued` named and not built |
+| **Commerce** | products, cart, orders, payments, gateway accounts | **`PaymentCaptured`**, **`RefundIssued`** — `OrderPlaced` named and not built |
 | **Certification** | templates, certificates, verification | **`CertificateIssued`** — `CertificateRevoked` not built; nothing reads it yet |
 | **Engagement** | reviews, discussions, announcements, wishlist | **`ReviewChanged`**, **`DiscussionReplied`**, **`QuestionAsked`**, **`AnnouncementPublished`**, **`ReviewPublished`**, **`AnswerAccepted`** |
 | **Notification** | inbox, preferences, queued mail | — (listener-heavy; six listeners, no events of its own) |
@@ -61,6 +61,7 @@ Events in **bold** exist today; the rest arrive with their phase.
 | **Analytics** | events, rollups, reports | — (listener-heavy; five listeners, no events of its own) |
 | **Gamification** | rules, points, badges, streaks, leaderboards | **`PointsAwarded`**, **`StreakExtended`**, **`BadgeAwarded`** |
 | **Live** | sessions, cohorts, webinars, attendance | **`SessionScheduled`**, **`AttendanceRecorded`** |
+| **Webhook** | endpoints, deliveries, signing, the SSRF guard | — (listener-only: `SendWebhooks` on 16 events, the whole of ADR-12; P16) |
 | **Content** *(P16)* | blog, pages, blocks, leads | — |
 
 A seventeenth directory, **Platform**, was added in Phase 4 and is not a bounded
@@ -308,7 +309,7 @@ The app boots and every feature works with **no** provider configured.
 
 ### ADR-12 — Extension without plugins
 **Status: partly delivered.** The domain-event catalogue is real and load-
-bearing — **49 events across 13 contexts**, with Analytics, Gamification,
+bearing — **50 events across 13 contexts**, with Analytics, Gamification,
 Notification, Certification and Live all built entirely as listeners on
 events their source contexts know nothing about. Progress does not know
 certificates exist; it fires `CourseCompleted` and four contexts react.

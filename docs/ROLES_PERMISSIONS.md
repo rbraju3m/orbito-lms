@@ -226,11 +226,13 @@ need something passed to it that does not exist.
 | `AcademyPolicy` | view, update — the academy administering ITSELF (`/admin/academy`), gated by `settings.view` / `settings.update`. NOT the platform registry, which is the operator's and sits behind the central flag. |
 | `InstructorProfilePolicy` | view, review |
 | `EnrollmentPolicy` (P9) | view, create, suspend, revoke, extend |
-| `OrderPolicy` (P10) | view, refund — plus the `manage-gateways` Gate |
+| `OrderPolicy` (P10) | view, pay (the owner only), refund (`order.refund`, built P16 — never the learner, even on their own order) — plus the `manage-gateways` Gate |
 | `CertificatePolicy` (P11) | view, issue, revoke |
 | `ReviewPolicy` (P12) | delete, moderate, reply |
 | `DiscussionPolicy` (P12) | viewAny, view, create, reply, accept, moderate |
 | `AnnouncementPolicy` (P12) | viewAny, view, manage |
+| `CouponPolicy` (P16) | viewAny, view, create, update, delete — all `coupon.manage` (Admin, Super Admin); an instructor cannot discount their own course |
+| `WebhookEndpointPolicy` (P16) | viewAny, view, create, update, delete — all `webhook.manage`, Super Admin only: an endpoint receives learners' names and emails |
 
 Gates with no model: `manage-gateways`, `moderate-reviews`,
 `view-platform-analytics`, `view-course-analytics`, `export-analytics`,

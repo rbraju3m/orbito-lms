@@ -95,7 +95,8 @@ certificate — on a phone, in dark mode, with a keyboard.
 
 **Phases 0–15 are complete, front and back**, plus a multi-tenancy retrofit.
 **Phase 16 is under way**: plan limits, course pricing, bundles, digital
-downloads and per-collection upload permissions have shipped.
+downloads, upload permissions and volume limits, outbound webhooks, coupons
+and refunds have shipped.
 1,164 backend tests / 3,970 assertions · 279 frontend tests.
 
 An instructor can build and publish a course, write quizzes across ten
@@ -143,9 +144,23 @@ paid path was unreachable. See `ROADMAP.md` §Phase 16 and `BUNDLES.md`.
 **Digital downloads have shipped** — academy-owned files, free or paid, each
 fetch a fresh signed link. See `DOWNLOADS.md`.
 
+**Uploads are bounded** — per collection, per person (a quota on files nobody
+has used yet), and swept nightly when nothing used them.
+
+**Outbound webhooks have shipped** — an academy's Super Admin points endpoints
+at other systems; every delivery is signed, retried and logged, and never sent
+to an internal address. See `WEBHOOKS.md`.
+
+**Coupons and refunds have shipped.** A coupon is checked by one set of rules
+in the basket and at checkout, and its discount is split across the order's
+lines so per-course revenue still adds up. A refund — through the gateway or
+recorded when made elsewhere, whole or partial — takes away what its order
+granted only when it empties the order, and comes off revenue on the day it
+happens, never the day of the sale. See `COUPONS.md` and `REFUNDS.md`.
+
 Still ahead in the phase: subscriptions and memberships,
-coaching, the blog and page builder, multilingual and RTL, and outbound
-webhooks. It is markedly larger than the phases before it, and it is where the
+coaching, the blog and page builder, multilingual and RTL. It is markedly
+larger than the phases before it, and it is where the
 public marketing surface finally arrives — which is what webinar registration
 and lead capture have both been waiting for.
 

@@ -10,11 +10,16 @@ use App\Domain\Analytics\Models\DailyCourseStat;
 use App\Domain\Analytics\Models\DailyInstructorStat;
 use App\Domain\Analytics\Models\DailyPlatformStat;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Commerce\Enums\RefundStatus;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Commerce\Models\OrderItem;
 use App\Domain\Commerce\Models\OrderItemAllocation;
+use App\Domain\Commerce\Models\Refund;
+use App\Domain\Commerce\Models\RefundLine;
+use App\Domain\Commerce\Models\RefundLineAllocation;
 use App\Domain\Identity\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Builds one UTC day of every daily rollup.
@@ -176,7 +181,16 @@ final class BuildDailyRollups
                 ->where('paid_at', '>=', $from)
                 ->where('paid_at', '<', $to)
                 ->where('currency', $currency)
-                ->sum('total_minor'),
+                ->sum('total_minor')
+                // NET: less the refunds COMPLETED today — never taken off the
+                // day of the sale, so an old report never changes. Can go
+                // below zero on a quiet day; the column is signed for that.
+                - (int) Refund::query()
+                    ->where('status', RefundStatus::Completed)
+                    ->where('completed_at', '>=', $from)
+                    ->where('completed_at', '<', $to)
+                    ->where('currency', $currency)
+                    ->sum('amount_minor'),
             'download_revenue_minor' => $this->downloadRevenue($from, $to, $currency),
             'currency' => $currency,
             'active_learners' => $active,
@@ -198,7 +212,64 @@ final class BuildDailyRollups
             ->where('orders.paid_at', '>=', $from)
             ->where('orders.paid_at', '<', $to)
             ->where('orders.currency', $currency)
-            ->sum('order_items.total_minor');
+            ->sum('order_items.total_minor')
+            - (int) $this->refundedLines($from, $to, $currency)
+                ->where('order_items.purchasable_type', 'download')
+                ->sum('refund_lines.amount_minor');
+    }
+
+    /**
+     * Refund lines COMPLETED in the window, joined to the order line they gave
+     * back from — narrowed by the caller to a kind of line.
+     *
+     * @return Builder<RefundLine>
+     */
+    private function refundedLines(CarbonImmutable $from, CarbonImmutable $to, string $currency): Builder
+    {
+        return RefundLine::query()
+            ->join('refunds', 'refunds.id', '=', 'refund_lines.refund_id')
+            ->join('order_items', 'order_items.id', '=', 'refund_lines.order_item_id')
+            ->where('refunds.status', RefundStatus::Completed)
+            ->where('refunds.completed_at', '>=', $from)
+            ->where('refunds.completed_at', '<', $to)
+            ->where('refunds.currency', $currency);
+    }
+
+    /**
+     * What each course gave back today: its own lines, and its share of any
+     * refunded bundle line — the two halves `courseRevenue()` adds up, taken
+     * away the same two ways, so courses + downloads still equal the platform.
+     *
+     * @return array<int, int> course id => minor units
+     */
+    private function refundedCourseRevenue(CarbonImmutable $from, CarbonImmutable $to, string $currency): array
+    {
+        $map = [];
+
+        $direct = $this->refundedLines($from, $to, $currency)
+            ->where('order_items.purchasable_type', (new Course)->getMorphClass())
+            ->groupBy('order_items.purchasable_id')
+            ->selectRaw('order_items.purchasable_id as course_id, SUM(refund_lines.amount_minor) as refunded')
+            ->toBase()
+            ->get();
+
+        $bundled = RefundLineAllocation::query()
+            ->join('refund_lines', 'refund_lines.id', '=', 'refund_line_allocations.refund_line_id')
+            ->join('refunds', 'refunds.id', '=', 'refund_lines.refund_id')
+            ->where('refunds.status', RefundStatus::Completed)
+            ->where('refunds.completed_at', '>=', $from)
+            ->where('refunds.completed_at', '<', $to)
+            ->where('refunds.currency', $currency)
+            ->groupBy('refund_line_allocations.course_id')
+            ->selectRaw('refund_line_allocations.course_id as course_id, SUM(refund_line_allocations.amount_minor) as refunded')
+            ->toBase()
+            ->get();
+
+        foreach ([...$direct, ...$bundled] as $row) {
+            $map[(int) $row->course_id] = ($map[(int) $row->course_id] ?? 0) + (int) $row->refunded;
+        }
+
+        return $map;
     }
 
     private function instructor(CarbonImmutable $date, string $currency): void
@@ -276,6 +347,11 @@ final class BuildDailyRollups
          */
         foreach ($this->allocatedBundleRevenue($from, $to, $currency) as $courseId => $amount) {
             $map[$courseId] = ($map[$courseId] ?? 0) + $amount;
+        }
+
+        // Refunds come off on the day they completed, the same two ways.
+        foreach ($this->refundedCourseRevenue($from, $to, $currency) as $courseId => $amount) {
+            $map[$courseId] = ($map[$courseId] ?? 0) - $amount;
         }
 
         return $map;

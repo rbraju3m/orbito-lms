@@ -41,7 +41,7 @@ final class OrderController
     {
         Gate::authorize('view', $order);
 
-        return ApiResponse::ok(OrderResource::make($order->load('items')));
+        return ApiResponse::ok(OrderResource::make($order->load(['items', 'refunds' => fn ($query) => $query->latest('id')])));
     }
 
     private function perPage(Request $request): int

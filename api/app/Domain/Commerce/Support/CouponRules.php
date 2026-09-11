@@ -212,7 +212,8 @@ final class CouponRules
             ->where('coupon_id', $this->coupon->id)
             ->whereHas('order', fn (Builder $order) => $order->where(
                 fn (Builder $q) => $q
-                    ->where('status', OrderStatus::Paid)
+                    // A sale — a fully REFUNDED order gives its use back.
+                    ->whereIn('status', OrderStatus::sales())
                     ->orWhere(fn (Builder $pending) => $pending
                         ->whereIn('status', [OrderStatus::Pending, OrderStatus::AwaitingPayment])
                         ->where('placed_at', '>=', $window)),

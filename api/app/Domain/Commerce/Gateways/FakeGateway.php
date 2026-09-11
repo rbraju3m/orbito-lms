@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Domain\Commerce\Gateways;
 
 use App\Domain\Commerce\Data\GatewayHandoff;
+use App\Domain\Commerce\Data\GatewayRefund;
 use App\Domain\Commerce\Data\WebhookEvent;
+use App\Domain\Commerce\Exceptions\GatewayUnavailable;
 use App\Domain\Commerce\Exceptions\WebhookRejected;
 use App\Domain\Commerce\Models\Order;
+use App\Domain\Commerce\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -33,6 +36,20 @@ final class FakeGateway implements PaymentGateway
             externalId: 'fake_'.Str::lower(Str::random(24)),
             redirectUrl: null,
         );
+    }
+
+    /**
+     * Settles at once. `refund_behaviour` in the account's credentials makes it
+     * refuse (`fail`) or accept without settling (`pending`), so tests can walk
+     * the paths a real provider takes.
+     */
+    public function refund(Payment $payment, int $amountMinor, string $idempotencyKey, GatewayAccount $account): GatewayRefund
+    {
+        return match ($account->credential('refund_behaviour')) {
+            'fail' => throw GatewayUnavailable::requestFailed('fake', 'The refund was declined.'),
+            'pending' => new GatewayRefund(externalId: 'fake_re_'.Str::lower(Str::random(24)), settled: false),
+            default => new GatewayRefund(externalId: 'fake_re_'.Str::lower(Str::random(24)), settled: true),
+        };
     }
 
     public function verifyWebhook(Request $request, GatewayAccount $account): WebhookEvent

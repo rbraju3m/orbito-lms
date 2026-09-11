@@ -392,7 +392,13 @@ lesson_notes(id, user_id, course_item_id, course_id, body TEXT,
 > needs a lock this phase does not otherwise want).
 >
 > Not built: `customers`, `currencies`, `exchange_rates`, tax, invoices,
-> refunds, earnings, payouts, `idempotency_keys`.
+> earnings, payouts, `idempotency_keys`.
+>
+> **Refunds are built (P16)** — see `REFUNDS.md`: `refunds`, plus
+> `refund_lines` and `refund_line_allocations` (the refund split across lines
+> and bundle courses, the mirror of `order_item_allocations`), and
+> `orders.refunded_minor`. `revokes_access` is set only on the refund that
+> empties an order.
 >
 > **Coupons are built (P16), narrower than sketched below** — see
 > `COUPONS.md`. No `type` (code-entered only), no `used_count` and no stored

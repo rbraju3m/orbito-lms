@@ -14,6 +14,7 @@ use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\Download;
 use App\Domain\Certification\Events\CertificateIssued;
 use App\Domain\Commerce\Events\PaymentCaptured;
+use App\Domain\Commerce\Events\RefundIssued;
 use App\Domain\Commerce\Models\OrderItem;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Engagement\Events\ReviewPublished;
@@ -175,6 +176,33 @@ final class SendWebhooks
                 'learner' => $this->learner($order->user_id),
             ];
         });
+    }
+
+    public function refundIssued(RefundIssued $event): void
+    {
+        $refund = $event->refund;
+        $order = $event->order;
+
+        $this->queue->handle(WebhookTopic::RefundIssued, fn (): array => [
+            'refund' => [
+                'id' => $refund->uuid,
+                'amount_minor' => $refund->amount_minor,
+                'currency' => $refund->currency,
+                'method' => $refund->method->value,
+                'reason' => $refund->reason,
+                'completed_at' => $refund->completed_at?->toIso8601String(),
+            ],
+            'order' => [
+                'id' => $order->uuid,
+                'number' => $order->number,
+                'total_minor' => $order->total_minor,
+                'refunded_minor' => $order->refunded_minor,
+                'status' => $order->status->value,
+            ],
+            'fully_refunded' => $event->fullyRefunded,
+            'access_revoked' => $event->fullyRefunded && $refund->revokes_access,
+            'learner' => $this->learner($order->user_id),
+        ]);
     }
 
     public function certificateIssued(CertificateIssued $event): void

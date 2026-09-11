@@ -58,7 +58,7 @@ anybody running Orbito alone.
 
 ```bash
 cd api && php artisan serve      # API        http://localhost:8000
-cd api && php artisan horizon    # queues: mail, certificates, notifications, analytics
+cd api && php artisan horizon    # queues: mail, certificates, notifications, analytics, webhooks
 cd web && npm run dev            # frontend   http://localhost:5173
 ```
 
@@ -102,6 +102,8 @@ one academy, so plain `/register` has nowhere to put it.
 | Signed in, screens empty, `no_academy_selected` | A platform operator inside no academy. Pick one at `/platform/academies` and enter it |
 | Owner account missing | `php artisan orbito:ensure-owner` recreates and repairs it |
 | Emails, certificates or notifications never arrive | Horizon is not running |
+| Webhook deliveries stay *Pending* | Horizon is not running — every delivery is a queued job |
+| After pulling: a 500 naming a missing table or column (`refunds`, `coupon_id`, `webhook_endpoints`…) | New tenant migrations — `cd api && php artisan tenants:migrate` |
 
 **CSRF token mismatch when you also run another Laravel app locally.** Cookies
 belong to a HOST, not a port, and every Laravel app names its CSRF cookie

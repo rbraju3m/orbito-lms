@@ -9,11 +9,11 @@ A production-grade, API-first Learning Management System.
 
 **Status: Phases 0–15 complete**, front and back, plus a multi-tenancy
 retrofit — one database per academy. **Phase 16 is under way**: plan limits,
-course pricing, bundles, digital downloads and per-collection upload
-permissions have shipped.
+course pricing, bundles, digital downloads, upload permissions and volume
+limits, outbound webhooks, coupons and refunds have shipped.
 [`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
 
-1,164 backend tests / 3,970 assertions · 279 frontend tests · PHPStan level 6.
+1,320 backend tests / 4,845 assertions · 318 frontend tests · PHPStan level 6.
 
 An instructor can build and publish a course with lessons, resources, quizzes,
 assignments and live sessions, price it, schedule cohorts, announce things,
@@ -32,7 +32,10 @@ inside any of them to use its own screens. Each academy decides whether anyone
 may sign up, and hands out its own signup link.
 
 An academy admin sees its usage against its plan, prices courses, and sells
-bundles of courses and digital downloads alongside them.
+bundles of courses and digital downloads alongside them. It hands out coupon
+codes — scoped, limited, and split across the order so revenue still adds up —
+refunds orders, all of it or part, and tells its other systems what happens in
+it through signed, retried webhooks.
 
 **Two integrations are written and unproven, and need credentials rather than
 code:** `StripeGateway` has never contacted Stripe (commerce is complete and
@@ -40,8 +43,9 @@ tested against a fake gateway; no real money has moved), and the Zoom and
 Google Meet providers have never contacted either service (the manual
 provider — paste a link — works and is tested).
 
-**Next:** Phase 16 — subscriptions, bundles, downloads, the blog and page
-builder, multilingual and RTL, plan-limit enforcement, outbound webhooks.
+**Next:** one real Stripe sandbox payment, which is what signs off the MVP —
+then the rest of Phase 16: subscriptions and memberships, coaching, the blog
+and page builder, multilingual and RTL.
 
 ---
 

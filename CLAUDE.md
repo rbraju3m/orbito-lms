@@ -106,11 +106,11 @@ app/
 Bounded contexts: `Identity`, `Catalog`, `Curriculum`, `Assessment`, `Enrollment`,
 `Progress`, `Commerce`, `Certification`, `Engagement`, `Gamification`, `Analytics`,
 `Media`, `Live`, `Content`, `Notification`, `AI`, plus `Platform` (plan-limit
-usage counters, which every other context increments).
+usage counters, which every other context increments) and `Webhook` (outbound
+integrations, ADR-12 — listeners only, on the event catalogue).
 
-Filled in so far: `Identity`, `Catalog`, `Curriculum`, `Enrollment`, `Progress`,
-`Assessment`, `Media`, `Platform`. The rest are empty placeholders so the shape
-of the system is visible before it is built.
+Every context is filled in except `Content` and `AI`, which stay empty
+placeholders so the shape of the system is visible before they are built.
 
 ### Rules
 - A controller method is at most ~20 lines: authorize → validate → call Action → return Resource.
@@ -722,6 +722,22 @@ Gate::authorize('publish', $course);                   // in a controller
   believe the client about money; a free order has none to believe. It
   completes at checkout through `GrantOrderAccess`, the same delivery a
   captured payment uses, and fires no `PaymentCaptured` — nothing was.
+- **Split a refund by what each line has LEFT, not by what it cost.** After
+  one partial refund the lines no longer hold money in their original
+  proportions; weighting by the original would one day refund a line past
+  what it has. By what is left (`RefundSplit`), a run of partials lands on
+  exactly zero on every line and every bundle course.
+- **Take money off a report on the day it MOVED.** A refund comes off revenue
+  on the day it completed, never the day of the sale, so an old report never
+  changes. That makes a day's revenue net — and a quiet day with a refund
+  negative, so the rollup columns are signed.
+- **Revoke exactly what one source granted.** `RevokeOrderAccess` keys on the
+  enrolment's `source_id`; a seat an admin gave, or a course the learner
+  already had when a bundle's overlap was delivered, is never touched.
+- **Never name a FormRequest accessor after a Request method.**
+  `RefundOrderRequest::method()` silently replaced `Request::method()` — the
+  HTTP verb — for anything reading it off that request. PHPStan's
+  `method.childReturnType` caught it; it is now `refundMethod()`.
 - **Retry state belongs on the row, not the queue.** `DeliverWebhook` counts
   `attempts` in the database and `release()`s, which the sync test queue
   ignores; tests drive each retry by running the job again. The alternative —
@@ -809,9 +825,9 @@ so the action that fixes a lapse survives it.
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, digital downloads, upload
-permissions, upload volume limits, outbound webhooks and coupons**
-(§ Patterns established in Phase 16).
-1,302 backend tests / 4,750 assertions · 314 frontend tests.
+permissions, upload volume limits, outbound webhooks, coupons and
+refunds** (§ Patterns established in Phase 16).
+1,320 backend tests / 4,845 assertions · 318 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -835,9 +851,9 @@ done — bundles closed a Phase 10 hole on the way (nothing could set a price),
 downloads fixed two bugs bundles shipped, uploads closed a hole downloads
 found, and volume limits closed the rest of it (§ Patterns established in
 Phase 16), and a nightly sweep now deletes the submission uploads nothing
-used. **Outbound webhooks** (`docs/WEBHOOKS.md`) and **coupons**
-(`docs/COUPONS.md`) are done too. Also ahead: refunds — which must decide
-whether a refunded order's coupon use still counts — subscriptions and memberships (after the Stripe test), coaching, blog,
+used. **Outbound webhooks**, **coupons** and **refunds** are done too
+(`docs/WEBHOOKS.md`, `COUPONS.md`, `REFUNDS.md`). Also ahead: provider refund
+webhooks — a refund made in Stripe's dashboard is invisible until recorded — subscriptions and memberships (after the Stripe test), coaching, blog,
 page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
@@ -954,6 +970,11 @@ Every one of these has already cost time at least once.
   `MediaCollection::sweptWhenUnused()` for them; the other order deletes every
   profile picture two days after it is uploaded. Nobody can delete a
   handed-in file either, admins included; moderation will one day need that.
+- **Refunds have no provider webhooks.** A refund made in Stripe's dashboard
+  is invisible until an admin records it as `external`, and a gateway refund
+  Stripe reports `pending` stays pending. A `charge.refunded` handler that
+  arrives at `CompleteRefund` is the fix. A refund is an amount, split
+  proportionally — refunding one chosen line is its own slice.
 - **Webhooks: no secret overlap on rotation**, no notification when an
   endpoint switches itself off, and `enrollment.expired` has no end-to-end
   test — it fires from the sweeper, where the harness cannot observe

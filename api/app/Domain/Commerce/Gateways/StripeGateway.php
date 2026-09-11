@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Domain\Commerce\Gateways;
 
 use App\Domain\Commerce\Data\GatewayHandoff;
+use App\Domain\Commerce\Data\GatewayRefund;
 use App\Domain\Commerce\Data\WebhookEvent;
 use App\Domain\Commerce\Exceptions\GatewayUnavailable;
 use App\Domain\Commerce\Exceptions\WebhookRejected;
 use App\Domain\Commerce\Models\Order;
+use App\Domain\Commerce\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -64,6 +66,43 @@ final class StripeGateway implements PaymentGateway
             externalId: (string) $response->json('id'),
             // Stripe Elements takes a client secret, not a redirect.
             clientSecret: (string) $response->json('client_secret'),
+        );
+    }
+
+    /**
+     * ⚠ NOT VERIFIED AGAINST A REAL SANDBOX — the same caveat as the rest of
+     * this class. `POST /v1/refunds` against the payment intent the handoff
+     * created. Stripe reports `succeeded` for most card refunds and `pending`
+     * for some methods; a pending one waits on a refund webhook this system
+     * does not handle yet (docs/REFUNDS.md §6).
+     */
+    public function refund(Payment $payment, int $amountMinor, string $idempotencyKey, GatewayAccount $account): GatewayRefund
+    {
+        $secretKey = $account->credential('secret_key');
+
+        if ($secretKey === '' || $payment->external_id === null) {
+            throw GatewayUnavailable::notConfigured('stripe');
+        }
+
+        $response = Http::withToken($secretKey)
+            ->asForm()
+            // Stripe's own idempotency: the same key twice is one refund.
+            ->withHeaders(['Idempotency-Key' => $idempotencyKey])
+            ->post(self::API.'/refunds', [
+                'payment_intent' => $payment->external_id,
+                'amount' => $amountMinor,
+            ]);
+
+        if ($response->failed()) {
+            throw GatewayUnavailable::requestFailed(
+                'stripe',
+                (string) $response->json('error.message', 'Unknown error'),
+            );
+        }
+
+        return new GatewayRefund(
+            externalId: (string) $response->json('id'),
+            settled: $response->json('status') === 'succeeded',
         );
     }
 

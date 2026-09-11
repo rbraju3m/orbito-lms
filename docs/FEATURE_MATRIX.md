@@ -270,7 +270,7 @@ reads yet.
 | J5 | Orders + order items with price snapshot | Core | Yes | **P10 · M** | Title and price frozen per line at checkout |
 | J6 | Payments table + gateway events | Partial | Yes | **P10 · M** | Unique `(gateway, external_id)` makes a replay a no-op |
 | J7 | Server-side payment verification / webhooks | Core | Yes | **P10 · M ⚠** | The only unauthenticated write in the system; each omitted middleware is load-bearing |
-| J8 | Refunds (full + partial) | Core | Yes | P16 | Deferred: the MVP needed one money path proven, not a refund engine |
+| J8 | Refunds (full + partial) | Core | Yes | **P16 ✅** | Through the gateway, or recorded when made elsewhere; partial by amount. A full refund revokes what the order granted (opt-out for goodwill). Revenue is net of refunds on the day they complete. See REFUNDS.md |
 | J9 | Coupons (code + automatic, scoped, limits) | Core | Yes | **P16 ✅** (codes) | Percent or fixed; everything or chosen products; total and per-person limits, a window, a minimum spend. Automatic discounts not built. See COUPONS.md and the note below |
 | J10 | Tax rules by country/state | Core | Yes | P10 | |
 | J11 | Invoices (PDF, sequential numbering) | Pro | Yes | P10 | |
@@ -381,7 +381,7 @@ still agree to the minor unit. `CouponRevenueTest` asserts it.
 | Q2 | Consistent error envelope | — | n/a | **P2 · M** | |
 | Q3 | Pagination contract (offset + cursor) | Partial | n/a | **P2 · M** | |
 | Q4 | Mobile-ready token auth | Pro | Yes | **P3 · M** | |
-| Q5 | Webhooks out (integrations) | — | Yes | **P16 · done** | 15 topics, each one event from the catalogue — no new vocabulary (ADR-12). Signed, retried, logged; see WEBHOOKS.md |
+| Q5 | Webhooks out (integrations) | — | Yes | **P16 · done** | 16 topics, each one event from the catalogue — no new vocabulary (ADR-12). Signed, retried, logged; see WEBHOOKS.md |
 | Q6 | Rate limiting | WP-level | Yes | **P2 · M** | |
 | Q7 | Queues + scheduler | WP-Cron + custom table | n/a | **P2 · M** | Redis + Horizon |
 | Q8 | Redis caching | Object cache | n/a | **P2 · M** | |

@@ -129,5 +129,6 @@ per line; an order gains `coupon_code` and a `discount_minor` per line.
 ## 8. Not built
 
 Automatic discounts; more than one coupon per order; coupons scoped by
-category; refunds — so a refunded order's redemption still counts once refunds
-exist, which is the question that slice will have to answer.
+category. Refunds, since built, settled the open question: a FULLY refunded
+order is no longer a sale and gives its use back; a partly refunded one keeps
+it (REFUNDS.md §5).

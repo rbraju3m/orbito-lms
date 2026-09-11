@@ -15,9 +15,9 @@ any event is readable in one place.
 
 ## 1. What exists today
 
-Thirty-nine events across thirteen contexts. The catalogue has not grown since
-Phase 15, which is itself worth reading: see §4 for the operator actions that
-deliberately fire nothing yet.
+Fifty events across thirteen contexts. Phase 16 added the bundle, download and
+pricing events and `RefundIssued` — each with a consumer the day it landed. See
+§4 for the operator actions that deliberately fire nothing yet.
 
 ### Identity
 
@@ -142,10 +142,12 @@ gradebook (P13) should be able to treat both alike.
 | Event | Payload | Fired when |
 |---|---|---|
 | `PaymentCaptured` | `Payment $payment`, `Order $order` | money is confirmed by the GATEWAY, never by the client |
+| `RefundIssued` | `Refund $refund`, `Order $order`, `bool $fullyRefunded` | a refund COMPLETED — money is back with the learner (P16) |
 
-`OrderPlaced` and `RefundIssued` are named in §4 and not built. Nothing
-listens for either yet; Phase 13's analytics is the first thing that will,
-and it should add them rather than reach into the Actions.
+`RefundIssued` was named in §4 from Phase 10 and built with its first
+consumer, the `refund.issued` webhook. Revenue reporting does not listen: money
+comes from the ledger (`refunds`), never from an event. `OrderPlaced` is still
+named and not built.
 
 **An order a coupon makes free fires no `PaymentCaptured`** (P16,
 `CompleteFreeOrder`). Nothing was captured, and its two listeners — revenue
@@ -269,7 +271,7 @@ because starting again is worth knowing too.
 | `StreakExtended` | `EvaluateBadges@streak` | Gamification | **yes** |
 | `BadgeAwarded` | `NotifyOnBadgeAwarded` | Notification | **yes** |
 | `AttendanceRecorded` | `CompleteItemOnAttendance` | Live | **yes** |
-| the 15 events in `EventServiceProvider::$webhooks` | `SendWebhooks@<method>` | Webhook | payload built inline; **the HTTP is queued** (`DeliverWebhook`) |
+| the 16 events in `EventServiceProvider::$webhooks` | `SendWebhooks@<method>` | Webhook | payload built inline; **the HTTP is queued** (`DeliverWebhook`) |
 
 `RecountEnrollmentTotals` was the first `ShouldQueue` listener: adding one
 lesson changes the denominator for every enrolled learner, and ten thousand
@@ -345,7 +347,7 @@ vocabulary for the same fact.
 | Event | Context | Phase |
 |---|---|---|
 | ~~`EnrollmentExpired`, `EnrollmentSuspended`, `EnrollmentRevoked`~~ | Enrollment | **shipped P9**, with `EnrollmentReinstated` and `EnrollmentExtended` |
-| `PaymentCaptured` shipped P10; `OrderPlaced` / `RefundIssued` not built | Commerce | — |
+| `PaymentCaptured` shipped P10, `RefundIssued` P16; `OrderPlaced` not built | Commerce | — |
 | `CertificateIssued` shipped P11; `CertificateRevoked` not built | Certification | — |
 | ~~`ReviewPublished`, `QuestionAsked`, `QuestionAnswered`~~ | Engagement | **shipped P12** as `ReviewChanged`, `QuestionAsked`, `DiscussionReplied`, `AnnouncementPublished`; `ReviewPublished` and `AnswerAccepted` followed in P14 |
 | ~~`BadgeAwarded`, `StreakExtended`~~ | Gamification | **shipped P14**, with `PointsAwarded` |
@@ -359,7 +361,7 @@ oversight: see the row above.
 
 **Outbound webhooks (ADR-12) are built on exactly this catalogue.** A webhook
 is one more listener, which is the whole reason extension does not need a
-plugin loader. Fifteen events are offered as topics, each under a dotted
+plugin loader. Sixteen events are offered as topics, each under a dotted
 public name (`CourseEnrolled` → `enrollment.created`); they have their own map
 in `EventServiceProvider` because every entry there sends data to a third
 party. The payload is built inline — a frozen message about the moment the
