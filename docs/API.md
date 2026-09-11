@@ -528,7 +528,8 @@ POST   /cart/items                              {product_id} (uuid)
 DELETE /cart/items/{cartItem}                   404 for a line that is not yours
 DELETE /cart                                    empties without deleting the basket
 POST   /checkout                                → order, priced by the SERVER; a zero total is paid at once
-POST   /orders/{order}/pay                      {gateway} → {redirect_url|client_secret}
+POST   /orders/{order}/pay                      {gateway} → {redirect_url} — Stripe: its hosted
+                                                Checkout page, payable for the coupon hold
 GET    /orders                                  own orders, or all with `order.view.any`
 GET    /orders/{order}
 POST   /webhooks/payments/{gateway}/{tenant}    unauthenticated · signature-verified · idempotent;

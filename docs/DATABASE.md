@@ -447,10 +447,13 @@ customers(id, user_id NULL, email, first_name, last_name, phone,
       INDEX (user_id), INDEX (email)
 
 payments(id, uuid, order_id, gateway VARCHAR(50),
-      external_id VARCHAR(191), status ENUM(initiated,pending,captured,failed,cancelled),
+      external_id VARCHAR(191),               -- the handoff: a Stripe Checkout Session
+      provider_payment_id VARCHAR(191) NULL,  -- the money: its PaymentIntent, set at capture
+      status ENUM(initiated,pending,captured,failed,cancelled),
       currency CHAR(3), amount_minor, fee_minor,
       initiated_at, captured_at, failed_at, failure_reason)
       UNIQUE (gateway, external_id)
+      UNIQUE (gateway, provider_payment_id)   -- refunds and refund events name it
       INDEX (order_id, status)
 
 payment_events(id, payment_id NULL, gateway, external_event_id VARCHAR(191),

@@ -36,8 +36,24 @@ final class CapturePayment
          * authorisation, a tampered test call, a currency mix-up — must not
          * grant access. Nothing here trusts the payload for the FIGURE; it
          * compares it against what we priced, after any coupon.
+         *
+         * An ABSENT figure fails too. A gateway that reports none — or a field
+         * read from the wrong place, as a Checkout Session's `amount_total`
+         * nearly was — must not read as "nothing to check".
          */
-        if ($event->amountMinor !== null && $event->amountMinor < $order->total_minor) {
+        if ($event->amountMinor === null || $event->currency === null) {
+            $payment->forceFill([
+                'status' => PaymentStatus::Failed,
+                'failed_at' => now(),
+                'failure_reason' => 'The gateway did not report the amount and currency it captured.',
+            ])->save();
+
+            Log::warning('Payment reported captured with no amount or currency.', ['order' => $order->uuid]);
+
+            return $payment->refresh();
+        }
+
+        if ($event->amountMinor < $order->total_minor) {
             $payment->forceFill([
                 'status' => PaymentStatus::Failed,
                 'failed_at' => now(),
@@ -53,7 +69,7 @@ final class CapturePayment
             return $payment->refresh();
         }
 
-        if ($event->currency !== null && $event->currency !== strtoupper($order->currency)) {
+        if ($event->currency !== strtoupper($order->currency)) {
             $payment->forceFill([
                 'status' => PaymentStatus::Failed,
                 'failed_at' => now(),
@@ -66,6 +82,9 @@ final class CapturePayment
         $payment->forceFill([
             'status' => PaymentStatus::Captured,
             'captured_at' => now(),
+            // The money behind the handoff, when they differ — a Stripe
+            // Checkout Session's PaymentIntent, which refunds name.
+            'provider_payment_id' => $event->providerPaymentId ?? $payment->provider_payment_id,
         ])->save();
 
         $order->forceFill([

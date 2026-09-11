@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
  * @property string $uuid
  * @property Gateway $gateway
  * @property string|null $external_id
+ * @property string|null $provider_payment_id
  * @property PaymentStatus $status
  * @property int $amount_minor
  * @property string $currency
@@ -28,7 +29,7 @@ use Illuminate\Support\Str;
 final class Payment extends Model
 {
     protected $fillable = [
-        'order_id', 'gateway', 'external_id', 'status',
+        'order_id', 'gateway', 'external_id', 'provider_payment_id', 'status',
         'currency', 'amount_minor',
         'initiated_at', 'captured_at', 'failed_at', 'failure_reason',
     ];

@@ -1383,6 +1383,23 @@ through the gateway or recorded when made elsewhere. Reference:
 - **Still open:** refunding a single chosen line, credit notes with invoices,
   and a screen for refund reports left for a person.
 
+**Stripe Checkout — done.** A learner pays on Stripe's hosted page: the
+handoff is a Checkout Session carrying ONE line at the order's own total, so
+Stripe reprices nothing, payable for the coupon reservation window and no
+longer. Only a paid session grants — `checkout.session.completed` with
+`payment_status: paid`, or `async_payment_succeeded` for a bank debit — and
+`async_payment_failed` and `expired` fail the payment while the order stays
+payable. The session id stays the handoff id; the PaymentIntent behind it is
+stored at capture (`payments.provider_payment_id`) because refunds and refund
+events name it.
+
+- **Found on the way:** a session reports `amount_total`, not `amount`, and
+  `CapturePayment` skipped its amount check when the figure was null — so a
+  session would have captured unchecked. It now refuses a capture with no
+  amount.
+- **Still unproven:** no request has reached Stripe. The sandbox payment in
+  `RUNNING.md` is the test.
+
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL.
 

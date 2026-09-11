@@ -110,7 +110,7 @@ dashboard for this.
 
    ```bash
    stripe listen \
-     --events payment_intent.succeeded,payment_intent.payment_failed,refund.created,refund.updated,refund.failed \
+     --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,refund.created,refund.updated,refund.failed \
      --forward-to <the Stripe webhook URL>
    ```
 
@@ -118,24 +118,13 @@ dashboard for this.
    **Webhook signing secret** on the Stripe card (the key box can stay empty —
    an empty box keeps what is saved). It does not change between runs of
    `stripe listen`, so this is once per machine.
-4. **Order.** Sign in as `student@orbito.test`, buy a priced course, and on the
-   order page pick **Stripe** under **Pay with**, then **Pay now**. The order
-   stays *awaiting payment*.
-5. **Pay.** ⚠ There is no card form yet: Stripe's handoff returns a client
-   secret for Stripe Elements, and the SPA does not load Elements. Stand in for
-   the learner by confirming the payment yourself. The new PaymentIntent is in
-   the sandbox's **Payments** list as *Incomplete*, with an id starting `pi_`:
-
-   ```bash
-   curl https://api.stripe.com/v1/payment_intents/pi_…/confirm \
-     -u "sk_test_…:" \
-     -d payment_method=pm_card_visa \
-     --data-urlencode "return_url=https://example.com"
-   ```
-
-   `stripe listen` shows `payment_intent.succeeded` forwarded with a `200`, the
-   order turns *paid*, and the course opens for the student.
-6. **Refund it in Stripe.** Open the payment in the sandbox's **Payments** list
+4. **Pay.** Sign in as `student@orbito.test`, buy a priced course, and on the
+   order page pick **Stripe** under **Pay with**, then **Pay now**. Stripe's
+   hosted Checkout page opens: pay with `4242 4242 4242 4242`, any future
+   expiry and any CVC. Stripe sends you back to the order, which turns *paid*
+   on its own once `stripe listen` shows `checkout.session.completed`
+   forwarded with a `200` — and the course opens for the student.
+5. **Refund it in Stripe.** Open the payment in the sandbox's **Payments** list
    and refund it — all of it or part. `stripe listen` forwards `refund.created`
    (and `refund.updated`, if it settles later); the refund appears on the order
    at `/orders/:id` as *Refunded through Stripe*, and a full one takes the
@@ -204,5 +193,6 @@ on **Payments**; the platform is never the merchant.
 Sandbox and live are separate everywhere — their own keys, their own
 endpoint, their own signing secret — so going live is all three again with
 live values, and **Test mode** off. The endpoint must be public HTTPS; Stripe
-delivers to nothing else. Until the card form exists (above), a learner
-cannot pay through Stripe from the browser.
+delivers to nothing else. A Checkout page stays payable for the coupon
+reservation window (`COUPON_RESERVATION_MINUTES`, 60 by default, never under
+31), so keep that at 31 or more.

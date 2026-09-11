@@ -745,6 +745,12 @@ Gate::authorize('publish', $course);                   // in a controller
   the request — the instinct of `order_uuid` on the handoff. And only a
   terminal report moves a pending row: events arrive in any order, so a late
   `pending` is stale, not a reversal.
+- **A completed checkout is not a payment.** `checkout.session.completed`
+  arrives for a bank debit before the money does; grant on `payment_status:
+  paid` or `async_payment_succeeded` (`WebhookEvent::$settled`), never on the
+  event's name. And an ABSENT figure is not a passing one: a session reports
+  `amount_total`, and reading `amount` would have handed `CapturePayment` a
+  null — which it now refuses rather than treating as nothing to check.
 - **Retry state belongs on the row, not the queue.** `DeliverWebhook` counts
   `attempts` in the database and `release()`s, which the sync test queue
   ignores; tests drive each retry by running the job again. The alternative —
@@ -832,9 +838,10 @@ so the action that fixes a lapse survives it.
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, digital downloads, upload
-permissions, upload volume limits, outbound webhooks, coupons, refunds
-and provider refund webhooks** (§ Patterns established in Phase 16).
-1,350 backend tests / 4,978 assertions · 320 frontend tests.
+permissions, upload volume limits, outbound webhooks, coupons, refunds,
+provider refund webhooks and Stripe Checkout** (§ Patterns established in
+Phase 16).
+1,359 backend tests / 5,012 assertions · 320 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -845,13 +852,11 @@ touching anything.
 **1. One Stripe sandbox payment.** Every MVP phase has shipped, but the MVP is
 not signed off: its own definition (`docs/ROADMAP.md` §3) says a student "buys
 it with a real verified payment", and `StripeGateway` has never contacted
-Stripe. Commerce is complete and tested against `FakeGateway`. It needs
-credentials AND a card form: the handoff returns a client secret for Stripe
-Elements, the SPA never loads Elements, so a learner has nowhere to type a
-card (`docs/RUNNING.md` confirms one from a terminal meanwhile). Stripe
-Checkout — a redirect `OrderDetailRoute` already follows, no JS on first
-paint — is the recommended slice. Until 5837bc8 a key saved from the Payments
-screen was never read either; the screen now also shows the webhook URL.
+Stripe. Commerce is complete and tested against `FakeGateway`, and a learner
+now pays on Stripe's hosted Checkout page — so this finally needs
+credentials, not code: `docs/RUNNING.md` walks a sandbox payment and a
+dashboard refund end to end. Until 5837bc8 a key saved from the Payments
+screen was never read, and until Checkout there was nowhere to type a card.
 
 **2. Zoom / Google Meet, likewise.** Both providers are written and have never
 been called. `ManualProvider` works and is what most academies will use.
@@ -864,8 +869,8 @@ found, and volume limits closed the rest of it (§ Patterns established in
 Phase 16), and a nightly sweep now deletes the submission uploads nothing
 used. **Outbound webhooks**, **coupons** and **refunds** are done too
 (`docs/WEBHOOKS.md`, `COUPONS.md`, `REFUNDS.md`), and Stripe's refund events
-now reach the books (`REFUNDS.md` §6). Also ahead: a Stripe card form (Stripe
-Checkout), subscriptions and memberships (after the Stripe test), coaching, blog,
+now reach the books (`REFUNDS.md` §6), and a learner pays on Stripe's hosted
+Checkout page. Also ahead: subscriptions and memberships (after the Stripe test), coaching, blog,
 page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and

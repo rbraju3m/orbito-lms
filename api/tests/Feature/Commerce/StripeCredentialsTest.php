@@ -75,23 +75,26 @@ function stripeOrder(User $student, Product $product): Order
 
 it('checks out through Stripe with the key the Payments screen saved', function (): void {
     Http::fake([
-        'api.stripe.com/v1/payment_intents' => Http::response([
-            'id' => 'pi_from_stripe',
-            'client_secret' => 'pi_from_stripe_secret_abc',
+        'api.stripe.com/v1/checkout/sessions' => Http::response([
+            'id' => 'cs_from_stripe',
+            'url' => 'https://checkout.stripe.com/c/pay/cs_from_stripe',
         ]),
     ]);
 
     $handoff = app(InitiatePayment::class)->handle(stripeOrder($this->student, $this->product), Gateway::Stripe);
 
-    expect($handoff->externalId)->toBe('pi_from_stripe');
+    expect($handoff->externalId)->toBe('cs_from_stripe');
 
-    Http::assertSent(fn (HttpRequest $request): bool => $request->url() === 'https://api.stripe.com/v1/payment_intents'
+    Http::assertSent(fn (HttpRequest $request): bool => $request->url() === 'https://api.stripe.com/v1/checkout/sessions'
         && $request->hasHeader('Authorization', 'Bearer '.STRIPE_KEY));
 });
 
 it('refunds through Stripe with the same key', function (): void {
     Http::fake([
-        'api.stripe.com/v1/payment_intents' => Http::response(['id' => 'pi_to_refund', 'client_secret' => 'x']),
+        'api.stripe.com/v1/checkout/sessions' => Http::response([
+            'id' => 'cs_to_refund',
+            'url' => 'https://checkout.stripe.com/c/pay/cs_to_refund',
+        ]),
         'api.stripe.com/v1/refunds' => Http::response(['id' => 're_from_stripe', 'status' => 'succeeded']),
     ]);
 
@@ -101,11 +104,12 @@ it('refunds through Stripe with the same key', function (): void {
     $payment = Payment::where('order_id', $order->id)->firstOrFail();
     app(CapturePayment::class)->handle($payment, new WebhookEvent(
         id: 'evt_stripe_capture',
-        type: 'payment_intent.succeeded',
-        externalPaymentId: 'pi_to_refund',
+        type: 'checkout.session.completed',
+        externalPaymentId: 'cs_to_refund',
         amountMinor: $payment->amount_minor,
         currency: $payment->currency,
         payload: [],
+        providerPaymentId: 'pi_to_refund',
     ));
 
     $refund = app(RefundOrder::class)->handle(
@@ -122,9 +126,11 @@ it('refunds through Stripe with the same key', function (): void {
 
     // Our refund's uuid travels with it — the idempotency key, and the metadata
     // a refund webhook is matched back on before Stripe's id is stored here.
+    // And it refunds the PaymentIntent, never the Checkout Session.
     Http::assertSent(fn (HttpRequest $request): bool => $request->url() === 'https://api.stripe.com/v1/refunds'
         && $request->hasHeader('Authorization', 'Bearer '.STRIPE_KEY)
         && $request->hasHeader('Idempotency-Key', 'refund_'.$refund->uuid)
+        && $request->data()['payment_intent'] === 'pi_to_refund'
         // data() is the form fields as given, so the key is the literal
         // bracketed name — the body encodes it as metadata%5Brefund_uuid%5D.
         && ($request->data()['metadata[refund_uuid]'] ?? null) === $refund->uuid);

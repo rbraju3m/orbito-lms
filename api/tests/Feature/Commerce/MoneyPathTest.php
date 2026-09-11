@@ -305,6 +305,28 @@ it('accepts an overpayment', function (): void {
         ->and(Enrollment::where('user_id', $this->student->id)->count())->toBe(1);
 });
 
+/*
+ * An absent figure is not a passing one. The check used to run only when an
+ * amount was present, so a gateway that reported none — or a field read from
+ * the wrong place, as a Stripe Checkout Session's `amount_total` nearly was —
+ * captured unchecked.
+ */
+it('grants nothing when the gateway reports no amount', function (): void {
+    $payment = orderAwaitingPayment($this->student, $this->product);
+
+    app(HandleWebhook::class)->handle(webhook([
+        'id' => 'evt_no_amount',
+        'type' => 'payment.captured',
+        'payment_id' => $payment->external_id,
+        'currency' => $payment->currency,
+    ]), Gateway::Fake);
+
+    expect($payment->refresh()->status)->toBe(PaymentStatus::Failed)
+        ->and($payment->failure_reason)->toBe('The gateway did not report the amount and currency it captured.')
+        ->and($payment->order->refresh()->status)->not->toBe(OrderStatus::Paid)
+        ->and(Enrollment::where('user_id', $this->student->id)->exists())->toBeFalse();
+});
+
 it('grants nothing when the captured currency is not the order currency', function (): void {
     $payment = orderAwaitingPayment($this->student, $this->product);
 

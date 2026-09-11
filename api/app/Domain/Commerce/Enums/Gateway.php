@@ -46,8 +46,12 @@ enum Gateway: string
         return match ($this) {
             self::Fake => ['payment.captured', 'payment.failed', 'refund.updated'],
             self::Stripe => [
-                'payment_intent.succeeded',
-                'payment_intent.payment_failed',
+                // Checkout: `completed` grants only when paid; a bank debit
+                // settles later, by one of the async events.
+                'checkout.session.completed',
+                'checkout.session.async_payment_succeeded',
+                'checkout.session.async_payment_failed',
+                'checkout.session.expired',
                 // One refund object each. Not charge.refunded: that carries the
                 // charge, and Stripe's own reference says to listen here instead.
                 'refund.created',

@@ -173,8 +173,10 @@ it('tells the admin where the provider must send webhooks, and which events', fu
     expect($rows['stripe']['webhook_url'])->toEndWith("/api/v1/webhooks/payments/stripe/{$academy}")
         ->and($rows['stripe']['webhook_url'])->toBe(route('webhooks.payments', ['gateway' => 'stripe', 'tenant' => $academy]))
         ->and($rows['stripe']['webhook_events'])->toBe([
-            'payment_intent.succeeded',
-            'payment_intent.payment_failed',
+            'checkout.session.completed',
+            'checkout.session.async_payment_succeeded',
+            'checkout.session.async_payment_failed',
+            'checkout.session.expired',
             'refund.created',
             'refund.updated',
             'refund.failed',

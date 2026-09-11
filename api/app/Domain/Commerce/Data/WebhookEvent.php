@@ -31,14 +31,28 @@ final readonly class WebhookEvent
          * @var list<ProviderRefund>
          */
         public array $refunds = [],
+        /**
+         * The provider's id for the MONEY, when it differs from the handoff
+         * id: a Stripe Checkout Session's PaymentIntent. Stored at capture,
+         * because refunds and refund events name this one.
+         */
+        public ?string $providerPaymentId = null,
+        /**
+         * Whether the money has actually moved. A completed Stripe Checkout
+         * Session is not always a paid one — a bank debit completes first and
+         * pays, or fails, later — and granting on the event name alone would
+         * hand over a course for a payment that may never arrive.
+         */
+        public bool $settled = true,
     ) {}
 
     public function isSuccess(): bool
     {
-        return in_array($this->type, [
+        return $this->settled && in_array($this->type, [
             'payment.captured',
             'payment_intent.succeeded',
             'checkout.session.completed',
+            'checkout.session.async_payment_succeeded',
         ], true);
     }
 
@@ -47,6 +61,9 @@ final readonly class WebhookEvent
         return in_array($this->type, [
             'payment.failed',
             'payment_intent.payment_failed',
+            'checkout.session.async_payment_failed',
+            // Abandoned. The order stays payable; paying again is a new session.
+            'checkout.session.expired',
         ], true);
     }
 

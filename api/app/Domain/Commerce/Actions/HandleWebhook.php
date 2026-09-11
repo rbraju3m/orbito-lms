@@ -65,7 +65,12 @@ final class HandleWebhook
             ? null
             : Payment::query()
                 ->where('gateway', $gateway)
-                ->where('external_id', $event->externalPaymentId)
+                // The handoff id — or, for Stripe Checkout, whose handoff is a
+                // session, the PaymentIntent learned at capture, which refund
+                // events name. Both are ids WE stored (step 3).
+                ->where(fn ($query) => $query
+                    ->where('external_id', $event->externalPaymentId)
+                    ->orWhere('provider_payment_id', $event->externalPaymentId))
                 ->first();
 
         return DB::transaction(function () use ($event, $gateway, $payment): PaymentEvent {

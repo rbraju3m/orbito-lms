@@ -22,8 +22,13 @@ use Illuminate\Support\Facades\Http;
  * Two reasons. The credentials belong to the ACADEMY (ADR-13), so every call
  * has to carry a per-request key rather than a globally configured client —
  * which is the one thing the SDK's singleton shape makes awkward. And this
- * uses three endpoints; a dependency that pulls in the whole API surface to
- * reach three of them is not worth the upgrade treadmill.
+ * uses two endpoints — Checkout Sessions and Refunds; a dependency that pulls
+ * in the whole API surface to reach two of them is not worth the upgrade
+ * treadmill.
+ *
+ * The learner pays on Stripe's hosted Checkout page: the handoff is a
+ * redirect, which the order page already follows, and no Stripe JS reaches
+ * the SPA's first paint.
  *
  * NOT VERIFIED AGAINST A REAL SANDBOX. Written to the documented API, and the
  * signature check below is Stripe's documented scheme, but no request here has
@@ -54,17 +59,33 @@ final class StripeGateway implements PaymentGateway
             throw GatewayUnavailable::notConfigured('stripe');
         }
 
+        $orderPage = rtrim(frontend_url(), '/').'/orders/'.$order->uuid;
+
         $response = Http::withToken($secretKey)
             ->asForm()
-            ->post(self::API.'/payment_intents', [
-                // Stripe speaks minor units too, so there is no conversion
-                // here — which is the point of storing them that way (ADR-04).
-                'amount' => $order->total_minor,
-                'currency' => strtolower($order->currency),
-                // Our own id travels with the charge, so a webhook can be tied
-                // back to an order even if our side lost the external id.
+            ->post(self::API.'/checkout/sessions', [
+                'mode' => 'payment',
+                /*
+                 * ONE line at the order's total, as priced here — coupons and
+                 * all. Sending the order's own lines would let Stripe total
+                 * them itself, and the figure that charges must be the one
+                 * ADR-05 computed. Stripe speaks minor units too, so there is
+                 * no conversion (ADR-04).
+                 */
+                'line_items[0][quantity]' => 1,
+                'line_items[0][price_data][currency]' => strtolower($order->currency),
+                'line_items[0][price_data][unit_amount]' => $order->total_minor,
+                'line_items[0][price_data][product_data][name]' => 'Order '.$order->number,
+                // Our own id travels with the session and its payment, so either
+                // can be tied back to the order from Stripe's side.
+                'client_reference_id' => $order->uuid,
                 'metadata[order_uuid]' => $order->uuid,
-                'automatic_payment_methods[enabled]' => 'true',
+                'payment_intent_data[metadata][order_uuid]' => $order->uuid,
+                // Where the learner lands. It proves nothing: the order page
+                // polls until the webhook has spoken (ADR-05).
+                'success_url' => $orderPage.'?paid=1',
+                'cancel_url' => $orderPage,
+                'expires_at' => now()->addMinutes($this->sessionMinutes())->getTimestamp(),
             ]);
 
         if ($response->failed()) {
@@ -75,10 +96,23 @@ final class StripeGateway implements PaymentGateway
         }
 
         return new GatewayHandoff(
+            // The session. checkout.session.* events name it; the PaymentIntent
+            // behind it is learned at capture (`provider_payment_id`).
             externalId: (string) $response->json('id'),
-            // Stripe Elements takes a client secret, not a redirect.
-            clientSecret: (string) $response->json('client_secret'),
+            redirectUrl: (string) $response->json('url'),
         );
+    }
+
+    /**
+     * How long the page stays payable: the coupon reservation window, so nobody
+     * pays after the coupon use their order held has been given back
+     * (CouponRules). Stripe allows 30 minutes to 24 hours, and 30 exactly can
+     * lose to the clock, so the floor is 31 — a window configured below that
+     * leaves the difference payable where CouponRules cannot see it.
+     */
+    private function sessionMinutes(): int
+    {
+        return min(max((int) config('orbito.coupons.reservation_minutes'), 31), 24 * 60);
     }
 
     /**
@@ -94,7 +128,11 @@ final class StripeGateway implements PaymentGateway
     {
         $secretKey = $account->credential(self::KEY_CREDENTIAL);
 
-        if ($secretKey === '' || $payment->external_id === null) {
+        // The money, not the handoff: a Checkout payment's `external_id` is its
+        // session, and Stripe refunds the PaymentIntent the session produced.
+        $paymentIntent = $payment->provider_payment_id ?? $payment->external_id;
+
+        if ($secretKey === '' || $paymentIntent === null) {
             throw GatewayUnavailable::notConfigured('stripe');
         }
 
@@ -103,7 +141,7 @@ final class StripeGateway implements PaymentGateway
             // Stripe's own idempotency: the same key twice is one refund.
             ->withHeaders(['Idempotency-Key' => 'refund_'.$reference])
             ->post(self::API.'/refunds', [
-                'payment_intent' => $payment->external_id,
+                'payment_intent' => $paymentIntent,
                 'amount' => $amountMinor,
                 // Comes back on every refund webhook, so the report finds our
                 // row before Stripe's `re_…` id has been stored on it.
@@ -169,10 +207,16 @@ final class StripeGateway implements PaymentGateway
         }
 
         $isRefund = is_array($object) && ($object['object'] ?? null) === 'refund';
+        $isSession = is_array($object) && ($object['object'] ?? null) === 'checkout.session';
 
-        // A refund names the payment it came off by its PaymentIntent — the id
-        // the handoff stored — never by its own `re_…` id.
+        // A refund names the payment it came off by its PaymentIntent — the
+        // money, which HandleWebhook finds as `provider_payment_id` — never by
+        // its own `re_…` id.
         $paymentKey = $isRefund ? 'payment_intent' : 'id';
+
+        // A session reports its total as `amount_total` and has no `amount`. An
+        // absent figure must never reach CapturePayment as "nothing to check".
+        $amountKey = $isSession ? 'amount_total' : 'amount';
 
         return new WebhookEvent(
             id: $id,
@@ -180,14 +224,24 @@ final class StripeGateway implements PaymentGateway
             externalPaymentId: is_array($object) && isset($object[$paymentKey]) && is_string($object[$paymentKey])
                 ? $object[$paymentKey]
                 : null,
-            amountMinor: is_array($object) && isset($object['amount']) && is_numeric($object['amount'])
-                ? (int) $object['amount']
+            amountMinor: is_array($object) && isset($object[$amountKey]) && is_numeric($object[$amountKey])
+                ? (int) $object[$amountKey]
                 : null,
             currency: is_array($object) && isset($object['currency']) && is_string($object['currency'])
                 ? strtoupper($object['currency'])
                 : null,
             payload: $payload,
             refunds: $isRefund ? $this->refundsIn($object) : [],
+            // The money behind a session, once there is some.
+            providerPaymentId: $isSession && isset($object['payment_intent']) && is_string($object['payment_intent'])
+                ? $object['payment_intent']
+                : null,
+            /*
+             * A completed session is not always a paid one: a bank debit
+             * completes first and pays — or fails — later, by the
+             * async_payment_* events. Only `paid` grants (ADR-05).
+             */
+            settled: ! $isSession || ($object['payment_status'] ?? null) === 'paid',
         );
     }
 

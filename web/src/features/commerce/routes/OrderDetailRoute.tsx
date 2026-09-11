@@ -192,12 +192,12 @@ export function OrderDetailRoute() {
                   pay.mutate(gateway, {
                     onSuccess: (handoff) => {
                       /*
-                       * A hosted-checkout provider sends the learner away. One
-                       * with an inline SDK returns a client secret instead,
-                       * which nothing here can use yet — so the order simply
-                       * sits in `awaiting_payment` and the poll above picks up
-                       * the webhook. Silently doing nothing would be worse
-                       * than saying so, hence the note below.
+                       * Stripe hands back its hosted Checkout page and the
+                       * learner pays there. Stripe sends them back here, where
+                       * the poll above picks up the webhook — the return itself
+                       * proves nothing (ADR-05); only the webhook grants. A
+                       * gateway with no page to visit (the test gateway)
+                       * returns no URL, and the order waits the same way.
                        */
                       if (handoff.redirect_url) {
                         window.location.assign(handoff.redirect_url);
