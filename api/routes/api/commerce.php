@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Commerce\CouponController;
 use App\Http\Controllers\Api\V1\Commerce\OrderController;
 use App\Http\Controllers\Api\V1\Commerce\OrderRefundController;
 use App\Http\Controllers\Api\V1\Commerce\PaymentWebhookController;
+use App\Http\Controllers\Api\V1\Commerce\RefundReportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -87,6 +88,15 @@ Route::middleware(['auth:sanctum', 'tenant'])
         Route::post('orders/{order}/refunds', [OrderRefundController::class, 'store'])
             ->middleware('throttle:10,1')
             ->name('orders.refunds.store');
+
+        // Refund reports the webhook left for a person (REFUNDS.md §6) — the
+        // same gate, for the same reason: money that already moved still has
+        // to be reconciled.
+        Route::get('refund-reports', [RefundReportController::class, 'index'])
+            ->name('refund-reports.index');
+        Route::post('refund-reports/{paymentEvent}/resolve', [RefundReportController::class, 'resolve'])
+            ->middleware('throttle:30,1')
+            ->name('refund-reports.resolve');
     });
 
 /*

@@ -1380,8 +1380,8 @@ through the gateway or recorded when made elsewhere. Reference:
   revokes. A unique index on `refunds.external_id` records each once however
   many events describe it. What the books cannot absorb is left unprocessed
   for a person (REFUNDS.md §6).
-- **Still open:** refunding a single chosen line, credit notes with invoices,
-  and a screen for refund reports left for a person.
+- **Still open:** refunding a single chosen line, and credit notes with
+  invoices.
 
 **Stripe Checkout — done.** A learner pays on Stripe's hosted page: the
 handoff is a Checkout Session carrying ONE line at the order's own total, so
@@ -1399,6 +1399,14 @@ events name it.
   amount.
 - **Still unproven:** no request has reached Stripe. The sandbox payment in
   `RUNNING.md` is the test.
+
+**Refund reports — done.** What the provider reports that the books cannot
+absorb is flagged on its webhook event with why (`RefundAttentionReason`) and
+listed at `/admin/refund-reports` for `order.refund` holders: what happened
+and what to check — the server's words — what the provider reported, and the
+order. **Mark resolved** records who looked and what they did, once; it
+changes no money and no access. An event about a payment we never issued is
+not listed: noise, not work.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL.

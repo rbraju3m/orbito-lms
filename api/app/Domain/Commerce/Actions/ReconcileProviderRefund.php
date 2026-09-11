@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Commerce\Actions;
 
 use App\Domain\Commerce\Data\ProviderRefund;
+use App\Domain\Commerce\Data\RefundAttention;
+use App\Domain\Commerce\Enums\RefundAttentionReason;
 use App\Domain\Commerce\Enums\RefundMethod;
 use App\Domain\Commerce\Enums\RefundStatus;
 use App\Domain\Commerce\Exceptions\RefundRejected;
@@ -32,8 +34,9 @@ use Illuminate\Support\Facades\Log;
  * failed — are left for a person: undoing either re-decides access and revenue
  * that nobody asked this class to re-decide.
  *
- * Returns whether the report is settled here. False leaves the webhook event
- * unprocessed, which is where an operator finds it.
+ * Returns null when the report is settled here. A RefundAttention says why it
+ * is not; HandleWebhook stores it on the event, and the refund-reports screen
+ * shows it to somebody who can refund.
  */
 final class ReconcileProviderRefund
 {
@@ -43,7 +46,7 @@ final class ReconcileProviderRefund
         private readonly FailRefund $fail,
     ) {}
 
-    public function handle(Payment $payment, ProviderRefund $report): bool
+    public function handle(Payment $payment, ProviderRefund $report): ?RefundAttention
     {
         $refund = $this->ours($payment, $report);
 
@@ -71,23 +74,23 @@ final class ReconcileProviderRefund
             ->first();
     }
 
-    private function settle(Refund $refund, ProviderRefund $report): bool
+    private function settle(Refund $refund, ProviderRefund $report): ?RefundAttention
     {
         if ($report->amountMinor !== $refund->amount_minor || $report->currency !== $refund->currency) {
-            return $this->needsAPerson($refund, $report, 'the provider reports a different amount or currency');
+            return $this->needsAPerson(RefundAttentionReason::DifferentAmount, $report, $refund);
         }
 
         return match ($report->status) {
             RefundStatus::Pending => $this->noteExternalId($refund, $report),
             RefundStatus::Completed => match ($refund->status) {
                 RefundStatus::Pending => $this->completed($refund, $report),
-                RefundStatus::Completed => true,
-                RefundStatus::Failed => $this->needsAPerson($refund, $report, 'money given back on a refund recorded here as failed'),
+                RefundStatus::Completed => null,
+                RefundStatus::Failed => $this->needsAPerson(RefundAttentionReason::RefundedAfterFailure, $report, $refund),
             },
             RefundStatus::Failed => match ($refund->status) {
                 RefundStatus::Pending => $this->failed($refund, $report),
-                RefundStatus::Failed => true,
-                RefundStatus::Completed => $this->needsAPerson($refund, $report, 'the provider failed a refund already completed here'),
+                RefundStatus::Failed => null,
+                RefundStatus::Completed => $this->needsAPerson(RefundAttentionReason::FailedAfterCompletion, $report, $refund),
             },
         };
     }
@@ -99,17 +102,17 @@ final class ReconcileProviderRefund
      * away what the order granted, as the refund dialog's default does; a
      * partial one never touches access.
      */
-    private function recordFromProvider(Payment $payment, ProviderRefund $report): bool
+    private function recordFromProvider(Payment $payment, ProviderRefund $report): ?RefundAttention
     {
         // Nothing moved, so there is nothing to record.
         if ($report->status === RefundStatus::Failed) {
-            return true;
+            return null;
         }
 
         $order = Order::query()->findOrFail($payment->order_id);
 
         if ($report->currency !== $order->currency) {
-            return $this->needsAPerson(null, $report, 'a refund in a currency the order was not paid in');
+            return $this->needsAPerson(RefundAttentionReason::WrongCurrency, $report, null);
         }
 
         try {
@@ -135,43 +138,43 @@ final class ReconcileProviderRefund
             $recorded = Refund::query()->where('external_id', $report->externalId)->lockForUpdate()->first();
 
             return $recorded === null
-                ? $this->needsAPerson(null, $report, 'more than the order has left to refund')
+                ? $this->needsAPerson(RefundAttentionReason::MoreThanLeft, $report, null)
                 : $this->settle($recorded, $report);
         }
 
         return $report->status === RefundStatus::Completed
             ? $this->completed($refund, $report)
-            : true;
+            : null;
     }
 
-    private function completed(Refund $refund, ProviderRefund $report): bool
+    private function completed(Refund $refund, ProviderRefund $report): null
     {
         $this->complete->handle($refund, $report->externalId);
 
-        return true;
+        return null;
     }
 
-    private function failed(Refund $refund, ProviderRefund $report): bool
+    private function failed(Refund $refund, ProviderRefund $report): null
     {
         $this->fail->handle($refund, $report->failureReason ?? 'Reported failed by the provider.');
 
-        return true;
+        return null;
     }
 
     /** Still pending there and here. Keep the provider's id, move nothing. */
-    private function noteExternalId(Refund $refund, ProviderRefund $report): bool
+    private function noteExternalId(Refund $refund, ProviderRefund $report): null
     {
         if ($refund->status === RefundStatus::Pending && $refund->external_id === null) {
             $refund->forceFill(['external_id' => $report->externalId])->save();
         }
 
-        return true;
+        return null;
     }
 
-    private function needsAPerson(?Refund $refund, ProviderRefund $report, string $why): bool
+    private function needsAPerson(RefundAttentionReason $reason, ProviderRefund $report, ?Refund $refund): RefundAttention
     {
         // Ids and amounts only — never the payload (CLAUDE.md § Security checklist).
-        Log::warning("Provider refund left for a person: {$why}.", [
+        Log::warning("Provider refund left for a person: {$reason->label()}.", [
             'refund' => $refund?->uuid,
             'provider_refund' => $report->externalId,
             'amount_minor' => $report->amountMinor,
@@ -179,6 +182,6 @@ final class ReconcileProviderRefund
             'reported_status' => $report->status->value,
         ]);
 
-        return false;
+        return new RefundAttention($reason, $report, $refund?->uuid);
     }
 }

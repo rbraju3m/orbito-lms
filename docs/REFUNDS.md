@@ -131,6 +131,14 @@ the id WE stored — and only then `ReconcileProviderRefund`.
   timed out after Stripe had acted), or a completed refund Stripe has since
   failed. Undoing either of the last two re-decides access and revenue, which
   is a person's call.
+- **Refund reports** (`/admin/refund-reports`, `order.refund`) lists what is
+  still open: what happened and what to check — both the server's words,
+  from `RefundAttentionReason` — what the provider reported, and the order.
+  **Mark resolved** records who looked and what they did, once; it changes no
+  money and no access. The fix itself — a refund recorded, a learner refunded
+  again — goes through the order's refund dialog like any other. An event
+  about a payment we never issued is unprocessed too, and is not listed:
+  noise, not work.
 
 ⚠ Written to Stripe's documented objects, like the rest of `StripeGateway`; no
 real Stripe event has been through it.
@@ -139,8 +147,6 @@ real Stripe event has been through it.
 
 ## 7. Not built
 
-- **A screen for reports left for a person.** They are in `payment_events`
-  with `processed_at` null and in the log; nothing shows them to an admin.
 - **Refunding a free order's access** — there is no money, so it is a revoke,
   not a refund. Staff suspend the enrolment instead.
 - **Per-line refunds** ("refund just this course"). A refund is an amount; the

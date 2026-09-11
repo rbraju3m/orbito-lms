@@ -106,20 +106,25 @@ final class HandleWebhook
             /*
              * Settled only if every refund the event names could be. One that
              * cannot — more than is left, a refund reversed after we completed
-             * it — stays unprocessed: stored for a person, never guessed at.
-             * Inside this transaction on purpose: if reconciling throws, the
-             * event is not recorded either, so the provider's retry is the
-             * recovery rather than a replay we would ignore.
+             * it — stays unprocessed and is flagged, with why, for a person on
+             * the refund-reports screen. Never guessed at. Inside this
+             * transaction on purpose: if reconciling throws, the event is not
+             * recorded either, so the provider's retry is the recovery rather
+             * than a replay we would ignore.
              */
-            $settled = true;
+            $attention = [];
 
             foreach ($event->refunds as $refund) {
-                $settled = $this->refunds->handle($payment, $refund) && $settled;
+                $found = $this->refunds->handle($payment, $refund);
+
+                if ($found !== null) {
+                    $attention[] = $found->toArray();
+                }
             }
 
-            if ($settled) {
-                $record->forceFill(['processed_at' => now()])->save();
-            }
+            $record->forceFill($attention === []
+                ? ['processed_at' => now()]
+                : ['needs_attention' => true, 'attention' => $attention])->save();
 
             return $record;
         });

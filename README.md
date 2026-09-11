@@ -11,10 +11,10 @@ A production-grade, API-first Learning Management System.
 retrofit — one database per academy. **Phase 16 is under way**: plan limits,
 course pricing, bundles, digital downloads, upload permissions and volume
 limits, outbound webhooks, coupons and refunds — Stripe's refund events
-included — and Stripe Checkout have shipped.
+included — Stripe Checkout and a refund-reports screen have shipped.
 [`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
 
-1,359 backend tests / 5,012 assertions · 320 frontend tests · PHPStan level 6.
+1,367 backend tests / 5,052 assertions · 323 frontend tests · PHPStan level 6.
 
 An instructor can build and publish a course with lessons, resources, quizzes,
 assignments and live sessions, price it, schedule cohorts, announce things,
@@ -46,8 +46,7 @@ tested). All three need credentials, not code: a learner pays on Stripe's
 hosted Checkout page, and [`docs/RUNNING.md`](docs/RUNNING.md) walks a sandbox
 payment end to end.
 
-**Next:** a screen for refund reports left for a person, and one real Stripe
-sandbox payment — which is what signs off the MVP —
+**Next:** one real Stripe sandbox payment — which is what signs off the MVP —
 then the rest of Phase 16: subscriptions and memberships, coaching, the blog
 and page builder, multilingual and RTL.
 

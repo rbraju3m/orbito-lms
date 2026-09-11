@@ -457,8 +457,11 @@ payments(id, uuid, order_id, gateway VARCHAR(50),
       INDEX (order_id, status)
 
 payment_events(id, payment_id NULL, gateway, external_event_id VARCHAR(191),
-      type, payload JSON, signature_verified BOOL, processed_at, received_at)
+      type, payload JSON, signature_verified BOOL, processed_at, received_at,
+      needs_attention BOOL, attention JSON NULL,   -- a refund report for a person, and why
+      resolved_at NULL, resolved_by NULL, resolution_note VARCHAR(500) NULL)
       UNIQUE (gateway, external_event_id)   -- webhook idempotency
+      INDEX (needs_attention, resolved_at, received_at)   -- the refund-reports list
 
 refunds(id, uuid, order_id, payment_id, amount_minor, currency, reason,
       status ENUM(pending,completed,failed), external_id,

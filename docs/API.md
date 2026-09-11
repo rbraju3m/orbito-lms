@@ -544,6 +544,8 @@ GET    /admin/coupons/products                  what a coupon can be scoped to: 
 GET · PUT · DELETE /admin/coupons/{coupon}      PUT REPLACES; DELETE is 409 coupon_in_use once used
 
 POST   /admin/orders/{order}/refunds           order.refund; {amount_minor, method, reason?, revoke_access?}
+GET    /admin/refund-reports                   order.refund; provider refund reports left for a person
+POST   /admin/refund-reports/{event}/resolve   order.refund; {note?} — records who and what, once
 
 # planned
 GET    /orders/{uuid}/invoice

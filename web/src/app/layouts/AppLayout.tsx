@@ -30,6 +30,7 @@ import {
   IconCertificate2,
   IconCreditCard,
   IconReceipt,
+  IconReceiptRefund,
   IconSearch,
   IconSettings,
   IconShieldCheck,
@@ -126,6 +127,13 @@ const NAV: NavItem[] = [
     anyOf: ['gateway.manage'],
   },
   { to: '/admin/coupons', label: 'Coupons', icon: IconTicket, anyOf: ['coupon.manage'] },
+  // Refunds the provider reported that the books could not take in (REFUNDS.md §6).
+  {
+    to: '/admin/refund-reports',
+    label: 'Refund reports',
+    icon: IconReceiptRefund,
+    anyOf: ['order.refund'],
+  },
   // Super Admin only: an endpoint receives learners' names and emails.
   { to: '/admin/webhooks', label: 'Webhooks', icon: IconWebhook, anyOf: ['webhook.manage'] },
   {

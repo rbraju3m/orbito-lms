@@ -568,6 +568,19 @@ export const router = createBrowserRouter([
                 ],
               },
               {
+                // Refunds the provider reported that the books could not take in.
+                element: <RequirePermission anyOf={['order.refund']} />,
+                children: [
+                  {
+                    path: 'admin/refund-reports',
+                    lazy: async () => ({
+                      Component: (await import('@/features/commerce/routes/RefundReportsRoute'))
+                        .RefundReportsRoute,
+                    }),
+                  },
+                ],
+              },
+              {
                 element: <RequirePermission anyOf={['coupon.manage']} />,
                 children: [
                   {

@@ -839,9 +839,9 @@ so the action that fixes a lapse survives it.
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, digital downloads, upload
 permissions, upload volume limits, outbound webhooks, coupons, refunds,
-provider refund webhooks and Stripe Checkout** (§ Patterns established in
-Phase 16).
-1,359 backend tests / 5,012 assertions · 320 frontend tests.
+provider refund webhooks, Stripe Checkout and refund reports** (§ Patterns
+established in Phase 16).
+1,367 backend tests / 5,052 assertions · 323 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -987,12 +987,13 @@ Every one of these has already cost time at least once.
   `MediaCollection::sweptWhenUnused()` for them; the other order deletes every
   profile picture two days after it is uploaded. Nobody can delete a
   handed-in file either, admins included; moderation will one day need that.
-- **A provider refund report that cannot be settled has no screen.** It is
-  recorded with `processed_at` null in `payment_events` and logged
-  (`REFUNDS.md` §6) — a dashboard refund also recorded by hand, a gateway call
+- **A refund report is resolved by a person, not repaired.** What the webhook
+  cannot settle — a dashboard refund also recorded by hand, a gateway call
   that timed out after Stripe acted, a refund Stripe failed after it
-  succeeded. A refund is an amount, split proportionally — refunding one
-  chosen line is its own slice.
+  succeeded — is listed at `/admin/refund-reports` with what to check;
+  **Mark resolved** records who and what. The fix itself goes through the
+  order's refund dialog. A refund is an amount, split proportionally —
+  refunding one chosen line is its own slice.
 - **Webhooks: no secret overlap on rotation**, no notification when an
   endpoint switches itself off, and `enrollment.expired` has no end-to-end
   test — it fires from the sweeper, where the harness cannot observe
