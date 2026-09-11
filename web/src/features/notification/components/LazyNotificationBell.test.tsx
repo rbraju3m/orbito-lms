@@ -23,10 +23,11 @@ describe('LazyNotificationBell', () => {
 
     /*
      * Load the chunk BEFORE rendering. Left to `React.lazy`, the dynamic
-     * import races `findByRole`'s one-second default, and under a full
-     * parallel run it lost — the test passed alone and failed in the suite.
-     * Pre-importing makes what is under test the swap, not the machine's
-     * speed.
+     * import races `findByRole`, and under a full parallel run it lost — the
+     * test passed alone and failed in the suite. Pre-importing makes what is
+     * under test the swap, not the machine's speed. The swap and the unread
+     * count are still two async hops; `asyncUtilTimeout` (test/setup.ts)
+     * gives them room when the workers are busy.
      */
     await import('./NotificationBell');
 

@@ -1,9 +1,17 @@
 import '@testing-library/jest-dom/vitest';
 
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 
 import { server } from './server';
+
+// `findBy*` and `waitFor` give up after Testing Library's own 1s default, not
+// Vitest's `testTimeout` — raising that (vite.config.ts) left every async
+// query on a ceiling sized for an idle machine. Under a full parallel run the
+// lazy bell's swap plus its MSW count took longer than a second and failed a
+// test that passed alone. This only lengthens the wait before a real failure
+// is reported; nothing that would fail can pass because of it.
+configure({ asyncUtilTimeout: 5_000 });
 
 /**
  * jsdom has no matchMedia. A stub that always answers `false` forces every
