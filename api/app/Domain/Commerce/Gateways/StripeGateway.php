@@ -34,9 +34,19 @@ final class StripeGateway implements PaymentGateway
     /** Stripe rejects a signature older than this, and so do we. */
     private const TOLERANCE_SECONDS = 300;
 
+    /**
+     * The credential holding the secret (or restricted) key — named by what
+     * the Payments screen SAVES, not by what reads well here. This read
+     * `secret_key` while the screen wrote `key`, so a Stripe account connected
+     * through the product was "not configured" at every checkout, and no test
+     * noticed: they all built the account directly. StripeCredentialsTest
+     * connects it the screen's way.
+     */
+    private const KEY_CREDENTIAL = 'key';
+
     public function handoff(Order $order, GatewayAccount $account): GatewayHandoff
     {
-        $secretKey = $account->credential('secret_key');
+        $secretKey = $account->credential(self::KEY_CREDENTIAL);
 
         if ($secretKey === '') {
             throw GatewayUnavailable::notConfigured('stripe');
@@ -78,7 +88,7 @@ final class StripeGateway implements PaymentGateway
      */
     public function refund(Payment $payment, int $amountMinor, string $idempotencyKey, GatewayAccount $account): GatewayRefund
     {
-        $secretKey = $account->credential('secret_key');
+        $secretKey = $account->credential(self::KEY_CREDENTIAL);
 
         if ($secretKey === '' || $payment->external_id === null) {
             throw GatewayUnavailable::notConfigured('stripe');

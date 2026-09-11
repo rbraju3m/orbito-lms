@@ -597,7 +597,9 @@ added — a 409, not a silent conversion. Multi-currency checkout is deferred.
 **Gateway credentials are write-only.** No response ever contains them; the API
 says only whether a gateway `is_connected` and `has_webhook_secret`. A partial
 `PUT` keeps what it does not send, so toggling test mode cannot silently
-disconnect a gateway.
+disconnect a gateway. The one credential is `key` — the provider's secret key
+(Stripe: `sk_…`, or a restricted `rk_…`) — which is what the Payments screen
+sends and what `StripeGateway` reads.
 
 ### Media — live
 ```
