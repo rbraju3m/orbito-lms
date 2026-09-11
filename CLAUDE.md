@@ -751,6 +751,13 @@ Gate::authorize('publish', $course);                   // in a controller
   event's name. And an ABSENT figure is not a passing one: a session reports
   `amount_total`, and reading `amount` would have handed `CapturePayment` a
   null — which it now refuses rather than treating as nothing to check.
+- **An area most sessions never open does not ship on first paint — its
+  route TABLE included.** Lazy pages were not enough: the studio, admin and
+  platform tables were a third of the entry chunk. They are discovered with
+  `patchRoutesOnNavigation`, which React Router calls whenever a match has
+  params — and an undiscovered path matches only the root splat. A new page
+  in one of those areas goes in `app/routes/<area>.tsx`; `router.test.tsx`
+  fails if one lands back in the eager table.
 - **Retry state belongs on the row, not the queue.** `DeliverWebhook` counts
   `attempts` in the database and `release()`s, which the sync test queue
   ignores; tests drive each retry by running the job again. The alternative —
@@ -1006,12 +1013,13 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 250.75 — 250.28 after the bell went lazy,
-  then +0.30 for the webhooks nav icon and +0.17 for coupons'. At 250 the
-  shell had 0.04 KB of room; measured, no set of small cuts bought more than
-  ~0.1 KB. The real fix is splitting the route table — `router.tsx` is the
-  largest module on first paint and grows with every route — and it is its
-  own slice. `npm run size` is the ONLY measurement: Node's and Python's zlib
+  purpose**, and first paint is 249.24. It had crept to 250.91 — nav icons
+  for webhooks, coupons and refund reports — after small cuts had been shown
+  to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
+  studio, admin and platform tables are discovered on first visit
+  (`app/routes/*`), which took `router.tsx` from 15.4 to 9.1 KB of the
+  minified entry. What is left of it is the learner's table, which every
+  session needs. `npm run size` is the ONLY measurement: Node's and Python's zlib
   disagree by 0.3 KB at the same "level 9", so a number from anywhere else is
   not comparable. Raising the budget again is a decision for ROADMAP, not a
   flag to flip.

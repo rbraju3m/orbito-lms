@@ -46,6 +46,13 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 Each surface has its own layout, its own navigation, and its own lazy-loaded route
 bundle. The player is deliberately *not* the dashboard shell — it is full-bleed.
 
+The studio, admin and platform route TABLES are lazy too, not just their pages:
+`app/routes/{studio,admin,platform}.tsx` are discovered the first time one of
+their paths is visited (`patchRoutesOnNavigation` in `router.tsx`), so first
+paint carries only what a learner can reach. A page added to one of those
+areas goes in its file, never back in the eager table — `router.test.tsx`
+checks.
+
 ---
 
 ## 2. Route map
@@ -184,7 +191,9 @@ permission.
 ```
 src/
 ├── app/
-│   ├── router.tsx            route tree, lazy boundaries, error elements
+│   ├── router.tsx            eager route tree (public, auth, player, learner), error
+│   │                         elements, and discovery of the areas below on first visit
+│   ├── routes/               studio.tsx, admin.tsx, platform.tsx — loaded on demand
 │   ├── providers.tsx         QueryClient, MantineProvider, Notifications, ModalsProvider
 │   ├── theme.ts              design tokens → Mantine theme
 │   └── layouts/{Public,Learn,Dashboard,Studio,Admin}Layout.tsx

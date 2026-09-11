@@ -1408,6 +1408,15 @@ order. **Mark resolved** records who looked and what they did, once; it
 changes no money and no access. An event about a payment we never issued is
 not listed: noise, not work.
 
+**Route table split — done.** First paint had crept to 250.91 KB of the
+255 KB budget, and `router.tsx` was the largest module on it: 15.4 KB of a
+45.5 KB minified entry chunk. The studio, admin and platform tables now live
+in `app/routes/*` and are discovered the first time one of their paths is
+visited (`patchRoutesOnNavigation`), deep links included. First paint is
+249.24 KB — 1.67 KB back, 5.76 KB of room — and `router.tsx` is 9.1 KB, the
+learner's table every session needs. `router.test.tsx` fails if an area page
+lands back in the eager table.
+
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL.
 

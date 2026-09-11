@@ -1,22 +1,31 @@
-import { createBrowserRouter } from 'react-router';
+import {
+  createBrowserRouter,
+  type PatchRoutesOnNavigationFunction,
+  type RouteObject,
+} from 'react-router';
 
 import { HomeRoute } from '@/features/home/routes/HomeRoute';
 
 import { RequireAuth } from './guards/RequireAuth';
 import { RequireGuest } from './guards/RequireGuest';
-import { RequirePermission } from './guards/RequirePermission';
-import { RequirePlatformOperator } from './guards/RequirePlatformOperator';
 import { AppLayout } from './layouts/AppLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 import { PublicLayout } from './layouts/PublicLayout';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 
+/** The signed-in shell the discovered areas are patched into. */
+const SHELL_ROUTE_ID = 'shell';
+
 /**
  * Route tree. Guards are navigation aids — they keep a user off a page that
  * would only 403 anyway. Authorization itself is entirely server-side; see
  * docs/ROLES_PERMISSIONS.md §5.
+ *
+ * The studio, admin and platform trees are NOT here: they are discovered on
+ * first navigation (`discoverRoutes`, below), so first paint carries only what
+ * every signed-in learner can reach.
  */
-export const router = createBrowserRouter([
+export const routes: RouteObject[] = [
   {
     path: '/',
     element: <PublicLayout />,
@@ -218,6 +227,7 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
     children: [
       {
+        id: SHELL_ROUTE_ID,
         element: <AppLayout />,
         children: [
           {
@@ -330,293 +340,42 @@ export const router = createBrowserRouter([
               Component: (await import('@/features/account/routes/SecurityRoute')).SecurityRoute,
             }),
           },
-
-          /*
-           * Bundles are an academy-level merchandising decision, so they sit
-           * behind `bundle.manage` rather than the studio's own guard — one
-           * can contain another instructor's courses, and pricing it decides
-           * what that instructor earns.
-           */
-          /*
-           * Downloads are the academy's stock, not an instructor's, so the
-           * studio side sits behind `download.manage` like bundles do.
-           */
-          {
-            element: <RequirePermission anyOf={['download.manage']} />,
-            children: [
-              {
-                path: 'studio/downloads',
-                lazy: async () => ({
-                  Component: (await import('@/features/download/routes/StudioDownloadsRoute'))
-                    .StudioDownloadsRoute,
-                }),
-              },
-              {
-                path: 'studio/downloads/:id',
-                lazy: async () => ({
-                  Component: (await import('@/features/download/routes/DownloadEditorRoute'))
-                    .DownloadEditorRoute,
-                }),
-              },
-            ],
-          },
-
-          {
-            element: <RequirePermission anyOf={['bundle.manage']} />,
-            children: [
-              {
-                path: 'studio/bundles',
-                lazy: async () => ({
-                  Component: (await import('@/features/bundle/routes/StudioBundlesRoute'))
-                    .StudioBundlesRoute,
-                }),
-              },
-              {
-                path: 'studio/bundles/:id',
-                lazy: async () => ({
-                  Component: (await import('@/features/bundle/routes/BundleEditorRoute'))
-                    .BundleEditorRoute,
-                }),
-              },
-            ],
-          },
-
-          {
-            element: <RequirePermission anyOf={['course.create', 'course.update.own']} />,
-            children: [
-              {
-                path: 'studio',
-                lazy: async () => ({
-                  Component: (await import('@/features/studio/routes/StudioHomeRoute'))
-                    .StudioHomeRoute,
-                }),
-              },
-              {
-                path: 'studio/courses',
-                lazy: async () => ({
-                  Component: (await import('@/features/studio/routes/StudioCoursesRoute'))
-                    .StudioCoursesRoute,
-                }),
-              },
-              {
-                path: 'studio/courses/new',
-                lazy: async () => ({
-                  Component: (await import('@/features/studio/routes/NewCourseRoute'))
-                    .NewCourseRoute,
-                }),
-              },
-              {
-                path: 'studio/courses/:id',
-                lazy: async () => ({
-                  Component: (await import('@/features/studio/routes/CourseEditorRoute'))
-                    .CourseEditorRoute,
-                }),
-              },
-              // Grading sits under the course rather than under a kind: one
-              // list of work, whether it came from a quiz or an assignment.
-              {
-                path: 'studio/courses/:id/grading',
-                lazy: async () => ({
-                  Component: (await import('@/features/grading/routes/GradingQueueRoute'))
-                    .GradingQueueRoute,
-                }),
-              },
-              {
-                path: 'studio/grading/quiz/:attemptId',
-                lazy: async () => ({
-                  Component: (await import('@/features/grading/routes/GradeAttemptRoute'))
-                    .GradeAttemptRoute,
-                }),
-              },
-              {
-                path: 'studio/grading/assignment/:submissionId',
-                lazy: async () => ({
-                  Component: (await import('@/features/grading/routes/GradeSubmissionRoute'))
-                    .GradeSubmissionRoute,
-                }),
-              },
-            ],
-          },
-
-          /*
-           * The academy REGISTRY, not an academy's admin area. Guarded by the
-           * central operator flag rather than a permission — permissions are
-           * roles and roles live inside a schema, so an academy Super Admin
-           * holds every one of them and still has no business here.
-           */
-          {
-            element: <RequirePlatformOperator />,
-            children: [
-              {
-                path: 'platform/academies',
-                lazy: async () => ({
-                  Component: (await import('@/features/platform/routes/AcademiesRoute'))
-                    .AcademiesRoute,
-                }),
-              },
-              {
-                path: 'platform/academies/:slug',
-                lazy: async () => ({
-                  Component: (await import('@/features/platform/routes/AcademyDetailRoute'))
-                    .AcademyDetailRoute,
-                }),
-              },
-            ],
-          },
-
-          {
-            element: (
-              <RequirePermission anyOf={['user.view', 'settings.view', 'instructor.view']} />
-            ),
-            children: [
-              {
-                path: 'admin',
-                lazy: async () => ({
-                  Component: (await import('@/features/admin/routes/AdminHomeRoute'))
-                    .AdminHomeRoute,
-                }),
-              },
-              {
-                path: 'admin/instructors',
-                lazy: async () => ({
-                  Component: (await import('@/features/admin/routes/InstructorsRoute'))
-                    .InstructorsRoute,
-                }),
-              },
-              // The academy administering ITSELF — who may join it. Not the
-              // platform registry, which is the operator's and sits under
-              // /platform behind a flag rather than a permission.
-              {
-                element: <RequirePermission anyOf={['settings.view']} />,
-                children: [
-                  {
-                    path: 'admin/academy',
-                    lazy: async () => ({
-                      Component: (await import('@/features/admin/routes/AcademySettingsRoute'))
-                        .AcademySettingsRoute,
-                    }),
-                  },
-                  /*
-                   * What the academy has used against its plan. Same
-                   * permission as its other settings — an academy reading its
-                   * own meter — and NOT the operator's registry, which shows
-                   * every academy's and lives under /platform.
-                   */
-                  {
-                    path: 'admin/plan',
-                    lazy: async () => ({
-                      Component: (await import('@/features/admin/routes/PlanUsageRoute'))
-                        .PlanUsageRoute,
-                    }),
-                  },
-                ],
-              },
-              /*
-               * Connecting the academy's own gateway (ADR-13). Its own
-               * permission: staff run orders but move no money, so
-               * `order.view.any` must not open this screen.
-               */
-              {
-                element: <RequirePermission anyOf={['certificate.template.manage']} />,
-                children: [
-                  {
-                    path: 'admin/certificate-templates',
-                    lazy: async () => ({
-                      Component: (
-                        await import('@/features/certification/routes/CertificateTemplatesRoute')
-                      ).CertificateTemplatesRoute,
-                    }),
-                  },
-                ],
-              },
-              {
-                element: <RequirePermission anyOf={['analytics.view.platform']} />,
-                children: [
-                  {
-                    path: 'admin/analytics',
-                    lazy: async () => ({
-                      Component: (
-                        await import('@/features/analytics/routes/AnalyticsOverviewRoute')
-                      ).AnalyticsOverviewRoute,
-                    }),
-                  },
-                ],
-              },
-              {
-                element: <RequirePermission anyOf={['review.moderate']} />,
-                children: [
-                  {
-                    path: 'admin/reviews',
-                    lazy: async () => ({
-                      Component: (
-                        await import('@/features/engagement/routes/ReviewModerationRoute')
-                      ).ReviewModerationRoute,
-                    }),
-                  },
-                ],
-              },
-              {
-                element: <RequirePermission anyOf={['gateway.manage']} />,
-                children: [
-                  {
-                    path: 'admin/payment-gateways',
-                    lazy: async () => ({
-                      Component: (await import('@/features/commerce/routes/PaymentGatewaysRoute'))
-                        .PaymentGatewaysRoute,
-                    }),
-                  },
-                ],
-              },
-              {
-                // Refunds the provider reported that the books could not take in.
-                element: <RequirePermission anyOf={['order.refund']} />,
-                children: [
-                  {
-                    path: 'admin/refund-reports',
-                    lazy: async () => ({
-                      Component: (await import('@/features/commerce/routes/RefundReportsRoute'))
-                        .RefundReportsRoute,
-                    }),
-                  },
-                ],
-              },
-              {
-                element: <RequirePermission anyOf={['coupon.manage']} />,
-                children: [
-                  {
-                    path: 'admin/coupons',
-                    lazy: async () => ({
-                      Component: (await import('@/features/commerce/routes/CouponsRoute'))
-                        .CouponsRoute,
-                    }),
-                  },
-                ],
-              },
-              {
-                element: <RequirePermission anyOf={['webhook.manage']} />,
-                children: [
-                  {
-                    path: 'admin/webhooks',
-                    lazy: async () => ({
-                      Component: (await import('@/features/webhook/routes/WebhooksRoute'))
-                        .WebhooksRoute,
-                    }),
-                  },
-                  {
-                    path: 'admin/webhooks/:endpointId',
-                    lazy: async () => ({
-                      Component: (await import('@/features/webhook/routes/WebhookEndpointRoute'))
-                        .WebhookEndpointRoute,
-                    }),
-                  },
-                ],
-              },
-            ],
-          },
         ],
       },
     ],
   },
 
   { path: '*', element: <RouteErrorBoundary /> },
-]);
+];
+
+/**
+ * Areas discovered the first time one of their paths is visited.
+ *
+ * The route table was the largest module on first paint — 15.4 KB of a
+ * 45.5 KB minified entry chunk, nearly half of it these three trees — and
+ * most sessions are learners who never open them. Until an area is patched
+ * in, a path under it matches only the root splat, and React Router treats a
+ * match with params as possibly partial: it asks here before rendering, on a
+ * first load and on a client navigation alike. Patching the same children
+ * twice is a no-op (React Router's `isSameRoute`), so a second visit costs
+ * nothing.
+ *
+ * A new area is one line here and a file in ./routes. A new page inside one
+ * goes in that file — never back in the eager table, which router.test.tsx
+ * checks.
+ */
+const AREAS: Record<string, () => Promise<RouteObject[]>> = {
+  studio: async () => (await import('./routes/studio')).studioRoutes,
+  admin: async () => (await import('./routes/admin')).adminRoutes,
+  platform: async () => (await import('./routes/platform')).platformRoutes,
+};
+
+export const discoverRoutes: PatchRoutesOnNavigationFunction = async ({ path, patch }) => {
+  const load = AREAS[path.split('/')[1] ?? ''];
+
+  if (load) {
+    patch(SHELL_ROUTE_ID, await load());
+  }
+};
+
+export const router = createBrowserRouter(routes, { patchRoutesOnNavigation: discoverRoutes });
