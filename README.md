@@ -37,13 +37,16 @@ codes — scoped, limited, and split across the order so revenue still adds up �
 refunds orders, all of it or part, and tells its other systems what happens in
 it through signed, retried webhooks.
 
-**Two integrations are written and unproven, and need credentials rather than
-code:** `StripeGateway` has never contacted Stripe (commerce is complete and
-tested against a fake gateway; no real money has moved), and the Zoom and
-Google Meet providers have never contacted either service (the manual
-provider — paste a link — works and is tested).
+**Two integrations are written and unproven:** `StripeGateway` has never
+contacted Stripe (commerce is complete and tested against a fake gateway; no
+real money has moved), and the Zoom and Google Meet providers have never
+contacted either service (the manual provider — paste a link — works and is
+tested). Zoom and Meet need only credentials. Stripe also needs a card form:
+checkout never loads Stripe's, so [`docs/RUNNING.md`](docs/RUNNING.md) shows
+how to confirm a sandbox payment from a terminal until it exists.
 
-**Next:** one real Stripe sandbox payment, which is what signs off the MVP —
+**Next:** provider refund webhooks, then a Stripe card form (Stripe Checkout)
+and one real sandbox payment through it — which is what signs off the MVP —
 then the rest of Phase 16: subscriptions and memberships, coaching, the blog
 and page builder, multilingual and RTL.
 

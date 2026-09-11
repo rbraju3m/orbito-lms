@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Commerce\Data\WebhookEvent;
 use App\Domain\Commerce\Enums\Gateway;
 use App\Domain\Commerce\Models\PaymentGatewayAccount;
 use App\Domain\Identity\Enums\RoleKey;
@@ -151,3 +152,45 @@ it('forbids staff, who run orders but move no money', function (): void {
 it('requires authentication', function (): void {
     $this->getJson('/api/v1/admin/payment-gateways')->assertUnauthorized();
 });
+
+/* ------------------------------------------------------------ webhook setup */
+
+it('tells the admin where the provider must send webhooks, and which events', function (): void {
+    // Fake connected, Stripe not: both shapes of the row carry the setup.
+    $this->actingAs($this->admin)->putJson('/api/v1/admin/payment-gateways/fake', [
+        'credentials' => ['key' => 'sk_test_webhook_setup'],
+    ])->assertOk();
+
+    $rows = collect($this->actingAs($this->admin)
+        ->getJson('/api/v1/admin/payment-gateways')
+        ->assertOk()
+        ->json('data'))->keyBy('gateway');
+
+    // The academy id in this path is shown nowhere else in the product, and
+    // Stripe's endpoint setup cannot be finished without it.
+    $academy = tenant()->getTenantKey();
+
+    expect($rows['stripe']['webhook_url'])->toEndWith("/api/v1/webhooks/payments/stripe/{$academy}")
+        ->and($rows['stripe']['webhook_url'])->toBe(route('webhooks.payments', ['gateway' => 'stripe', 'tenant' => $academy]))
+        ->and($rows['stripe']['webhook_events'])->toBe(['payment_intent.succeeded', 'payment_intent.payment_failed'])
+        ->and($rows['fake']['is_connected'])->toBeTrue()
+        ->and($rows['fake']['webhook_url'])->toEndWith("/api/v1/webhooks/payments/fake/{$academy}");
+});
+
+/*
+ * The screen and the handler read one list. An event named here that
+ * HandleWebhook does not act on is an academy told to send something that is
+ * then recorded and ignored — a payment that never grants access.
+ */
+it('names only events the webhook handler acts on', function (Gateway $gateway): void {
+    // A gateway that cannot be connected has no endpoint to set up. One that
+    // can must say what to send, or its setup block tells the academy nothing.
+    expect($gateway->webhookEvents() === [])->toBe(! $gateway->isAvailable());
+
+    foreach ($gateway->webhookEvents() as $type) {
+        $event = new WebhookEvent(id: 'evt_check', type: $type, externalPaymentId: null, amountMinor: null, currency: null, payload: []);
+
+        expect($event->isSuccess() || $event->isFailure())
+            ->toBeTrue("{$gateway->value} lists {$type}, which HandleWebhook ignores");
+    }
+})->with(Gateway::cases());

@@ -838,9 +838,13 @@ touching anything.
 **1. One Stripe sandbox payment.** Every MVP phase has shipped, but the MVP is
 not signed off: its own definition (`docs/ROADMAP.md` §3) says a student "buys
 it with a real verified payment", and `StripeGateway` has never contacted
-Stripe. Commerce is complete and tested against `FakeGateway`. This needs
-credentials, not code — and as of Phase 16 a course can finally be PRICED
-through the API, which it could not be before.
+Stripe. Commerce is complete and tested against `FakeGateway`. It needs
+credentials AND a card form: the handoff returns a client secret for Stripe
+Elements, the SPA never loads Elements, so a learner has nowhere to type a
+card (`docs/RUNNING.md` confirms one from a terminal meanwhile). Stripe
+Checkout — a redirect `OrderDetailRoute` already follows, no JS on first
+paint — is the recommended slice. Until 5837bc8 a key saved from the Payments
+screen was never read either; the screen now also shows the webhook URL.
 
 **2. Zoom / Google Meet, likewise.** Both providers are written and have never
 been called. `ManualProvider` works and is what most academies will use.

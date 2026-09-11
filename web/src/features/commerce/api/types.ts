@@ -136,5 +136,12 @@ export interface PaymentGatewayAccount {
   has_webhook_secret: boolean;
   is_active: boolean;
   is_test_mode: boolean;
+  /**
+   * Where the provider must send its webhooks. Carries the academy id, which
+   * the provider's endpoint setup needs and the product shows nowhere else.
+   */
+  webhook_url: string;
+  /** The events to subscribe that endpoint to — the list the server acts on. */
+  webhook_events: string[];
   updated_at: string | null;
 }

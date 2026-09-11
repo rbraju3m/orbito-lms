@@ -91,6 +91,51 @@ academy.
 `http://localhost:5173/register?academy=demo-academy`. An account belongs to
 one academy, so plain `/register` has nowhere to put it.
 
+## Taking a test payment with Stripe
+
+You need a Stripe **sandbox** and the [Stripe CLI](https://docs.stripe.com/cli)
+(`stripe login` once). Stripe cannot reach an API on your machine, so the CLI
+receives its events and forwards them — nothing is registered in Stripe's
+dashboard for this.
+
+1. **Key.** In the sandbox, open **API keys** and copy the secret key
+   (`sk_test_…`) — or create a restricted key (`rk_test_…`) that may write
+   PaymentIntents and Refunds.
+2. **Connect.** Sign in as `owner@orbito.test`, open **Payments**
+   (`/admin/payment-gateways`) and choose **Connect** on the Stripe card. Paste
+   the key into **Secret key**, leave **Test mode** on, switch on **Take
+   payments with this gateway**, and save.
+3. **Forward events.** Copy the **Stripe webhook URL** shown on that card — it
+   ends in your academy's id — and keep this running in a fourth terminal:
+
+   ```bash
+   stripe listen \
+     --events payment_intent.succeeded,payment_intent.payment_failed \
+     --forward-to <the Stripe webhook URL>
+   ```
+
+   It prints `Ready! Your webhook signing secret is whsec_…`. Paste that into
+   **Webhook signing secret** on the Stripe card (the key box can stay empty —
+   an empty box keeps what is saved). It does not change between runs of
+   `stripe listen`, so this is once per machine.
+4. **Order.** Sign in as `student@orbito.test`, buy a priced course, and on the
+   order page pick **Stripe** under **Pay with**, then **Pay now**. The order
+   stays *awaiting payment*.
+5. **Pay.** ⚠ There is no card form yet: Stripe's handoff returns a client
+   secret for Stripe Elements, and the SPA does not load Elements. Stand in for
+   the learner by confirming the payment yourself. The new PaymentIntent is in
+   the sandbox's **Payments** list as *Incomplete*, with an id starting `pi_`:
+
+   ```bash
+   curl https://api.stripe.com/v1/payment_intents/pi_…/confirm \
+     -u "sk_test_…:" \
+     -d payment_method=pm_card_visa \
+     --data-urlencode "return_url=https://example.com"
+   ```
+
+   `stripe listen` shows `payment_intent.succeeded` forwarded with a `200`, the
+   order turns *paid*, and the course opens for the student.
+
 ## When it does not work
 
 | Symptom | Cause |
@@ -104,6 +149,10 @@ one academy, so plain `/register` has nowhere to put it.
 | Emails, certificates or notifications never arrive | Horizon is not running |
 | Webhook deliveries stay *Pending* | Horizon is not running — every delivery is a queued job |
 | After pulling: a 500 naming a missing table or column (`refunds`, `coupon_id`, `webhook_endpoints`…) | New tenant migrations — `cd api && php artisan tenants:migrate` |
+| Pay now: *The stripe gateway is not connected for this academy* | No key saved, or **Take payments with this gateway** is off — the Payments screen |
+| Paid in Stripe, order still *awaiting payment* | `stripe listen` is not running, or the signing secret saved is not the one it printed |
+| `stripe listen` shows `[400]` for every event | The signing secret does not match — or your clock is more than 5 minutes out, because the signature carries a timestamp |
+| `stripe listen` shows `[404]` | The URL is not an open academy's. Copy it from the Payments screen again |
 
 **CSRF token mismatch when you also run another Laravel app locally.** Cookies
 belong to a HOST, not a port, and every Laravel app names its CSRF cookie
@@ -130,3 +179,23 @@ Any one out of step and the session cookie is never accepted, which is the
 Set `PLATFORM_OWNER_PASSWORD` — the default ships in the repository — or sign
 in once and change it. Demo accounts and Demo Academy are never created
 outside `local` and `testing`.
+
+**Each academy connects its own Stripe account** (ADR-13) — its admin does,
+on **Payments**; the platform is never the merchant.
+
+1. In Stripe, **API keys**: copy the secret key, or create a restricted key
+   that may write PaymentIntents and Refunds. Paste it into **Secret key** on
+   the Stripe card.
+2. Workbench → **Webhooks** → **Create an event destination** → **Your
+   account** → choose the API version → select the events the Stripe card
+   lists → **Continue** → **Webhook endpoint** → **Continue**, and paste the
+   card's **Stripe webhook URL** into **Endpoint URL**.
+3. On the new destination's page, **Reveal secret** and paste the `whsec_…`
+   into **Webhook signing secret** on the Stripe card. Then switch on **Take
+   payments with this gateway**.
+
+Sandbox and live are separate everywhere — their own keys, their own
+endpoint, their own signing secret — so going live is all three again with
+live values, and **Test mode** off. The endpoint must be public HTTPS; Stripe
+delivers to nothing else. Until the card form exists (above), a learner
+cannot pay through Stripe from the browser.

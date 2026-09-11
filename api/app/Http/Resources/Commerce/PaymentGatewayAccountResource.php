@@ -33,6 +33,7 @@ final class PaymentGatewayAccountResource extends BaseResource
             'has_webhook_secret' => $this->webhook_secret !== null && $this->webhook_secret !== '',
             'is_active' => $this->is_active,
             'is_test_mode' => $this->is_test_mode,
+            ...self::webhook($this->gateway),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
@@ -54,7 +55,29 @@ final class PaymentGatewayAccountResource extends BaseResource
             'has_webhook_secret' => false,
             'is_active' => false,
             'is_test_mode' => true,
+            ...self::webhook($gateway),
             'updated_at' => null,
+        ];
+    }
+
+    /**
+     * Where the provider must deliver its webhooks, and which ones.
+     *
+     * Not a secret — the endpoint is public by design and trusts only the
+     * signature — but the academy id in it is shown nowhere else in the
+     * product, and a provider's webhook setup cannot be finished without it.
+     * Built from the route, so it cannot drift from the real endpoint.
+     *
+     * @return array{webhook_url: string, webhook_events: list<string>}
+     */
+    private static function webhook(Gateway $gateway): array
+    {
+        return [
+            'webhook_url' => route('webhooks.payments', [
+                'gateway' => $gateway->value,
+                'tenant' => tenant()?->getTenantKey(),
+            ]),
+            'webhook_events' => $gateway->webhookEvents(),
         ];
     }
 }

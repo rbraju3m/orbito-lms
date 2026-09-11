@@ -3,18 +3,21 @@ import {
   Badge,
   Button,
   Card,
+  Code,
   Container,
+  CopyButton,
   Group,
   Modal,
   PasswordInput,
   Stack,
   Switch,
   Text,
+  TextInput,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconAlertTriangle, IconPlugConnected } from '@tabler/icons-react';
+import { IconAlertTriangle, IconCheck, IconCopy, IconPlugConnected } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 
 import { ApiError } from '@/shared/api/errors';
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
@@ -110,6 +113,8 @@ function GatewayCard({ account, onEdit }: { account: PaymentGatewayAccount; onEd
         </Group>
       </Group>
 
+      <WebhookSetup account={account} />
+
       <Modal opened={confirming} onClose={close} title={`Disconnect ${account.label}?`} centered>
         <Stack gap="sm">
           <Text size="sm">
@@ -131,6 +136,54 @@ function GatewayCard({ account, onEdit }: { account: PaymentGatewayAccount; onEd
         </Stack>
       </Modal>
     </Card>
+  );
+}
+
+/**
+ * Where the provider must send its webhooks, and which ones.
+ *
+ * The academy id in the URL is shown nowhere else in the product, and the
+ * provider's endpoint setup cannot be finished without it. Shown before a
+ * gateway is connected too, because the setup order is: create the endpoint
+ * at the provider, THEN paste the signing secret it gives you in here. The
+ * event names are the server's list — the one the webhook handler acts on —
+ * never a second copy kept in the SPA.
+ */
+function WebhookSetup({ account }: { account: PaymentGatewayAccount }) {
+  const label = `${account.label} webhook URL`;
+
+  return (
+    <Stack gap={4} mt="sm">
+      <Group gap="xs" wrap="nowrap">
+        <TextInput value={account.webhook_url} readOnly flex={1} size="xs" aria-label={label} />
+        <CopyButton value={account.webhook_url}>
+          {({ copied, copy }) => (
+            <Button
+              variant="light"
+              size="xs"
+              color={copied ? 'success' : undefined}
+              leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+              onClick={copy}
+              aria-label={`Copy ${label}`}
+            >
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+          )}
+        </CopyButton>
+      </Group>
+
+      {account.webhook_events.length > 0 && (
+        <Text size="xs" c="dimmed">
+          Send these events to it:{' '}
+          {account.webhook_events.map((event, index) => (
+            <Fragment key={event}>
+              {index > 0 && ', '}
+              <Code>{event}</Code>
+            </Fragment>
+          ))}
+        </Text>
+      )}
+    </Stack>
   );
 }
 

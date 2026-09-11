@@ -33,6 +33,23 @@ enum Gateway: string
         };
     }
 
+    /**
+     * The events this gateway's webhook endpoint must be subscribed to. The
+     * Payments screen lists them beside the endpoint's URL, and every one is a
+     * type HandleWebhook acts on (PaymentGatewayAdminTest), so the screen can
+     * never ask an academy to send something the server then ignores.
+     *
+     * @return list<string>
+     */
+    public function webhookEvents(): array
+    {
+        return match ($this) {
+            self::Fake => ['payment.captured', 'payment.failed'],
+            self::Stripe => ['payment_intent.succeeded', 'payment_intent.payment_failed'],
+            default => [],
+        };
+    }
+
     public function label(): string
     {
         return match ($this) {

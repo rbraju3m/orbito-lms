@@ -532,7 +532,8 @@ POST   /orders/{order}/pay                      {gateway} → {redirect_url|clie
 GET    /orders                                  own orders, or all with `order.view.any`
 GET    /orders/{order}
 POST   /webhooks/payments/{gateway}/{tenant}    unauthenticated · signature-verified · idempotent
-GET    /admin/payment-gateways                  every supported gateway, connected or not
+GET    /admin/payment-gateways                  every supported gateway, connected or not,
+                                                each with webhook_url + webhook_events
 PUT    /admin/payment-gateways/{gateway}        partial; omitted secrets are KEPT
 DELETE /admin/payment-gateways/{gateway}        disconnect — deletes the row
 POST   /cart/coupon · DELETE /cart/coupon       {code} → 422 coupon_rejected with meta.reason; throttled
