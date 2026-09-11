@@ -194,7 +194,7 @@ function RefundDialog({ order, refundable }: { order: Order; refundable: number 
               <Text size="xs" c="dimmed">
                 {method === 'gateway'
                   ? 'The money goes back the way it was paid.'
-                  : 'Already refunded by bank, in cash or in the provider’s dashboard — this only records it.'}
+                  : 'Already refunded by bank transfer or in cash — this only records it. Refunds made in the provider’s dashboard arrive here by themselves; recording one as well would count it twice.'}
               </Text>
             </Stack>
 

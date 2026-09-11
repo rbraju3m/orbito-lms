@@ -531,7 +531,8 @@ POST   /checkout                                → order, priced by the SERVER;
 POST   /orders/{order}/pay                      {gateway} → {redirect_url|client_secret}
 GET    /orders                                  own orders, or all with `order.view.any`
 GET    /orders/{order}
-POST   /webhooks/payments/{gateway}/{tenant}    unauthenticated · signature-verified · idempotent
+POST   /webhooks/payments/{gateway}/{tenant}    unauthenticated · signature-verified · idempotent;
+                                                payments, and refunds (REFUNDS.md §6)
 GET    /admin/payment-gateways                  every supported gateway, connected or not,
                                                 each with webhook_url + webhook_events
 PUT    /admin/payment-gateways/{gateway}        partial; omitted secrets are KEPT
@@ -549,7 +550,7 @@ GET    /orders/{uuid}/invoice
 
 **Refunds.** `method` is `gateway` (back through the provider that took it) or
 `external` (made elsewhere, recorded here). 201 with the refund, `completed` or
-`pending`; a provider refusal is `503 gateway_unavailable` and the refund is
+`pending` — settled later by the provider's refund webhook; a provider refusal is `503 gateway_unavailable` and the refund is
 kept as `failed`. `422 refund_rejected` carries `meta.reason` — `not_paid`,
 `nothing_left`, `too_much` (with `refundable_minor`), `no_payment`. OUTSIDE the
 subscription gate: a lapsed academy can still give money back. The order detail

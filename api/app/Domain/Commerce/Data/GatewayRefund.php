@@ -9,8 +9,8 @@ namespace App\Domain\Commerce\Data;
  *
  * `settled` false means the provider accepted the refund but has not finished
  * it (Stripe reports some payment methods as `pending`). The refund stays
- * pending until a provider refund webhook confirms it — and those are not
- * handled yet, so it is left for an operator (docs/REFUNDS.md §6).
+ * pending, holding its amount, until the provider's refund webhook settles it
+ * (ReconcileProviderRefund).
  */
 final readonly class GatewayRefund
 {

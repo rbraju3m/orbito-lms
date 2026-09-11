@@ -120,6 +120,12 @@ it('refunds through Stripe with the same key', function (): void {
     expect($refund->status)->toBe(RefundStatus::Completed)
         ->and($refund->external_id)->toBe('re_from_stripe');
 
+    // Our refund's uuid travels with it — the idempotency key, and the metadata
+    // a refund webhook is matched back on before Stripe's id is stored here.
     Http::assertSent(fn (HttpRequest $request): bool => $request->url() === 'https://api.stripe.com/v1/refunds'
-        && $request->hasHeader('Authorization', 'Bearer '.STRIPE_KEY));
+        && $request->hasHeader('Authorization', 'Bearer '.STRIPE_KEY)
+        && $request->hasHeader('Idempotency-Key', 'refund_'.$refund->uuid)
+        // data() is the form fields as given, so the key is the literal
+        // bracketed name — the body encodes it as metadata%5Brefund_uuid%5D.
+        && ($request->data()['metadata[refund_uuid]'] ?? null) === $refund->uuid);
 });

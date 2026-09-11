@@ -37,6 +37,9 @@ interface PaymentGateway
      * MUST verify the signature against the academy's own webhook secret and
      * throw on failure. Returning an unverified event would make every later
      * check pointless, because the payload would be attacker-controlled.
+     *
+     * A refund event carries its refunds already parsed (`$refunds`), and names
+     * the payment by the id the handoff stored — never by the refund's own id.
      */
     public function verifyWebhook(Request $request, GatewayAccount $account): WebhookEvent;
 
@@ -44,9 +47,12 @@ interface PaymentGateway
      * Give money back on a captured payment — all of it or part of it.
      *
      * MUST throw (GatewayUnavailable) when the provider refuses, so the refund
-     * is marked failed and its amount freed, never completed. The idempotency
-     * key is the refund's own id: a retried request after a timeout must not
-     * give the money back twice.
+     * is marked failed and its amount freed, never completed.
+     *
+     * `$reference` is our refund's uuid. It is the idempotency key — a retried
+     * request after a timeout must not give the money back twice — and it
+     * travels to the provider with the refund, so the provider's refund
+     * webhook is matched back to our row even before its id is stored on it.
      */
-    public function refund(Payment $payment, int $amountMinor, string $idempotencyKey, GatewayAccount $account): GatewayRefund;
+    public function refund(Payment $payment, int $amountMinor, string $reference, GatewayAccount $account): GatewayRefund;
 }

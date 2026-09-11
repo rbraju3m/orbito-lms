@@ -16,8 +16,8 @@ Two ways the money moves (`RefundMethod`):
 
 | Method | What happens |
 |---|---|
-| `gateway` | Sent back through the gateway that took the payment (`PaymentGateway::refund`). ⚠ Stripe's refund call has never reached Stripe, like the rest of `StripeGateway`. |
-| `external` | Already given back somewhere else — the provider's dashboard, a bank transfer, cash — and **recorded** here so the books and the access match. Nothing is called. |
+| `gateway` | Sent back through the gateway that took the payment (`PaymentGateway::refund`) — or made in the provider's own dashboard and reported by its webhook (§6). ⚠ Stripe's refund call has never reached Stripe, like the rest of `StripeGateway`. |
+| `external` | Already given back somewhere else — a bank transfer, cash — and **recorded** here so the books and the access match. Nothing is called. Not for a refund made in the provider's dashboard: that arrives by webhook, and recording it as well counts it twice. |
 
 A free order (a coupon took it to zero) has nothing to refund. An order settled
 by hand has no captured payment, so only `external` works on it.
@@ -42,8 +42,8 @@ by hand has no captured payment, so only `external` works on it.
 A provider that **refuses** leaves the refund `failed` — kept, with the
 provider's reason, and its amount freed to refund again — and the admin gets
 `503 gateway_unavailable`. One that **accepts without settling** (Stripe
-reports some methods `pending`) leaves it `pending`, still holding its amount
-(§6).
+reports some methods `pending`) leaves it `pending`, still holding its amount,
+until the provider's refund webhook settles it (§6).
 
 `422 refund_rejected` carries `meta.reason`: `not_paid`, `nothing_left`,
 `too_much` (with `refundable_minor`), `no_payment`.
@@ -63,6 +63,10 @@ course the learner already had when a bundle's overlap was delivered
 **A partial refund never touches access.** Only the refund that empties the
 order can revoke (`revokes_access` is stored false on any other), so a run of
 partials that adds up to everything revokes on the last one, if it says to.
+
+**A full refund made in the provider's dashboard revokes too**, as the
+dialog's default does — nobody here was asked whether it was goodwill, and an
+admin can enrol the learner again. A partial one, again, never touches access.
 
 Revoked, not deleted: progress and grades stay, and buying again later works.
 
@@ -96,12 +100,47 @@ platform total on every day, refunds included.
 
 ---
 
-## 6. Not built
+## 6. Refunds the provider reports
 
-- **Provider refund webhooks.** A refund made in Stripe's dashboard is invisible
-  here until it is recorded as `external`, and a gateway refund Stripe reports
-  `pending` stays pending until an operator records the outcome. A
-  `charge.refunded` handler that arrives at `CompleteRefund` is the fix.
+Stripe reports refunds with `refund.created`, `refund.updated` and
+`refund.failed` — one refund object each. (`charge.refunded` carries the
+charge instead, and Stripe's own reference says to listen for these.) The
+Payments screen lists them beside the endpoint's URL; setup is in
+`RUNNING.md`. They arrive through the same endpoint and the same `HandleWebhook`
+as payments — signature first, the event recorded once, the payment matched by
+the id WE stored — and only then `ReconcileProviderRefund`.
+
+- **Ours, settled later.** A refund asked for here carries its uuid to Stripe
+  (`metadata[refund_uuid]`, and the idempotency key), so its report finds the
+  row even if it lands before Stripe's id is stored on it. A pending one
+  completes on `succeeded` and fails — freeing its amount — on `failed` or
+  `canceled`.
+- **Made in the dashboard.** A refund with no row here is claimed like any
+  other — the same lock, the same split, the same "only what is left" — held
+  while Stripe says pending and completed when it succeeds. `method` is
+  `gateway`, `requested_by` is null, and the learner reads "Refunded through
+  Stripe." A full one revokes (§3); a partial one does not.
+- **Once, however many events.** One refund is described by several events in
+  any order. A unique index on `refunds.external_id` makes "recorded once" a
+  constraint, and a late `pending` after `succeeded` changes nothing.
+- **Left for a person.** A report the books cannot absorb is recorded and not
+  acted on — its webhook event stays unprocessed, with a warning in the log:
+  more than the order has left (usually a dashboard refund that was *also*
+  recorded by hand), a different amount or currency than the refund it names,
+  money given back on a refund recorded here as failed (a gateway call that
+  timed out after Stripe had acted), or a completed refund Stripe has since
+  failed. Undoing either of the last two re-decides access and revenue, which
+  is a person's call.
+
+⚠ Written to Stripe's documented objects, like the rest of `StripeGateway`; no
+real Stripe event has been through it.
+
+---
+
+## 7. Not built
+
+- **A screen for reports left for a person.** They are in `payment_events`
+  with `processed_at` null and in the log; nothing shows them to an admin.
 - **Refunding a free order's access** — there is no money, so it is a revoke,
   not a refund. Staff suspend the enrolment instead.
 - **Per-line refunds** ("refund just this course"). A refund is an amount; the

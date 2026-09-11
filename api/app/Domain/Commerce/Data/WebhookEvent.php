@@ -24,6 +24,13 @@ final readonly class WebhookEvent
         public ?string $currency,
         /** @var array<string, mixed> */
         public array $payload,
+        /**
+         * The refunds a refund event reports on, parsed by the gateway that
+         * verified it. Empty for every other event.
+         *
+         * @var list<ProviderRefund>
+         */
+        public array $refunds = [],
     ) {}
 
     public function isSuccess(): bool
@@ -40,6 +47,16 @@ final readonly class WebhookEvent
         return in_array($this->type, [
             'payment.failed',
             'payment_intent.payment_failed',
+        ], true);
+    }
+
+    /** A refund made, updated or failed — reconciled by ReconcileProviderRefund. */
+    public function isRefund(): bool
+    {
+        return in_array($this->type, [
+            'refund.created',
+            'refund.updated',
+            'refund.failed',
         ], true);
     }
 }

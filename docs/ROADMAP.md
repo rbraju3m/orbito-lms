@@ -1372,9 +1372,16 @@ through the gateway or recorded when made elsewhere. Reference:
 - **Found on the way:** the refund request first had a `method()` accessor,
   which silently overrides `Request::method()` — the HTTP verb. PHPStan's
   return-type check caught it before it shipped.
-- **Still open:** provider refund webhooks (a refund made in Stripe's
-  dashboard is invisible until recorded, and a pending Stripe refund waits for
-  an operator), refunding a single chosen line, and credit notes with invoices.
+- **Provider refund webhooks — done.** Stripe's `refund.created`,
+  `refund.updated` and `refund.failed` reach `ReconcileProviderRefund`: a
+  pending refund asked for here completes or fails by itself, matched on the
+  uuid it carried to Stripe even before Stripe's id is stored; a refund made in
+  the dashboard is claimed, split and completed like any other, and a full one
+  revokes. A unique index on `refunds.external_id` records each once however
+  many events describe it. What the books cannot absorb is left unprocessed
+  for a person (REFUNDS.md §6).
+- **Still open:** refunding a single chosen line, credit notes with invoices,
+  and a screen for refund reports left for a person.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL.

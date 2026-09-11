@@ -738,6 +738,13 @@ Gate::authorize('publish', $course);                   // in a controller
   `RefundOrderRequest::method()` silently replaced `Request::method()` — the
   HTTP verb — for anything reading it off that request. PHPStan's
   `method.childReturnType` caught it; it is now `refundMethod()`.
+- **Match a provider's report by the id WE sent, not only the one it
+  returned.** A refund webhook can land before the row that will hold
+  Stripe's id has stored it; matching on that id alone reads our own refund as
+  a stranger's and records it twice. `metadata[refund_uuid]` travels out with
+  the request — the instinct of `order_uuid` on the handoff. And only a
+  terminal report moves a pending row: events arrive in any order, so a late
+  `pending` is stale, not a reversal.
 - **Retry state belongs on the row, not the queue.** `DeliverWebhook` counts
   `attempts` in the database and `release()`s, which the sync test queue
   ignores; tests drive each retry by running the job again. The alternative —
@@ -825,9 +832,9 @@ so the action that fixes a lapse survives it.
 **Phases 0–15 complete**, front and back, plus a **multi-tenancy retrofit**
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, digital downloads, upload
-permissions, upload volume limits, outbound webhooks, coupons and
-refunds** (§ Patterns established in Phase 16).
-1,320 backend tests / 4,845 assertions · 318 frontend tests.
+permissions, upload volume limits, outbound webhooks, coupons, refunds
+and provider refund webhooks** (§ Patterns established in Phase 16).
+1,350 backend tests / 4,978 assertions · 320 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -856,8 +863,9 @@ downloads fixed two bugs bundles shipped, uploads closed a hole downloads
 found, and volume limits closed the rest of it (§ Patterns established in
 Phase 16), and a nightly sweep now deletes the submission uploads nothing
 used. **Outbound webhooks**, **coupons** and **refunds** are done too
-(`docs/WEBHOOKS.md`, `COUPONS.md`, `REFUNDS.md`). Also ahead: provider refund
-webhooks — a refund made in Stripe's dashboard is invisible until recorded — subscriptions and memberships (after the Stripe test), coaching, blog,
+(`docs/WEBHOOKS.md`, `COUPONS.md`, `REFUNDS.md`), and Stripe's refund events
+now reach the books (`REFUNDS.md` §6). Also ahead: a Stripe card form (Stripe
+Checkout), subscriptions and memberships (after the Stripe test), coaching, blog,
 page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
@@ -974,11 +982,12 @@ Every one of these has already cost time at least once.
   `MediaCollection::sweptWhenUnused()` for them; the other order deletes every
   profile picture two days after it is uploaded. Nobody can delete a
   handed-in file either, admins included; moderation will one day need that.
-- **Refunds have no provider webhooks.** A refund made in Stripe's dashboard
-  is invisible until an admin records it as `external`, and a gateway refund
-  Stripe reports `pending` stays pending. A `charge.refunded` handler that
-  arrives at `CompleteRefund` is the fix. A refund is an amount, split
-  proportionally — refunding one chosen line is its own slice.
+- **A provider refund report that cannot be settled has no screen.** It is
+  recorded with `processed_at` null in `payment_events` and logged
+  (`REFUNDS.md` §6) — a dashboard refund also recorded by hand, a gateway call
+  that timed out after Stripe acted, a refund Stripe failed after it
+  succeeded. A refund is an amount, split proportionally — refunding one
+  chosen line is its own slice.
 - **Webhooks: no secret overlap on rotation**, no notification when an
   endpoint switches itself off, and `enrollment.expired` has no end-to-end
   test — it fires from the sweeper, where the harness cannot observe

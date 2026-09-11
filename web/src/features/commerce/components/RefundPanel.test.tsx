@@ -120,6 +120,25 @@ describe('RefundPanel', () => {
     );
   });
 
+  /*
+   * A refund made in the provider's dashboard arrives by webhook. Recording it
+   * here as well would count the same money twice, so the form says so at the
+   * moment somebody reaches for "Refunded elsewhere".
+   */
+  it('warns that a dashboard refund arrives by itself', async () => {
+    asStaff(['order.refund']);
+    renderWithRouter(<RefundPanel order={order()} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Refund…/ }));
+    expect(screen.queryByText(/arrive here by themselves/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Refunded elsewhere' }));
+
+    expect(
+      screen.getByText(/arrive here by themselves; recording one as well would count it twice/),
+    ).toBeInTheDocument();
+  });
+
   it('shows why the provider refused', async () => {
     asStaff(['order.refund']);
     server.use(

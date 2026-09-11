@@ -6,7 +6,9 @@ namespace App\Domain\Commerce\Gateways;
 
 use App\Domain\Commerce\Data\GatewayHandoff;
 use App\Domain\Commerce\Data\GatewayRefund;
+use App\Domain\Commerce\Data\ProviderRefund;
 use App\Domain\Commerce\Data\WebhookEvent;
+use App\Domain\Commerce\Enums\RefundStatus;
 use App\Domain\Commerce\Exceptions\GatewayUnavailable;
 use App\Domain\Commerce\Exceptions\WebhookRejected;
 use App\Domain\Commerce\Models\Order;
@@ -82,11 +84,13 @@ final class StripeGateway implements PaymentGateway
     /**
      * ⚠ NOT VERIFIED AGAINST A REAL SANDBOX — the same caveat as the rest of
      * this class. `POST /v1/refunds` against the payment intent the handoff
-     * created. Stripe reports `succeeded` for most card refunds and `pending`
-     * for some methods; a pending one waits on a refund webhook this system
-     * does not handle yet (docs/REFUNDS.md §6).
+     * created, carrying our refund's uuid as the idempotency key and as
+     * `metadata[refund_uuid]`. Stripe reports `succeeded` for most card
+     * refunds and `pending` for some methods; a pending one is settled by the
+     * `refund.updated` webhook (ReconcileProviderRefund), matched on that
+     * metadata.
      */
-    public function refund(Payment $payment, int $amountMinor, string $idempotencyKey, GatewayAccount $account): GatewayRefund
+    public function refund(Payment $payment, int $amountMinor, string $reference, GatewayAccount $account): GatewayRefund
     {
         $secretKey = $account->credential(self::KEY_CREDENTIAL);
 
@@ -97,10 +101,13 @@ final class StripeGateway implements PaymentGateway
         $response = Http::withToken($secretKey)
             ->asForm()
             // Stripe's own idempotency: the same key twice is one refund.
-            ->withHeaders(['Idempotency-Key' => $idempotencyKey])
+            ->withHeaders(['Idempotency-Key' => 'refund_'.$reference])
             ->post(self::API.'/refunds', [
                 'payment_intent' => $payment->external_id,
                 'amount' => $amountMinor,
+                // Comes back on every refund webhook, so the report finds our
+                // row before Stripe's `re_…` id has been stored on it.
+                'metadata[refund_uuid]' => $reference,
             ]);
 
         if ($response->failed()) {
@@ -161,11 +168,17 @@ final class StripeGateway implements PaymentGateway
             throw WebhookRejected::malformed();
         }
 
+        $isRefund = is_array($object) && ($object['object'] ?? null) === 'refund';
+
+        // A refund names the payment it came off by its PaymentIntent — the id
+        // the handoff stored — never by its own `re_…` id.
+        $paymentKey = $isRefund ? 'payment_intent' : 'id';
+
         return new WebhookEvent(
             id: $id,
             type: $type,
-            externalPaymentId: is_array($object) && isset($object['id']) && is_string($object['id'])
-                ? $object['id']
+            externalPaymentId: is_array($object) && isset($object[$paymentKey]) && is_string($object[$paymentKey])
+                ? $object[$paymentKey]
                 : null,
             amountMinor: is_array($object) && isset($object['amount']) && is_numeric($object['amount'])
                 ? (int) $object['amount']
@@ -174,7 +187,47 @@ final class StripeGateway implements PaymentGateway
                 ? strtoupper($object['currency'])
                 : null,
             payload: $payload,
+            refunds: $isRefund ? $this->refundsIn($object) : [],
         );
+    }
+
+    /**
+     * A Stripe refund object, as a report. One missing a field this needs
+     * reports nothing rather than a guess — a report is acted on, so a partial
+     * one is worse than none.
+     *
+     * @param  array<mixed>  $object
+     * @return list<ProviderRefund>
+     */
+    private function refundsIn(array $object): array
+    {
+        $id = $object['id'] ?? null;
+        $amount = $object['amount'] ?? null;
+        $currency = $object['currency'] ?? null;
+        $status = match ($object['status'] ?? null) {
+            'succeeded' => RefundStatus::Completed,
+            'pending', 'requires_action' => RefundStatus::Pending,
+            'failed', 'canceled' => RefundStatus::Failed,
+            default => null,
+        };
+
+        if (! is_string($id) || ! is_int($amount) || ! is_string($currency) || $status === null) {
+            return [];
+        }
+
+        $metadata = $object['metadata'] ?? null;
+        $failure = $object['failure_reason'] ?? null;
+
+        return [new ProviderRefund(
+            externalId: $id,
+            amountMinor: $amount,
+            currency: strtoupper($currency),
+            status: $status,
+            reference: is_array($metadata) && isset($metadata['refund_uuid']) && is_string($metadata['refund_uuid'])
+                ? $metadata['refund_uuid']
+                : null,
+            failureReason: is_string($failure) ? $failure : null,
+        )];
     }
 
     /**

@@ -6,7 +6,9 @@ namespace App\Domain\Commerce\Gateways;
 
 use App\Domain\Commerce\Data\GatewayHandoff;
 use App\Domain\Commerce\Data\GatewayRefund;
+use App\Domain\Commerce\Data\ProviderRefund;
 use App\Domain\Commerce\Data\WebhookEvent;
+use App\Domain\Commerce\Enums\RefundStatus;
 use App\Domain\Commerce\Exceptions\GatewayUnavailable;
 use App\Domain\Commerce\Exceptions\WebhookRejected;
 use App\Domain\Commerce\Models\Order;
@@ -43,7 +45,7 @@ final class FakeGateway implements PaymentGateway
      * refuse (`fail`) or accept without settling (`pending`), so tests can walk
      * the paths a real provider takes.
      */
-    public function refund(Payment $payment, int $amountMinor, string $idempotencyKey, GatewayAccount $account): GatewayRefund
+    public function refund(Payment $payment, int $amountMinor, string $reference, GatewayAccount $account): GatewayRefund
     {
         return match ($account->credential('refund_behaviour')) {
             'fail' => throw GatewayUnavailable::requestFailed('fake', 'The refund was declined.'),
@@ -87,6 +89,43 @@ final class FakeGateway implements PaymentGateway
                 ? strtoupper($payload['currency'])
                 : null,
             payload: $payload,
+            refunds: $this->refundsIn($payload['refund'] ?? null),
         );
+    }
+
+    /**
+     * `refund: {id, amount_minor, currency, status, reference?, failure_reason?}`
+     * — Stripe's refund object in this gateway's field names, with `status`
+     * already one of ours. One missing a field reports nothing, as Stripe's does.
+     *
+     * @return list<ProviderRefund>
+     */
+    private function refundsIn(mixed $refund): array
+    {
+        if (! is_array($refund)) {
+            return [];
+        }
+
+        $id = $refund['id'] ?? null;
+        $amount = $refund['amount_minor'] ?? null;
+        $currency = $refund['currency'] ?? null;
+        $status = isset($refund['status']) && is_string($refund['status'])
+            ? RefundStatus::tryFrom($refund['status'])
+            : null;
+
+        if (! is_string($id) || $id === '' || ! is_int($amount) || ! is_string($currency) || $status === null) {
+            return [];
+        }
+
+        return [new ProviderRefund(
+            externalId: $id,
+            amountMinor: $amount,
+            currency: strtoupper($currency),
+            status: $status,
+            reference: isset($refund['reference']) && is_string($refund['reference']) ? $refund['reference'] : null,
+            failureReason: isset($refund['failure_reason']) && is_string($refund['failure_reason'])
+                ? $refund['failure_reason']
+                : null,
+        )];
     }
 }

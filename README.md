@@ -10,10 +10,11 @@ A production-grade, API-first Learning Management System.
 **Status: Phases 0–15 complete**, front and back, plus a multi-tenancy
 retrofit — one database per academy. **Phase 16 is under way**: plan limits,
 course pricing, bundles, digital downloads, upload permissions and volume
-limits, outbound webhooks, coupons and refunds have shipped.
+limits, outbound webhooks, coupons and refunds — Stripe's refund events
+included — have shipped.
 [`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
 
-1,320 backend tests / 4,845 assertions · 318 frontend tests · PHPStan level 6.
+1,350 backend tests / 4,978 assertions · 320 frontend tests · PHPStan level 6.
 
 An instructor can build and publish a course with lessons, resources, quizzes,
 assignments and live sessions, price it, schedule cohorts, announce things,
@@ -45,8 +46,8 @@ tested). Zoom and Meet need only credentials. Stripe also needs a card form:
 checkout never loads Stripe's, so [`docs/RUNNING.md`](docs/RUNNING.md) shows
 how to confirm a sandbox payment from a terminal until it exists.
 
-**Next:** provider refund webhooks, then a Stripe card form (Stripe Checkout)
-and one real sandbox payment through it — which is what signs off the MVP —
+**Next:** a Stripe card form (Stripe Checkout) and one real sandbox payment
+through it — which is what signs off the MVP —
 then the rest of Phase 16: subscriptions and memberships, coaching, the blog
 and page builder, multilingual and RTL.
 

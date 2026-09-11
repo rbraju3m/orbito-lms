@@ -110,7 +110,7 @@ dashboard for this.
 
    ```bash
    stripe listen \
-     --events payment_intent.succeeded,payment_intent.payment_failed \
+     --events payment_intent.succeeded,payment_intent.payment_failed,refund.created,refund.updated,refund.failed \
      --forward-to <the Stripe webhook URL>
    ```
 
@@ -135,6 +135,12 @@ dashboard for this.
 
    `stripe listen` shows `payment_intent.succeeded` forwarded with a `200`, the
    order turns *paid*, and the course opens for the student.
+6. **Refund it in Stripe.** Open the payment in the sandbox's **Payments** list
+   and refund it — all of it or part. `stripe listen` forwards `refund.created`
+   (and `refund.updated`, if it settles later); the refund appears on the order
+   at `/orders/:id` as *Refunded through Stripe*, and a full one takes the
+   course away again. The order page's **Refund…** dialog goes the other way —
+   through Stripe — and the same events settle it.
 
 ## When it does not work
 
@@ -153,6 +159,7 @@ dashboard for this.
 | Paid in Stripe, order still *awaiting payment* | `stripe listen` is not running, or the signing secret saved is not the one it printed |
 | `stripe listen` shows `[400]` for every event | The signing secret does not match — or your clock is more than 5 minutes out, because the signature carries a timestamp |
 | `stripe listen` shows `[404]` | The URL is not an open academy's. Copy it from the Payments screen again |
+| Refunded in Stripe, nothing on the order | `stripe listen` was started without the `refund.*` events — or the report was left for a person (more than the order has left, usually because it was also recorded by hand): see `docs/REFUNDS.md` §6 and the log |
 
 **CSRF token mismatch when you also run another Laravel app locally.** Cookies
 belong to a HOST, not a port, and every Laravel app names its CSRF cookie

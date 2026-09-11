@@ -142,7 +142,7 @@ gradebook (P13) should be able to treat both alike.
 | Event | Payload | Fired when |
 |---|---|---|
 | `PaymentCaptured` | `Payment $payment`, `Order $order` | money is confirmed by the GATEWAY, never by the client |
-| `RefundIssued` | `Refund $refund`, `Order $order`, `bool $fullyRefunded` | a refund COMPLETED — money is back with the learner (P16) |
+| `RefundIssued` | `Refund $refund`, `Order $order`, `bool $fullyRefunded` | a refund COMPLETED — money is back with the learner (P16). Asked for here, or made in the provider's dashboard and reported by its webhook (REFUNDS.md §6) |
 
 `RefundIssued` was named in §4 from Phase 10 and built with its first
 consumer, the `refund.issued` webhook. Revenue reporting does not listen: money

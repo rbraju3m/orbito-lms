@@ -172,7 +172,13 @@ it('tells the admin where the provider must send webhooks, and which events', fu
 
     expect($rows['stripe']['webhook_url'])->toEndWith("/api/v1/webhooks/payments/stripe/{$academy}")
         ->and($rows['stripe']['webhook_url'])->toBe(route('webhooks.payments', ['gateway' => 'stripe', 'tenant' => $academy]))
-        ->and($rows['stripe']['webhook_events'])->toBe(['payment_intent.succeeded', 'payment_intent.payment_failed'])
+        ->and($rows['stripe']['webhook_events'])->toBe([
+            'payment_intent.succeeded',
+            'payment_intent.payment_failed',
+            'refund.created',
+            'refund.updated',
+            'refund.failed',
+        ])
         ->and($rows['fake']['is_connected'])->toBeTrue()
         ->and($rows['fake']['webhook_url'])->toEndWith("/api/v1/webhooks/payments/fake/{$academy}");
 });
@@ -190,7 +196,7 @@ it('names only events the webhook handler acts on', function (Gateway $gateway):
     foreach ($gateway->webhookEvents() as $type) {
         $event = new WebhookEvent(id: 'evt_check', type: $type, externalPaymentId: null, amountMinor: null, currency: null, payload: []);
 
-        expect($event->isSuccess() || $event->isFailure())
+        expect($event->isSuccess() || $event->isFailure() || $event->isRefund())
             ->toBeTrue("{$gateway->value} lists {$type}, which HandleWebhook ignores");
     }
 })->with(Gateway::cases());

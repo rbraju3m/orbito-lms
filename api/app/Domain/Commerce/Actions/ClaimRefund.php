@@ -9,6 +9,7 @@ use App\Domain\Commerce\Enums\RefundMethod;
 use App\Domain\Commerce\Enums\RefundStatus;
 use App\Domain\Commerce\Exceptions\RefundRejected;
 use App\Domain\Commerce\Models\Order;
+use App\Domain\Commerce\Models\Payment;
 use App\Domain\Commerce\Models\Refund;
 use App\Domain\Commerce\Support\RefundSplit;
 use App\Domain\Identity\Models\User;
@@ -30,15 +31,22 @@ final class ClaimRefund
 {
     public function __construct(private readonly RefundSplit $split) {}
 
+    /**
+     * `$actor` is null when nobody here asked: the provider reported a refund
+     * made in its own dashboard (ReconcileProviderRefund), which also names the
+     * `$payment` it went back through and the provider's `$externalId` for it.
+     */
     public function handle(
-        User $actor,
+        ?User $actor,
         Order $order,
         int $amountMinor,
         RefundMethod $method,
         ?string $reason,
         bool $revokeAccess,
+        ?Payment $payment = null,
+        ?string $externalId = null,
     ): Refund {
-        return DB::transaction(function () use ($actor, $order, $amountMinor, $method, $reason, $revokeAccess): Refund {
+        return DB::transaction(function () use ($actor, $order, $amountMinor, $method, $reason, $revokeAccess, $payment, $externalId): Refund {
             $order = Order::query()->lockForUpdate()->findOrFail($order->id);
 
             if (! $order->status->isRefundable()) {
@@ -58,17 +66,17 @@ final class ClaimRefund
                 throw RefundRejected::tooMuch($refundable, $order->currency);
             }
 
-            $payment = null;
-
             if ($method === RefundMethod::Gateway) {
-                $payment = $order->payments()
+                $payment ??= $order->payments()
                     ->where('status', PaymentStatus::Captured)
                     ->latest('captured_at')
                     ->first();
 
-                if ($payment === null) {
+                if ($payment === null || $payment->order_id !== $order->id) {
                     throw RefundRejected::noPayment();
                 }
+            } else {
+                $payment = null;
             }
 
             $refund = Refund::create([
@@ -82,7 +90,8 @@ final class ClaimRefund
                 // Only the refund that empties the order can take access away,
                 // and only if the admin did not choose otherwise.
                 'revokes_access' => $revokeAccess && $amountMinor === $refundable,
-                'requested_by' => $actor->id,
+                'external_id' => $externalId,
+                'requested_by' => $actor?->id,
             ]);
 
             foreach ($this->split->split($order, $amountMinor) as $orderItemId => $share) {

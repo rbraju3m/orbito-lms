@@ -13,7 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The only thing in the system that can turn an order into access.
+ * The only thing in the system that can turn an order into access — and the
+ * only way a provider can tell us it gave money back.
  *
  * Order of operations is the whole design, and each step exists because
  * skipping it is exploitable:
@@ -28,12 +29,16 @@ use Illuminate\Support\Facades\DB;
  *  4. CHECK the amount and currency against the order. A provider reporting a
  *     smaller capture than the order total must not grant access.
  *  5. Only then capture.
+ *  6. RECONCILE any refunds the event reports, against the payment matched in
+ *     step 3 (`ReconcileProviderRefund`). One that cannot be settled leaves
+ *     the event unprocessed, for a person.
  */
 final class HandleWebhook
 {
     public function __construct(
         private readonly PaymentGatewayFactory $gateways,
         private readonly CapturePayment $capture,
+        private readonly ReconcileProviderRefund $refunds,
     ) {}
 
     public function handle(Request $request, Gateway $gateway): PaymentEvent
@@ -93,7 +98,23 @@ final class HandleWebhook
                 ])->save();
             }
 
-            $record->forceFill(['processed_at' => now()])->save();
+            /*
+             * Settled only if every refund the event names could be. One that
+             * cannot — more than is left, a refund reversed after we completed
+             * it — stays unprocessed: stored for a person, never guessed at.
+             * Inside this transaction on purpose: if reconciling throws, the
+             * event is not recorded either, so the provider's retry is the
+             * recovery rather than a replay we would ignore.
+             */
+            $settled = true;
+
+            foreach ($event->refunds as $refund) {
+                $settled = $this->refunds->handle($payment, $refund) && $settled;
+            }
+
+            if ($settled) {
+                $record->forceFill(['processed_at' => now()])->save();
+            }
 
             return $record;
         });
