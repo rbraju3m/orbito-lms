@@ -27,16 +27,31 @@ final class LiveProviderFactory
             return [new ManualProvider, new ProviderAccount];
         }
 
-        $account = LiveProviderAccount::query()
-            ->where('provider', $provider)
-            ->where('is_active', true)
-            ->first();
+        $account = $this->account($provider);
 
         if ($account === null) {
             throw LiveSessionRejected::providerNotConnected($provider->value);
         }
 
         return [$this->implementation($provider), $account->toProviderAccount()];
+    }
+
+    /**
+     * Whether a session could be scheduled with this provider right now — the
+     * same answer `for()` enforces, so the studio's picker cannot offer a
+     * provider that would then refuse.
+     */
+    public function isConnected(LiveProvider $provider): bool
+    {
+        return ! $provider->needsAccount() || $this->account($provider) !== null;
+    }
+
+    private function account(LiveProvider $provider): ?LiveProviderAccount
+    {
+        return LiveProviderAccount::query()
+            ->where('provider', $provider)
+            ->where('is_active', true)
+            ->first();
     }
 
     private function implementation(LiveProvider $provider): LiveSessionProvider

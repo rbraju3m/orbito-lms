@@ -35,6 +35,7 @@ import { CourseAnalyticsPanel } from '@/features/analytics/components/CourseAnal
 import { AnnouncementManager } from '@/features/engagement/components/AnnouncementManager';
 import { StudentsPanel } from '@/features/enrollment/components/StudentsPanel';
 import { CurriculumBuilder } from '@/features/curriculum/components/CurriculumBuilder';
+import { LiveManager } from '@/features/live/components/LiveManager';
 import { ItemEditorDrawer } from '@/features/curriculum/components/ItemEditorDrawer';
 import type { CourseItem } from '@/features/curriculum/api/types';
 import { ApiError } from '@/shared/api/errors';
@@ -284,6 +285,7 @@ export function CourseEditorRoute() {
             Students{data.enrollment_count > 0 ? ` (${data.enrollment_count})` : ''}
           </Tabs.Tab>
           <Tabs.Tab value="announcements">Announcements</Tabs.Tab>
+          <Tabs.Tab value="live">Live</Tabs.Tab>
           <Tabs.Tab value="analytics">Analytics</Tabs.Tab>
         </Tabs.List>
       </Tabs>
@@ -300,6 +302,10 @@ export function CourseEditorRoute() {
         // two-thirds column beside a sidebar of publish controls is a
         // newsletter squeezed into a gutter.
         <AnnouncementManager courseId={id} />
+      ) : tab === 'live' ? (
+        // Full-width: two lists of rows with their own actions, and a roster
+        // drawer. Scheduling is not something to squeeze beside publish controls.
+        <LiveManager courseId={id} />
       ) : tab === 'analytics' ? (
         // Full-width too: the funnel is a five-column table, and the whole
         // point of it is reading lessons against their neighbours.

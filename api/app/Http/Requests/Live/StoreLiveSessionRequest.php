@@ -28,9 +28,15 @@ final class StoreLiveSessionRequest extends FormRequest
              * others: a link typed in alongside "Zoom" would be silently
              * ignored, and the author would find out at seven o'clock that
              * the class is somewhere else.
+             *
+             * Required only when SCHEDULING. The stored link is withheld from
+             * every reader until a session is joinable, so an edit cannot show
+             * it — and one that had to re-paste it would be an edit nobody
+             * could make. Left out on an edit, it stays (RescheduleLiveSession).
              */
             'join_url' => [
-                Rule::requiredIf(fn (): bool => $this->provider() === LiveProvider::Manual),
+                Rule::requiredIf(fn (): bool => $this->isMethod('POST')
+                    && $this->provider() === LiveProvider::Manual),
                 Rule::prohibitedIf(fn (): bool => $this->provider() !== LiveProvider::Manual),
                 'nullable',
                 'url',

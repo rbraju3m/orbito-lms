@@ -11,10 +11,11 @@ A production-grade, API-first Learning Management System.
 retrofit — one database per academy. **Phase 16 is under way**: plan limits,
 course pricing, bundles, digital downloads, upload permissions and volume
 limits, outbound webhooks, coupons and refunds — Stripe's refund events
-included — Stripe Checkout and a refund-reports screen have shipped.
+included — Stripe Checkout, a refund-reports screen and live-session
+scheduling from the studio have shipped.
 [`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
 
-1,367 backend tests / 5,052 assertions · 323 frontend tests · PHPStan level 6.
+1,374 backend tests / 5,096 assertions · 336 frontend tests · PHPStan level 6.
 
 An instructor can build and publish a course with lessons, resources, quizzes,
 assignments and live sessions, price it, schedule cohorts, announce things,

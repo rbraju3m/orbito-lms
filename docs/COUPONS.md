@@ -73,6 +73,11 @@ window** (`COUPON_RESERVATION_MINUTES`, 60). A cancelled, failed or abandoned
 checkout gives its use back simply by being those things — derived from the
 clock, never swept.
 
+A Stripe Checkout page stays payable for exactly that window (never under 31
+minutes — Stripe's floor, plus a minute against the clock), so nobody can pay
+after the use their order held has been given back. Keep
+`COUPON_RESERVATION_MINUTES` at 31 or more.
+
 The count and the insert happen in one transaction, behind `lockForUpdate()`
 on the coupon's row, so two learners racing for the last use cannot both get
 it. The one overshoot allowed: an order paid AFTER its window, once somebody

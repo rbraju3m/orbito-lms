@@ -230,7 +230,7 @@ src/
     ├── notification/  ✅ the bell (lazy — off first paint), the inbox, the preference matrix
     ├── analytics/     ✅ the academy dashboard, the course panel, the heatmap
     ├── gamification/  ✅ the badge wall, the boards, the opt-out
-    ├── live/          ✅ the calendar, session cards, webinars
+    ├── live/          ✅ the calendar, session cards, webinars; the studio's Live tab (sessions, runs, rosters)
     └── platform/      ✅ the academy registry, the lapse banner, the
                           "you are inside no academy" banner
 ```

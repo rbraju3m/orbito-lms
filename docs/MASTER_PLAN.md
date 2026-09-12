@@ -95,8 +95,9 @@ certificate — on a phone, in dark mode, with a keyboard.
 
 **Phases 0–15 are complete, front and back**, plus a multi-tenancy retrofit.
 **Phase 16 is under way**: plan limits, course pricing, bundles, digital
-downloads, upload permissions and volume limits, outbound webhooks, coupons
-and refunds have shipped.
+downloads, upload permissions and volume limits, outbound webhooks, coupons,
+refunds with Stripe's refund events, Stripe Checkout, refund reports and the
+studio's live-session scheduling have shipped.
 1,164 backend tests / 3,970 assertions · 279 frontend tests.
 
 An instructor can build and publish a course, write quizzes across ten

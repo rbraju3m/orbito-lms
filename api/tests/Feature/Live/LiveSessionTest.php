@@ -10,6 +10,7 @@ use App\Domain\Live\Actions\CreateLiveSession;
 use App\Domain\Live\Enums\LiveProvider;
 use App\Domain\Live\Enums\SessionStatus;
 use App\Domain\Live\Exceptions\LiveSessionRejected;
+use App\Domain\Live\Models\LiveProviderAccount;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\SessionAttendance;
 
@@ -246,6 +247,72 @@ it('resets the reminder when a session moves', function (): void {
      * that told them so.
      */
     expect($session->fresh()->reminder_sent_at)->toBeNull();
+});
+
+/*
+ * The studio builds its provider picker from this, so it must be the answer
+ * scheduling enforces: offering Zoom to an academy with no Zoom account is a
+ * form that fails on submit, every time.
+ */
+it('tells a scheduler which providers are usable, and a learner nothing', function (): void {
+    $this->actingAs($this->instructor)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/live-sessions")
+        ->assertOk()
+        ->assertJsonPath('meta.can_manage', true)
+        ->assertJsonPath('meta.providers.0.value', 'manual')
+        ->assertJsonPath('meta.providers.0.available', true)
+        ->assertJsonPath('meta.providers.1.value', 'zoom')
+        ->assertJsonPath('meta.providers.1.available', false);
+
+    $this->actingAs($this->student)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/live-sessions")
+        ->assertOk()
+        ->assertJsonPath('meta.can_manage', false)
+        ->assertJsonPath('meta.providers', []);
+});
+
+it('offers a provider once the academy has connected it', function (): void {
+    LiveProviderAccount::create([
+        'provider' => LiveProvider::Zoom,
+        'credentials' => ['account_id' => 'acct', 'client_id' => 'id', 'client_secret' => 'secret'],
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($this->instructor)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/live-sessions")
+        ->assertJsonPath('meta.providers.1.value', 'zoom')
+        ->assertJsonPath('meta.providers.1.available', true)
+        ->assertJsonPath('meta.providers.2.value', 'google_meet')
+        ->assertJsonPath('meta.providers.2.available', false);
+});
+
+/*
+ * The studio never sees a stored link — it is withheld until a session is
+ * joinable — so an edit that had to re-paste it would be an edit nobody could
+ * make. Left out, it stays; a description sent as null is cleared.
+ */
+it('keeps a pasted link an edit leaves out, and clears a description sent empty', function (): void {
+    $session = LiveSession::factory()->create([
+        'course_id' => $this->course->id,
+        'host_id' => $this->instructor->id,
+        'provider' => LiveProvider::Manual,
+        'join_url' => 'https://meet.example.test/keep-me',
+        'description' => 'Bring your questions.',
+    ]);
+
+    $this->actingAs($this->instructor)
+        ->patchJson("/api/v1/live-sessions/{$session->uuid}", [
+            'title' => 'Week 1 call, moved',
+            'provider' => 'manual',
+            'description' => null,
+            'starts_at' => now()->addDays(2)->toIso8601String(),
+            'ends_at' => now()->addDays(2)->addHour()->toIso8601String(),
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.title', 'Week 1 call, moved')
+        ->assertJsonPath('data.description', null);
+
+    expect($session->refresh()->join_url)->toBe('https://meet.example.test/keep-me');
 });
 
 it('cancels without deleting', function (): void {

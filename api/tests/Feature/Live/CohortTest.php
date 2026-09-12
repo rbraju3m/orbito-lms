@@ -7,6 +7,7 @@ use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
 use App\Domain\Live\Models\Cohort;
+use App\Domain\Live\Models\LiveSession;
 
 beforeEach(function (): void {
     seedRegistry();
@@ -121,6 +122,60 @@ it('still enforces everything ordinary enrolment does', function (): void {
     $this->actingAs($this->student)
         ->postJson("/api/v1/cohorts/{$cohort->uuid}/join")
         ->assertStatus(409);
+});
+
+it('deletes a run nobody is using', function (): void {
+    $cohort = Cohort::factory()->create(['course_id' => $this->course->id]);
+
+    $this->actingAs($this->instructor)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/cohorts")
+        ->assertJsonPath('data.0.is_deletable', true);
+
+    $this->actingAs($this->instructor)
+        ->deleteJson("/api/v1/cohorts/{$cohort->uuid}")
+        ->assertNoContent();
+
+    expect(Cohort::query()->find($cohort->id))->toBeNull();
+});
+
+/*
+ * Deleting a run cascades its sessions — and their attendance — away, and
+ * leaves its learners without the run they joined. One with either is
+ * cancelled instead, and the list says so before anybody reaches for delete.
+ */
+it('refuses to delete a run that has sessions or learners', function (string $what): void {
+    $cohort = Cohort::factory()->open()->create(['course_id' => $this->course->id]);
+
+    if ($what === 'a session') {
+        LiveSession::factory()->create([
+            'course_id' => $this->course->id,
+            'cohort_id' => $cohort->id,
+            'host_id' => $this->instructor->id,
+        ]);
+    } else {
+        $this->actingAs($this->student)->postJson("/api/v1/cohorts/{$cohort->uuid}/join")->assertCreated();
+    }
+
+    $this->actingAs($this->instructor)
+        ->getJson("/api/v1/courses/{$this->course->uuid}/cohorts")
+        ->assertJsonPath('data.0.is_deletable', false);
+
+    expect($this->actingAs($this->instructor)
+        ->deleteJson("/api/v1/cohorts/{$cohort->uuid}")
+        ->assertStatus(409))->toBeApiError('cohort_in_use');
+
+    expect(Cohort::query()->find($cohort->id))->not->toBeNull()
+        ->and(LiveSession::query()->where('cohort_id', $cohort->id)->count())->toBe($what === 'a session' ? 1 : 0);
+})->with(['a session', 'a learner']);
+
+it('refuses to let a stranger delete a run', function (): void {
+    $cohort = Cohort::factory()->create(['course_id' => $this->course->id]);
+
+    $this->actingAs(User::factory()->instructor()->create())
+        ->deleteJson("/api/v1/cohorts/{$cohort->uuid}")
+        ->assertForbidden();
+
+    expect(Cohort::query()->find($cohort->id))->not->toBeNull();
 });
 
 it('refuses to let a stranger schedule a run', function (): void {

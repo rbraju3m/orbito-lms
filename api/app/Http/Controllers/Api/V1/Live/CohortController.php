@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Live;
 
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Live\Actions\DeleteCohort;
 use App\Domain\Live\Actions\JoinCohort;
 use App\Domain\Live\Models\Cohort;
 use App\Http\Requests\Live\StoreCohortRequest;
@@ -65,11 +66,12 @@ final class CohortController
         ));
     }
 
-    public function destroy(Cohort $cohort): JsonResponse
+    /** 409 `cohort_in_use` for a run with sessions or learners — cancel it instead. */
+    public function destroy(Cohort $cohort, DeleteCohort $action): JsonResponse
     {
         Gate::authorize('manage-live-for-course', $cohort->loadMissing('course')->course);
 
-        $cohort->delete();
+        $action->handle($cohort);
 
         return ApiResponse::noContent();
     }

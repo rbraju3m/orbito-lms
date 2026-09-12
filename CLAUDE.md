@@ -758,6 +758,13 @@ Gate::authorize('publish', $course);                   // in a controller
   params — and an undiscovered path matches only the root splat. A new page
   in one of those areas goes in `app/routes/<area>.tsx`; `router.test.tsx`
   fails if one lands back in the eager table.
+- **A cascade is a delete policy — read it before offering the button.**
+  `live_sessions.cohort_id` cascades, so deleting a cohort silently took its
+  sessions and their attendance with it, and the API allowed it at any time.
+  `DeleteCohort` refuses a run in use (409 `cohort_in_use`) and
+  `is_deletable` comes from the same `Cohort::isInUse()`. And strict mode
+  throws on reading a count that was never loaded: check `getAttributes()`,
+  not the magic property.
 - **Retry state belongs on the row, not the queue.** `DeliverWebhook` counts
   `attempts` in the database and `release()`s, which the sync test queue
   ignores; tests drive each retry by running the job again. The alternative —
@@ -846,9 +853,9 @@ so the action that fixes a lapse survives it.
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, digital downloads, upload
 permissions, upload volume limits, outbound webhooks, coupons, refunds,
-provider refund webhooks, Stripe Checkout and refund reports** (§ Patterns
-established in Phase 16).
-1,367 backend tests / 5,052 assertions · 323 frontend tests.
+provider refund webhooks, Stripe Checkout, refund reports and the studio's
+live-session scheduling** (§ Patterns established in Phase 16).
+1,374 backend tests / 5,096 assertions · 336 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -866,7 +873,9 @@ dashboard refund end to end. Until 5837bc8 a key saved from the Payments
 screen was never read, and until Checkout there was nowhere to type a card.
 
 **2. Zoom / Google Meet, likewise.** Both providers are written and have never
-been called. `ManualProvider` works and is what most academies will use.
+been called. `ManualProvider` works and is what most academies will use. The
+studio's Live tab lists the other two as not connected: nothing in the product
+can connect an account yet, so that screen comes with the credentials.
 
 **3. Phase 16 (Advanced Business), continued.** Plan limits, **bundles**,
 **digital downloads**, **upload permissions** and **upload volume limits** are
@@ -1034,8 +1043,6 @@ Every one of these has already cost time at least once.
   enter/leave. There is still no operator view of usage across academies, no
   audit of who approved what, and no screen for editing plans themselves —
   `config/orbito.php` and the database are the only way to change one.
-- **No studio UI for scheduling** live sessions or cohorts. The API is
-  complete; the authoring screens are not.
 - **No provider-reported attendance.** `session_attendance.source` and the
   interface's deliberate silence on the subject are the seam.
 - Analytics has **no per-student activity view** (L6), and the instructor
@@ -1050,7 +1057,8 @@ Every one of these has already cost time at least once.
 - `ItemEditorDrawer` issues **two sequential writes** (lesson body, then drip
   fields). Body first is deliberate; a failure between them is a partial save
   with no test.
-- The suite takes **~14 minutes** on a quiet machine, up from ~2, because
+- The suite takes **~20 minutes** on a quiet machine (18–26 across Phase
+  16's later runs), up from ~2, because
   provisioning tests
   build real schemas. Provision one academy per FILE rather than per test
   where it hurts.

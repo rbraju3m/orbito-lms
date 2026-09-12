@@ -851,14 +851,18 @@ Five things about this surface are decisions rather than shape:
 ```
 GET    /calendar?from=&to=                      the caller's own diary
 
-GET    /courses/{course}/live-sessions · POST
+GET    /courses/{course}/live-sessions · POST   meta: can_manage, providers[{value, label, available}]
+                                                — available is what scheduling enforces; join_url is
+                                                required only when scheduling, and left out of an
+                                                edit it stays
 PATCH  /live-sessions/{id} · DELETE             DELETE cancels, never deletes
 POST   /live-sessions/{id}/join                 a WRITE: the click is the attendance
 POST   /live-sessions/{id}/leave
 GET    /live-sessions/{id}/attendance · POST    the roster; POST marks it
 
 GET    /courses/{course}/cohorts · POST
-PATCH  /cohorts/{id} · DELETE
+PATCH  /cohorts/{id} · DELETE                   DELETE is 409 cohort_in_use once a run has sessions or
+                                                learners — cancel it instead; is_deletable says which
 POST   /cohorts/{id}/join
 
 GET    /webinars · GET /webinars/{id}

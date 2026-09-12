@@ -3,13 +3,25 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import { apiDelete, apiGet, apiGetRaw, apiPatch, apiPost } from '@/shared/api/client';
 import type { Paginated } from '@/shared/api/types';
 
-import type { CalendarResponse, Cohort, LiveSession, Roster, Webinar } from './types';
+import type {
+  CalendarResponse,
+  Cohort,
+  CohortStatus,
+  LiveProviderOption,
+  LiveSession,
+  Roster,
+  Webinar,
+} from './types';
 
 export const liveKeys = {
   all: ['live'] as const,
   calendar: (from: string, to: string) => [...liveKeys.all, 'calendar', from, to] as const,
+  /** Prefix for every page of a course's sessions. */
   sessions: (courseId: string) => [...liveKeys.all, 'sessions', courseId] as const,
+  sessionPage: (courseId: string, page: number) => [...liveKeys.sessions(courseId), page] as const,
+  /** Prefix for every page of a course's cohorts. */
   cohorts: (courseId: string) => [...liveKeys.all, 'cohorts', courseId] as const,
+  cohortPage: (courseId: string, page: number) => [...liveKeys.cohorts(courseId), page] as const,
   roster: (sessionId: string) => [...liveKeys.all, 'roster', sessionId] as const,
   webinars: () => [...liveKeys.all, 'webinars'] as const,
 };
@@ -32,21 +44,29 @@ export const calendarQuery = (from: string, to: string) =>
     refetchInterval: 60_000,
   });
 
-export const courseSessionsQuery = (courseId: string) =>
+/**
+ * `meta.providers` is the server's answer to "which can I schedule with?",
+ * the same one scheduling enforces — empty for anybody who cannot schedule.
+ */
+export const courseSessionsQuery = (courseId: string, page = 1) =>
   queryOptions({
-    queryKey: liveKeys.sessions(courseId),
+    queryKey: liveKeys.sessionPage(courseId, page),
     queryFn: ({ signal }) =>
-      apiGetRaw<Paginated<LiveSession>>(`/courses/${courseId}/live-sessions`, { signal }),
+      apiGetRaw<WithMeta<LiveSession, { can_manage: boolean; providers: LiveProviderOption[] }>>(
+        `/courses/${courseId}/live-sessions`,
+        { signal, params: { page } },
+      ),
     staleTime: 60_000,
     refetchInterval: 60_000,
   });
 
-export const cohortsQuery = (courseId: string) =>
+export const cohortsQuery = (courseId: string, page = 1) =>
   queryOptions({
-    queryKey: liveKeys.cohorts(courseId),
+    queryKey: liveKeys.cohortPage(courseId, page),
     queryFn: ({ signal }) =>
       apiGetRaw<WithMeta<Cohort, { can_manage: boolean }>>(`/courses/${courseId}/cohorts`, {
         signal,
+        params: { page },
       }),
     staleTime: 60_000,
   });
@@ -87,6 +107,56 @@ export function useSaveSession(courseId: string) {
         : apiPatch<LiveSession>(`/live-sessions/${id}`, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: liveKeys.all });
+    },
+  });
+}
+
+export interface CohortInput {
+  name: string;
+  starts_at: string;
+  ends_at: string | null;
+  capacity: number | null;
+  enrollment_deadline: string | null;
+  status: CohortStatus;
+  timezone?: string;
+}
+
+export function useSaveCohort(courseId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...input }: CohortInput & { id?: string }) =>
+      id === undefined
+        ? apiPost<Cohort>(`/courses/${courseId}/cohorts`, input)
+        : apiPatch<Cohort>(`/cohorts/${id}`, input),
+    onSuccess: () => {
+      // Sessions carry their cohort's name, so both lists re-read.
+      void queryClient.invalidateQueries({ queryKey: liveKeys.all });
+    },
+  });
+}
+
+/** Only a run nobody is using — the server answers 409 for any other. */
+export function useDeleteCohort() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/cohorts/${id}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: liveKeys.all });
+    },
+  });
+}
+
+/** The host's word that somebody was there — a roster entry with source `host`. */
+export function useMarkAttendance(sessionId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userIds: number[]) =>
+      apiPost<{ marked: number }>(`/live-sessions/${sessionId}/attendance`, { user_ids: userIds }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: liveKeys.roster(sessionId) });
     },
   });
 }

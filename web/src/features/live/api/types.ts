@@ -59,6 +59,19 @@ export interface Cohort {
   is_joinable: boolean;
   session_count?: number;
   enrollment_count?: number;
+  /**
+   * False once the run has sessions or learners: deleting would cascade them
+   * away, so it is cancelled instead. The server's answer, not a guess from
+   * the counts.
+   */
+  is_deletable?: boolean;
+}
+
+/** A provider, and whether this academy can schedule with it right now. */
+export interface LiveProviderOption {
+  value: LiveProvider;
+  label: string;
+  available: boolean;
 }
 
 export interface Webinar {

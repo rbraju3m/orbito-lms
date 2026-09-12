@@ -18,11 +18,11 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,164 Pest tests / 3,970 assertions · PHPStan level 6 clean · Pint clean |
-| Frontend | 279 Vitest tests across 52 files · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS **250.28 KB** gzipped against **255 KB** — raised from 250 in Phase 16, see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
+| Backend | 1,374 Pest tests / 5,096 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
+| Frontend | 336 Vitest tests across 63 files · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS **249.25 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
-| Suite runtime | ~14 minutes on a quiet machine (13–15 across Phase 16's runs), up from ~2 — provisioning tests build real schemas |
+| Suite runtime | ~20 minutes on a quiet machine (18–26 across Phase 16's later runs), up from ~2 — provisioning tests build real schemas |
 
 Each completed phase below carries what it delivered, the decisions that shaped
 it, the bugs it found, and what it deliberately left. Where a phase's exit
@@ -1067,7 +1067,7 @@ in CLAUDE.md twice.
 and the interface's deliberate silence on it are the seam), recurring sessions
 as a single row — a cohort's weekly call is many sessions, because the roster
 and the attendance are per occurrence — and any studio UI for scheduling
-beyond the API.
+beyond the API. *(Since built, in P16: the course editor's Live tab.)*
 
 ### Phase 16 — Advanced Business
 Subscriptions and memberships · bundles · digital downloads · coaching/booking · blog ·
@@ -1416,6 +1416,23 @@ visited (`patchRoutesOnNavigation`), deep links included. First paint is
 249.24 KB — 1.67 KB back, 5.76 KB of room — and `router.tsx` is 9.1 KB, the
 learner's table every session needs. `router.test.tsx` fails if an area page
 lands back in the eager table.
+
+**Live scheduling screens — done.** Phase 15 left the API complete and no
+studio UI. A **Live** tab in the course editor schedules, reschedules and
+cancels sessions, creates and edits runs, and shows each session's roster
+with a way to mark somebody present. The provider picker is the server's
+list (`meta.providers`, from the check scheduling enforces): Zoom and Google
+Meet show as not connected until an academy connects them — which no screen
+does yet, so every academy schedules with a pasted link.
+
+- **Found on the way:** deleting a cohort cascaded its sessions and their
+  attendance away, at any time (now 409 `cohort_in_use`, and `is_deletable`
+  on the list); a rescheduled session could never have its description
+  cleared; and an edit had to re-paste a link the studio is never shown — it
+  is now required only when scheduling, and left out it stays.
+- **Still open:** connecting a Zoom or Google Meet account (a screen, and the
+  credentials those integrations have never had), and webinars, which have no
+  authoring API at all.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL.

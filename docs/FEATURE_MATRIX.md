@@ -270,12 +270,12 @@ reads yet.
 | J5 | Orders + order items with price snapshot | Core | Yes | **P10 · M** | Title and price frozen per line at checkout |
 | J6 | Payments table + gateway events | Partial | Yes | **P10 · M** | Unique `(gateway, external_id)` makes a replay a no-op |
 | J7 | Server-side payment verification / webhooks | Core | Yes | **P10 · M ⚠** | The only unauthenticated write in the system; each omitted middleware is load-bearing |
-| J8 | Refunds (full + partial) | Core | Yes | **P16 ✅** | Through the gateway, or recorded when made elsewhere; partial by amount. A full refund revokes what the order granted (opt-out for goodwill). Revenue is net of refunds on the day they complete. See REFUNDS.md |
+| J8 | Refunds (full + partial) | Core | Yes | **P16 ✅** | Through the gateway, or recorded when made elsewhere; partial by amount. A full refund revokes what the order granted (opt-out for goodwill). Revenue is net of refunds on the day they complete. A refund made in Stripe's dashboard arrives by webhook; what the books cannot take in is listed under Admin → Refund reports. See REFUNDS.md |
 | J9 | Coupons (code + automatic, scoped, limits) | Core | Yes | **P16 ✅** (codes) | Percent or fixed; everything or chosen products; total and per-person limits, a window, a minimum spend. Automatic discounts not built. See COUPONS.md and the note below |
 | J10 | Tax rules by country/state | Core | Yes | P10 | |
 | J11 | Invoices (PDF, sequential numbering) | Pro | Yes | P10 | |
 | J12 | Multi-currency | — | — | **P10 · M** (model) | Minor units everywhere; a basket takes ONE currency and refuses a product without a price in it |
-| J13 | Stripe | Pro | Yes | **P10 ⚠** | Adapter written; has never contacted Stripe |
+| J13 | Stripe | Pro | Yes | **P10 ⚠** | Hosted Checkout (P16), refunds and refund webhooks written; has never contacted Stripe — the sandbox run in RUNNING.md is the test |
 | J14 | PayPal | Core | Yes | Not built | Declared on the `Gateway` enum; no implementation |
 | J15 | SSLCommerz / bKash / Nagad | — | — | Post-MVP | **Orbito differentiator**; one `PaymentGateway` implementation each |
 | J16 | Instructor earnings + commission split | Core | n/a | Reconsider | Academy is the merchant, so this is an academy-internal ledger, not a platform one |
@@ -336,10 +336,10 @@ still agree to the minor unit. `CouponRevenueTest` asserts it.
 
 | # | Feature | Tutor | Klasio | Orbito | Notes |
 |---|---|---|---|---|---|
-| N1 | Live session model + schedule | Pro | Yes | **P15** | Provider-agnostic; status derived from the clock |
+| N1 | Live session model + schedule | Pro | Yes | **P15** | Provider-agnostic; status derived from the clock. Scheduled, moved and cancelled from the studio's Live tab (P16), with a roster per session |
 | N2 | Zoom integration | Pro | Yes | **P15 ⚠** | Written, never contacted — no credentials |
 | N3 | Google Meet integration | Pro | Yes | **P15 ⚠** | Written, never contacted — no credentials |
-| N4 | Cohorts (a scheduled run of a course) | — | Yes | **P15** | Narrows the audience; capacity locked with enrolment |
+| N4 | Cohorts (a scheduled run of a course) | — | Yes | **P15** | Narrows the audience; capacity locked with enrolment. Created and edited in the Live tab (P16); a run with sessions or learners is cancelled, never deleted |
 | N5 | Attendance | Pro | Yes | **P15** | The join click is the record; `source` says which evidence |
 | N6 | Webinars (standalone, registration) | — | Yes | **P15** | Members-only until P16 gives it a public site |
 | N7 | Reminders | Pro | Yes | **P15** | Claimed before sending; window floored as well as capped |

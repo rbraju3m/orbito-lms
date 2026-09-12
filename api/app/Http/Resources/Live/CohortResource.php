@@ -41,6 +41,11 @@ final class CohortResource extends BaseResource
 
             'session_count' => $this->whenCounted('sessions'),
             'enrollment_count' => $this->whenCounted('enrollments'),
+
+            // A run with sessions or learners is cancelled, not deleted — the
+            // same method DeleteCohort enforces with, so the studio never
+            // shows a delete button that would 409.
+            'is_deletable' => ! $this->isInUse(),
         ];
     }
 }

@@ -2,9 +2,11 @@
 
 **Status: Phases 0–15 complete**, front and back, plus a **multi-tenancy
 retrofit** (ADR-13) that reversed the single-tenant decision partway through.
-**Phase 16 is in progress**: plan limits, bundles, digital downloads, and — a
-hole bundles fell into — course pricing, which no endpoint could set until now —
-and per-collection upload permissions.
+**Phase 16 is in progress**: plan limits, bundles, digital downloads, course
+pricing, upload permissions and volume limits, outbound webhooks, coupons,
+refunds — Stripe's refund events included — Stripe Checkout, refund reports,
+and live-session scheduling from the studio have shipped. What is left, and
+the one Stripe sandbox payment that signs off the MVP, is in `ROADMAP.md`.
 
 1,164 backend tests / 3,970 assertions · 279 frontend tests · Pint, PHPStan
 level 6, oxlint, tsc and build all clean.

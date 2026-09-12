@@ -37,7 +37,11 @@ final class RescheduleLiveSession
 
         $changes = [
             'title' => $attributes['title'] ?? $session->title,
-            'description' => $attributes['description'] ?? $session->description,
+            // Present-and-null CLEARS it. `??` could not tell "left out" from
+            // "emptied", so a description, once written, could never be removed.
+            'description' => array_key_exists('description', $attributes)
+                ? $attributes['description']
+                : $session->description,
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'timezone' => $attributes['timezone'] ?? $session->timezone,

@@ -70,6 +70,16 @@ final class LiveSessionRejected extends DomainException
         );
     }
 
+    /** A run with sessions or learners is cancelled, never deleted. */
+    public static function cohortInUse(): self
+    {
+        return new self(
+            'This cohort has sessions or learners. Cancel it instead of deleting it.',
+            'cohort_in_use',
+            Response::HTTP_CONFLICT,
+        );
+    }
+
     public static function webinarFull(): self
     {
         return new self('This webinar has no places left.', 'webinar_full', Response::HTTP_CONFLICT);

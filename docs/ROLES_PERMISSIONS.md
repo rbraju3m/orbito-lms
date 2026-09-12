@@ -233,6 +233,7 @@ need something passed to it that does not exist.
 | `AnnouncementPolicy` (P12) | viewAny, view, manage |
 | `CouponPolicy` (P16) | viewAny, view, create, update, delete — all `coupon.manage` (Admin, Super Admin); an instructor cannot discount their own course |
 | `WebhookEndpointPolicy` (P16) | viewAny, view, create, update, delete — all `webhook.manage`, Super Admin only: an endpoint receives learners' names and emails |
+| `PaymentEventPolicy` (P16) | viewAny, resolve — `order.refund`: the refund reports the webhook left for a person (`/admin/refund-reports`). Whoever can settle one is whoever can refund |
 
 Gates with no model: `manage-gateways`, `moderate-reviews`,
 `view-platform-analytics`, `view-course-analytics`, `export-analytics`,

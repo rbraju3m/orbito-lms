@@ -34,6 +34,8 @@ use Illuminate\Support\Str;
  * @property int|null $capacity
  * @property CarbonInterface|null $enrollment_deadline
  * @property CohortStatus $status
+ * @property int|null $sessions_count
+ * @property int|null $enrollments_count
  */
 final class Cohort extends Model
 {
@@ -105,6 +107,30 @@ final class Cohort extends Model
         }
 
         return $this->placesRemaining() !== 0;
+    }
+
+    /**
+     * Whether this run is part of somebody's record.
+     *
+     * Deleting a cohort cascades its sessions away — and their attendance with
+     * them — and leaves its learners without the run they joined. One with
+     * either is cancelled instead: DeleteCohort refuses it, and the resource
+     * says so first, from this same method.
+     *
+     * Uses the loaded counts when a list already has them, so a page of runs
+     * costs no extra queries. Checked on the raw attributes, not the magic
+     * properties: strict mode throws on reading an attribute that was never
+     * loaded, which is every cohort fetched without `withCount`.
+     */
+    public function isInUse(): bool
+    {
+        $attributes = $this->getAttributes();
+
+        if (array_key_exists('sessions_count', $attributes) && array_key_exists('enrollments_count', $attributes)) {
+            return (int) $attributes['sessions_count'] > 0 || (int) $attributes['enrollments_count'] > 0;
+        }
+
+        return $this->sessions()->exists() || $this->enrollments()->exists();
     }
 
     /** Null means uncapped, which is not the same as zero places left. */

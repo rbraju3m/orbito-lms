@@ -10,9 +10,11 @@ use App\Domain\Live\Actions\CreateLiveSession;
 use App\Domain\Live\Actions\RecordAttendance;
 use App\Domain\Live\Actions\RescheduleLiveSession;
 use App\Domain\Live\Enums\AttendanceSource;
+use App\Domain\Live\Enums\LiveProvider;
 use App\Domain\Live\Exceptions\LiveSessionRejected;
 use App\Domain\Live\Models\Cohort;
 use App\Domain\Live\Models\LiveSession;
+use App\Domain\Live\Providers\LiveProviderFactory;
 use App\Domain\Live\Queries\SessionAudience;
 use App\Http\Requests\Live\StoreLiveSessionRequest;
 use App\Http\Resources\Live\LiveSessionResource;
@@ -31,9 +33,15 @@ use Illuminate\Support\Facades\Gate;
  */
 final class LiveSessionController
 {
-    public function index(Request $request, Course $course, SessionAudience $audience): JsonResponse
-    {
+    public function index(
+        Request $request,
+        Course $course,
+        SessionAudience $audience,
+        LiveProviderFactory $providers,
+    ): JsonResponse {
         Gate::authorize('view', $course);
+
+        $canManage = Gate::allows('manage-live-for-course', $course);
 
         $sessions = LiveSession::query()
             ->with(['host', 'cohort', 'recording'])
@@ -49,7 +57,12 @@ final class LiveSessionController
                     $session,
                     $audience->includes($session, $userId),
                 ),
-            )),
+            ))->additional(['meta' => [
+                'can_manage' => $canManage,
+                // Only for somebody who could schedule — a learner has no use
+                // for it, and it costs a query per provider.
+                'providers' => $canManage ? $this->providers($providers) : [],
+            ]]),
         );
     }
 
@@ -142,6 +155,22 @@ final class LiveSessionController
         $attendance->leave($session, $request->user()->id);
 
         return ApiResponse::noContent();
+    }
+
+    /**
+     * Every provider, and whether this academy can schedule with it now — the
+     * answer LiveProviderFactory enforces at `store`, so a picker built from
+     * it cannot offer Zoom to an academy with no Zoom account.
+     *
+     * @return list<array{value: string, label: string, available: bool}>
+     */
+    private function providers(LiveProviderFactory $factory): array
+    {
+        return array_map(fn (LiveProvider $provider): array => [
+            'value' => $provider->value,
+            'label' => $provider->label(),
+            'available' => $factory->isConnected($provider),
+        ], LiveProvider::cases());
     }
 
     private function authorizeManage(LiveSession $session): void
