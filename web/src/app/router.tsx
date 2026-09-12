@@ -370,8 +370,26 @@ const AREAS: Record<string, () => Promise<RouteObject[]>> = {
   platform: async () => (await import('./routes/platform')).platformRoutes,
 };
 
+/**
+ * The academy's public site, patched at the ROOT instead of into the shell.
+ *
+ * Every area above is a page for somebody signed in, so it belongs under the
+ * shell's layout and its guards. `/a/:academy` is the opposite: no account, no
+ * shell, the academy's own name in the header. Patching it into the shell
+ * would wrap a stranger's page in a layout that assumes a user.
+ */
+const PUBLIC_AREA = 'a';
+
 export const discoverRoutes: PatchRoutesOnNavigationFunction = async ({ path, patch }) => {
-  const load = AREAS[path.split('/')[1] ?? ''];
+  const segment = path.split('/')[1] ?? '';
+
+  if (segment === PUBLIC_AREA) {
+    patch(null, (await import('./routes/public')).publicSiteRoutes);
+
+    return;
+  }
+
+  const load = AREAS[segment];
 
   if (load) {
     patch(SHELL_ROUTE_ID, await load());

@@ -18,13 +18,14 @@ use Illuminate\Support\Str;
 /**
  * A standalone live event, not part of any course.
  *
- * REGISTRATION IS MEMBERS-ONLY, and that is a consequence of the tenancy
- * design rather than a product decision: tenancy resolves from the
- * authenticated user, so there is no anonymous surface to register from
- * (§ Multi-tenancy). A webinar open to the whole academy is still worth
- * having — it is the one live format that is not gated on buying a course —
- * and the public path arrives with the marketing site in P16, which is when
- * there will be somewhere to register FROM.
+ * READING about one is now PUBLIC and REGISTERING is still members-only, and
+ * the split is the honest one rather than a half-finished migration: a
+ * stranger can read a published webinar's page on the academy's public site
+ * (`tenant.public`), and holding a place needs an account because a place is
+ * a thing somebody has to be TOLD about when the event moves or is called off
+ * — and delivery is to a central account, not to an email (§ Multi-tenancy).
+ * A guest place is therefore a bigger feature than a form: it needs a
+ * mail-only delivery for `NotifyOnWebinarCancelled` first.
  *
  * @property int $id
  * @property string $uuid

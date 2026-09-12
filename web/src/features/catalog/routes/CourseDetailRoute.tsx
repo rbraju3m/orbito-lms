@@ -164,7 +164,7 @@ export function CourseDetailRoute() {
                * <Link>, and a button inside an anchor is invalid markup and
                * hostile to a keyboard.
                */}
-              <WishlistButton courseId={data.id} saved={data.is_wishlisted} />
+              <WishlistButton courseId={data.id} saved={data.is_wishlisted ?? false} />
 
               <Divider />
 

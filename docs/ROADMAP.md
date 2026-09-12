@@ -18,9 +18,9 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,423 Pest tests / 5,287 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
-| Frontend | 349 Vitest tests across 64 files · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS **249.42 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
+| Backend | 1,432 Pest tests / 5,324 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
+| Frontend | 365 Vitest tests across 67 files · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS **249.68 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~20 minutes on a quiet machine (18–26 across Phase 16's later runs), up from ~2 — provisioning tests build real schemas |
 
@@ -53,7 +53,8 @@ question, review the course, earn points and badges, download a verifiable
 certificate or a file they bought — and see all of it in a calendar, an inbox and a dashboard.
 
 **What is conspicuously missing:** most of Phase 16 onward —
-subscriptions, the blog and page builder, multilingual and RTL, and outbound
+subscriptions, the blog and page builder (whose foundation, the public site,
+has now landed), multilingual and RTL, and outbound
 webhooks. (Plan-limit enforcement, long the oldest item on
 this list, has landed.) Plus the two unproven
 integrations above, and the Playwright gap, which has now outlasted thirteen
@@ -1582,8 +1583,46 @@ courses, bundles and downloads, wired through the same
   now counts what `assertHasRoom()` counts, off an eager-loaded
   `registered_count` rather than one COUNT per row.
 
-Still open in this phase: subscriptions and memberships, coaching, the blog,
-the page builder, multilingual, RTL.
+**The public site — the first anonymous surface.** Every screen in the
+product had required an account, because tenancy resolves from the
+authenticated user and an anonymous request belongs to no academy. An academy
+that cannot show a stranger a course cannot sell one, so this is the
+foundation the blog, the page builder and lead capture all sit on.
+
+- **`/api/v1/public/{academy}/…` behind `tenant.public`**, which resolves the
+  academy from its SLUG — the one already in the registration link it hands
+  out. A separate middleware from `tenant.path` (webhooks, certificate
+  verification) because the security argument differs: that one can say
+  "every route behind me checks its own HMAC or token", and this one cannot.
+  What makes it safe is that everything it serves is published and public by
+  design, it writes nothing, and an unknown academy and a closed one give the
+  same 404 so it is not an oracle for which academies exist.
+- **The SAME query and the SAME resources as the members-only catalogue.** A
+  sales page rendering a course differently from the catalogue would be a
+  second definition of a course, drifting in exactly the fields a buyer
+  decides on. A stranger's request has no viewer, so the viewer-scoped keys
+  are simply absent — and `PublicSiteTest` pins that, so a new one cannot
+  leak here by omission. `is_wishlisted` became absent-for-a-stranger rather
+  than `false`: "not saved" and "cannot save" are different facts.
+- **`/a/:academy` on the front end, patched at the ROOT.** The studio, admin
+  and platform areas are discovered into the signed-in shell; this one cannot
+  be, because it has no account and wears the ACADEMY's name in its header
+  rather than Orbito's. Sign in and Sign up both carry `?academy=<slug>`,
+  which is load-bearing: registration is TOLD which academy to create the
+  account in.
+- **Reading is public; registering is not.** A webinar's page is readable by
+  a stranger, and holding a place still needs an account — because a place is
+  something somebody has to be TOLD about when the event is called off, and
+  delivery is to an account rather than an email. A guest place is therefore
+  a bigger feature than a form, and it is named as such in the code.
+- **The whole surface is tested with `tenancy()->end()`**, which is the point
+  of `PublicSiteTest` rather than a detail: the harness leaves an academy open
+  all test long, so a public route tested without it has its `initialize()`
+  short-circuited and passes while resolving nothing.
+
+Still open in this phase: the blog and page builder (this is their
+foundation), lead capture, guest registration, subscriptions and memberships,
+coaching, multilingual, RTL.
 
 ### Phase 17 — AI
 Provider abstraction · outline / lesson / quiz / description / summary generation ·

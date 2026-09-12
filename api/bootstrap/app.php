@@ -6,6 +6,7 @@ use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\InitializeTenancyByAcademySlug;
 use App\Http\Middleware\InitializeTenancyByAuthenticatedUser;
 use App\Http\Middleware\InitializeTenancyByPathTenant;
 use App\Http\Middleware\InitializeTenancyBySignedRoute;
@@ -52,6 +53,10 @@ return Application::configure(basePath: dirname(__DIR__))
             // academy comes from the PATH and is untrusted until that route's
             // own credential checks out. See the class docblock.
             'tenant.path' => InitializeTenancyByPathTenant::class,
+            // The public marketing surface: no user, no signature, and no
+            // credential of its own — every route behind it exposes only
+            // published data, on purpose. See the class docblock.
+            'tenant.public' => InitializeTenancyByAcademySlug::class,
 
             // Applied after `tenant`, so the academy has resolved. Gates
             // WRITES only — a lapsed academy keeps reading and exporting.

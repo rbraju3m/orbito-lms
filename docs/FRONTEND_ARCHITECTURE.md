@@ -36,7 +36,8 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 
 | Surface | Path prefix | Audience | Shell |
 |---|---|---|---|
-| **Public** | `/` | anonymous + logged in | marketing header/footer, catalogue |
+| **Public** | `/` | logged in (the catalogue is behind `RequireAuth`) | Orbito's own header, `PublicLayout` |
+| **Academy site** | `/a/:academy/*` | anonymous | the ACADEMY's header, `AcademySiteLayout` |
 | **Learn** | `/learn/*` | enrolled students | distraction-free player shell |
 | **Platform** | `/platform/*` | platform operators | sidebar app shell — the academy REGISTRY, above every academy |
 | **Dashboard** | `/dashboard/*` | students | sidebar app shell |
@@ -45,6 +46,15 @@ Zod + React Hook Form + Zustand (small client state) + dnd-kit**.
 
 Each surface has its own layout, its own navigation, and its own lazy-loaded route
 bundle. The player is deliberately *not* the dashboard shell — it is full-bleed.
+
+**The academy site is the only surface with no account**, which is why it is a
+separate shell rather than `PublicLayout` with the nav hidden: it wears the
+academy's name and logo, because a visitor reading about a course has no idea
+what Orbito is. It is also the only discovered area patched at the ROOT of the
+route tree (`app/routes/public.tsx`); the studio, admin and platform tables are
+patched into the signed-in shell, which assumes a user. Its Sign in and Sign up
+links carry `?academy=<slug>` — registration is TOLD which academy to create
+the account in, so a link without it signs somebody up into nowhere.
 
 The studio, admin and platform route TABLES are lazy too, not just their pages:
 `app/routes/{studio,admin,platform}.tsx` are discovered the first time one of

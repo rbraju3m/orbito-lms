@@ -96,10 +96,14 @@ is a dead end.
 resolved from the authenticated user (ADR-13). Two consequences change the
 contract:
 
-- **There is no anonymous surface.** `GET /courses`, `GET /courses/{slug}`,
-  `GET /categories`, the player bootstrap and preview lessons all require
-  authentication. A signed-out caller gets **401**, not a public storefront.
-  `is_preview` means "try before you *enrol*".
+- **The signed-in surface has no anonymous fallback.** `GET /courses`,
+  `GET /courses/{slug}`, `GET /categories`, the player bootstrap and preview
+  lessons all require authentication. A signed-out caller gets **401**, not a
+  public storefront. `is_preview` means "try before you *enrol*".
+- **One anonymous surface exists, and it is a different namespace**:
+  `/public/{academy}/…` (§ The public site). The academy is in the PATH
+  because no user can supply it, everything it returns is published and
+  public by design, and it writes nothing.
 - **A 402 gates writes.** `GET`/`HEAD`/`OPTIONS` always pass; everything else
   returns `subscription_lapsed` when the academy's subscription has expired or
   been cancelled. Reading and exporting never stop. `POST /auth/logout` is
@@ -110,9 +114,12 @@ contract:
   two are different problems with different remedies, and telling somebody at
   their course cap to renew a paid subscription sends them nowhere.
 
-The one route with no authenticated user is the signed media download, which
-carries its academy inside the signed payload. Phase 10 webhooks will do the
-same.
+Routes with no authenticated user resolve their academy in one of three ways,
+and they are not interchangeable: the signed media download carries it inside
+the signed payload; the payment webhook and certificate verification take it
+from the path and then check their OWN credential (an HMAC, a verification
+token); the public site takes it from the path and checks nothing, because
+what it serves is public anyway.
 
 ---
 
@@ -955,6 +962,40 @@ days, streaks and leaderboards are all UTC days — because a class happens at a
 real moment somebody has to be awake for, and "Tuesdays at 7pm Dhaka time" has
 to survive a daylight-saving change somewhere else.
 
+### The public site — live (P16)
+
+```
+GET /public/{academy}                     the site's header: name, logo, is signup open?
+GET /public/{academy}/courses             published + PUBLIC courses, paginated, same filters as /courses
+GET /public/{academy}/courses/{slug}      the sales page — published, public or unlisted
+GET /public/{academy}/webinars            published webinars
+GET /public/{academy}/webinars/{slug}     one event's page
+```
+
+The **only anonymous surface** in the API, and the reason it is its own
+namespace rather than a relaxation of `/courses`:
+
+- **No `auth`, no `tenant` middleware.** `{academy}` is the academy's SLUG —
+  the one in the registration link it hands out — and `tenant.public` opens
+  that schema. There is no user to read an academy from, which is the whole
+  problem this solves.
+- **Everything here is published and public by design.** The catalogue is
+  `listed()` (published + public visibility); a course page is `live()`, so a
+  direct link reaches an UNLISTED course somebody was sent and still 404s a
+  private or draft one. A stranger's request has no viewer, so
+  `is_wishlisted`, the staff `settings` block and `publish_checklist` are
+  absent rather than false — and a new viewer-scoped field cannot leak here by
+  being forgotten.
+- **An unknown academy and a closed one return the SAME 404.** Anything more
+  specific is an oracle for which academies exist and which were suspended,
+  and both are reachable by anybody on the internet.
+- **It writes nothing.** Lead capture and guest registration will write, and
+  each needs its own abuse story before it joins this group — a guest place at
+  a webinar also needs a mail-only notification, because nothing can currently
+  tell an email with no account that an event was called off.
+- **Throttled per IP, not per academy** (`public`, 90/min): a bucket shared by
+  everybody reading one academy's site would let a script take that site down.
+
 ### Settings — planned
 ```
 GET    /admin/settings · PATCH /admin/settings
@@ -974,6 +1015,7 @@ GET    /admin/settings · PATCH /admin/settings
 | `POST /admin/webhooks/{e}/test` · `…/redeliver` | 10/min · 30/min per user — each is an outbound request made on the academy's say-so |
 | Authenticated default | 120/min per user |
 | Unauthenticated default | 60/min per IP |
+| `/public/{academy}/*` | 90/min per IP — the marketing surface, and deliberately not bucketed per academy |
 
 `429` returns `Retry-After` and `X-RateLimit-*`.
 

@@ -34,12 +34,25 @@ describe('route discovery', () => {
     expect(areas).toEqual([]);
   });
 
+  /*
+   * The public site is the one area patched at the ROOT: it has no account and
+   * must not inherit the signed-in shell's layout. A page of it appearing in
+   * the eager table would also mean every learner downloads a marketing page
+   * they never see.
+   */
+  it('keeps the academy public site out of the eager table too', () => {
+    expect(eagerPaths(routes).filter((path) => /^a(\/|$)/.test(path))).toEqual([]);
+  });
+
   it.each([
     ['/admin/refund-reports', 'admin/refund-reports'],
     ['/admin/webhooks/42', 'admin/webhooks/:endpointId'],
     ['/studio', 'studio'],
     ['/studio/courses/7/grading', 'studio/courses/:id/grading'],
     ['/platform/academies/demo-academy', 'platform/academies/:slug'],
+    ['/a/dhaka-art-school', 'a/:academy'],
+    ['/a/dhaka-art-school/courses/watercolour', 'courses/:slug'],
+    ['/a/dhaka-art-school/webinars/open-evening', 'webinars/:slug'],
   ])('discovers %s on a first visit, deep links included', async (url, declared) => {
     expect((await land(url)).at(-1)).toBe(declared);
   });

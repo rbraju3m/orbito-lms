@@ -32,7 +32,10 @@ Route::get('media/{media}/download', [MediaController::class, 'download'])
     ->name('media.download');
 
 /*
- * The catalogue is MEMBERS-ONLY.
+ * The catalogue here is MEMBERS-ONLY — it is behind `tenant`, which reads the
+ * signed-in user to decide whose academy to open. An academy's PUBLIC
+ * catalogue is a different surface with the academy in the path:
+ * `routes/api/public.php`.
  *
  * Tenancy is resolved from the authenticated user, so an anonymous request
  * cannot be attributed to an academy at all — there is no host, path or token

@@ -26,12 +26,11 @@ use Illuminate\Validation\Rule;
 /**
  * Standalone live events.
  *
- * MEMBERS-ONLY, and that follows from the tenancy design rather than from a
- * product decision: tenancy resolves from the authenticated user, so there is
- * no anonymous surface to register from. A webinar open to the whole academy
- * is still the one live format not gated on buying a course, and the public
- * path arrives with the marketing site in P16 — when there will be somewhere
- * to register FROM.
+ * The MEMBER's view: what they hold a place at, and what they may do about
+ * it. A stranger reads the same events through `PublicSite\WebinarController`
+ * — published ones only, with no viewer flags — because reading is public and
+ * REGISTERING is not (see `Webinar`'s docblock for why a guest place is a
+ * bigger feature than a form).
  */
 final class WebinarController
 {

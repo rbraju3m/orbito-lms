@@ -819,6 +819,45 @@ Gate::authorize('publish', $course);                   // in a controller
   either. `error.code` is that first blocker's, so the existing code keeps
   meaning what it meant, and `meta.blockers` is the whole list — the same reason
   a 423 carries how to get in.
+- **An anonymous surface is a NAMESPACE, not a relaxation.** The public site
+  is `/public/{academy}/…` behind its own middleware, never an `if (user ===
+  null)` branch inside the members-only catalogue. The rule for joining that
+  group is one sentence — a stranger seeing every field it emits is the
+  intended outcome — and it is checkable, where "handle the anonymous case"
+  spread across twenty endpoints is not. `tenant.public` resolves the academy
+  from its SLUG and checks NOTHING else, which is only safe because of that
+  rule; `tenant.path` (webhooks, certificates) takes the path and then checks
+  its own HMAC or token. Two middlewares, two arguments, neither one
+  borrowable by the other.
+- **Serve a stranger the SAME resource, not a smaller one.** The public
+  course page renders `CourseResource`, and the viewer-scoped keys vanish
+  because `$request->user()` is null — nothing is stripped by the public
+  controller. A parallel `PublicCourseResource` would be a second definition
+  of a course, free to drift in exactly the fields a buyer decides on. What
+  makes it safe is a test that asserts the ABSENCE of the viewer's keys, so a
+  new one added later cannot leak by being forgotten.
+- **Absent beats false for a question a reader cannot ask.**
+  `is_wishlisted: false` invites a wishlist toggle onto a page whose reader
+  has no account to save anything to. Missing says there is no such question
+  here — the § Phase 8 "absent is not zero" rule, applied to a capability
+  rather than a score.
+- **The same 404 for "no such academy" and "that academy is closed."**
+  Anything more specific is an oracle for which academies exist and which
+  were suspended, and this surface is reachable by anybody on the internet.
+  There is a test asserting the two responses are identical but for the
+  correlation id.
+- **Reading a thing and HOLDING one are different permissions.** A stranger
+  reads a webinar's page; holding a place still needs an account, because a
+  place is something somebody must be TOLD about when the event is called off
+  and delivery is to an account, not an email. Ask what the product will owe
+  this person LATER before deciding an anonymous write is a small feature.
+- **A public area cannot be patched into the signed-in shell.** Every other
+  discovered route table goes under it; `/a/:academy` is patched at the ROOT,
+  because its pages have no user and wear the academy's name rather than
+  Orbito's. And the anonymous surface must be tested with `tenancy()->end()`
+  — the harness leaves an academy open, so a public route tested without it
+  passes while resolving nothing (the `ScheduledCommandTest` trick, third
+  time).
 - **A cancellation half the product has not heard about is worse than
   silence.** Telling a webinar's registrants it is off was the easy half; the
   event kept its calendar entry and still sent "starts soon", so the learner
@@ -865,11 +904,24 @@ academy, because that data is not on the connection.
 **Tenancy resolves from the authenticated user** (`tenant` middleware, always
 after `auth:sanctum`). Consequences you cannot design around:
 
-- There is **no anonymous surface**. The catalogue, course pages, previews and
-  the player are members-only. `is_preview` means "try before you *enrol*".
-- A route with no user cannot resolve an academy. The signed media download
-  carries the tenant inside the signed payload (`tenant.signed`); Phase 10
-  webhooks must do the same.
+- The MEMBERS-ONLY surface is everything under `tenant`: the catalogue,
+  course pages, previews and the player. `is_preview` means "try before you
+  *enrol*", not "read without an account".
+- There is exactly ONE anonymous surface, and it is a deliberate exception
+  rather than a relaxation: `/api/v1/public/{academy}/…` behind
+  `tenant.public`, which resolves the academy from its SLUG in the path
+  because no user can supply it. Everything it exposes is published and
+  public by design, it 404s an unknown and a closed academy identically, and
+  it WRITES nothing. A route joining that group is a decision that a stranger
+  seeing its every field is the intended outcome — the middleware docblock
+  carries the argument in full, and it is the one to re-read before adding
+  lead capture or a guest registration, which do write.
+- A route with no user cannot resolve an academy from the request. Three
+  answers exist and they are not interchangeable: the signed payload
+  (`tenant.signed`, media downloads), the path plus the route's OWN
+  credential (`tenant.path`, payment webhooks and certificate verification),
+  and the path plus nothing (`tenant.public`, where the data is public
+  anyway).
 - Never enable `makeTenancyMiddlewareHighestPriority()`. It would run the
   tenant middleware before `auth:sanctum`, which has no user to read.
 
@@ -928,9 +980,10 @@ so the action that fixes a lapse survives it.
 plan limits, bundles, course pricing, digital downloads, upload
 permissions, upload volume limits, outbound webhooks, coupons, refunds,
 provider refund webhooks, Stripe Checkout, refund reports, the studio's
-live-session scheduling, connecting a meeting provider, webinar authoring
-and paid webinars** (§ Patterns established in Phase 16).
-1,423 backend tests / 5,287 assertions · 349 frontend tests.
+live-session scheduling, connecting a meeting provider, webinar authoring,
+paid webinars, the webinar cancellation notice and the academy's PUBLIC SITE
+— the first anonymous surface** (§ Patterns established in Phase 16).
+1,432 backend tests / 5,324 assertions · 365 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -972,9 +1025,11 @@ lead capture have both been waiting for. Webinars can now be authored
 (created, published, called off) and SOLD — a place is the fourth purchasable,
 priced like a course and delivered by the same `GrantOrderAccess`. What is
 Calling one off now tells everybody holding a place, and takes the event out
-of their calendar and reminders — what is still missing is that a GUEST
-registration (an email with no account) cannot be told anything, which waits
-for the public registration path.
+of their calendar and reminders. A stranger can READ a published webinar's
+page on the academy's public site (`/a/:academy`, `/api/v1/public/{academy}`)
+— what is still missing is a guest REGISTRATION, which needs a mail-only
+delivery first, because nothing can tell an email with no account that an
+event was called off.
 
 ### The platform owner
 
@@ -1069,6 +1124,17 @@ Every one of these has already cost time at least once.
 
 ### Known debt, deliberately left
 
+- **The public site is not authorable, and the academy has no logo.** The
+  layout at `/a/:academy` is fixed — the academy's name, its course grid, its
+  events — and `tenants.logo_path` has been declared since Phase 1 with
+  nothing ever writing it, so `logo_url` is always null and the header draws
+  the name alone. Templating that page is O3's other half and the page
+  builder is O2; an academy logo is an upload screen plus a decision about
+  whether it becomes a `Media` reference like every other image. Also
+  missing: a public courses INDEX page (the front page lists them, there is
+  no paginated `/a/:academy/courses`), any SEO or meta tags, and a sitemap —
+  the SPA renders these pages client-side, so a crawler sees an empty
+  document, which is worth knowing before calling this a marketing surface.
 - **Invitations are declared and not built.** `RegistrationMode::Invite` exists
   so an academy that wants a controlled roster is not silently given open
   signup; the API refuses it as a value and the UI greys it out. Building it
@@ -1106,7 +1172,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 249.42. It had crept to 250.91 — nav icons
+  purpose**, and first paint is 249.68. It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

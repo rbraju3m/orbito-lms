@@ -109,6 +109,15 @@ final class AppServiceProvider extends ServiceProvider
             (int) config('orbito.rate_limits.uploads')
         )->by('u:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        /*
+         * The public site, per IP and NOT per academy: a bucket shared by
+         * everybody visiting one academy would let a script take that
+         * academy's site down for real visitors.
+         */
+        RateLimiter::for('public', fn (Request $request) => Limit::perMinute(
+            (int) config('orbito.rate_limits.public')
+        )->by('ip:'.$request->ip()));
+
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(
             (int) config('orbito.rate_limits.webhook')
         )->by('ip:'.$request->ip()));

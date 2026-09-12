@@ -72,6 +72,7 @@ any of them should run them:
 | File | Defends |
 |---|---|
 | `Tenancy/ScheduledCommandTest` | that a scheduled command walks academies. The ordinary harness leaves a tenant open, so it passes whether or not the command knows tenancy exists; this file calls `tenancy()->end()` first. **Every new scheduled command belongs here.** |
+| `PublicSite/PublicSiteTest` | the only anonymous surface: that a stranger reaches published courses and webinars, that a draft or private one 404s, that an unknown academy and a closed one answer identically, and that no viewer-scoped field appears. **Every test calls `tenancy()->end()` first** — the same trick as `ScheduledCommandTest`, for the same reason: with an academy already open the middleware short-circuits and the route passes while resolving nothing. |
 | `Identity/CourseScopedAccessTest` | that a `.own` permission held globally does not make somebody staff on every course. Four phases have re-made that mistake. |
 | `Tenancy/CentralModelConnectionTest` | that every central model is pinned. Extend `CENTRAL_TABLES` when you add one. |
 | `Media/UploadPermissionTest` | who may write into each media collection, asked "held anywhere" — including a Course Manager whose only authoring role is on one course. |
@@ -131,8 +132,9 @@ Two things to know before writing a test that touches tenancy:
 - **The harness hides an entire class of bug.** It leaves an academy open for
   the whole test, so a scheduled command that only works because tenancy
   happened to be initialised passes here and fails nightly in production.
-  `ScheduledCommandTest` calls `tenancy()->end()` first, on purpose, and is the
-  only place that condition is reproduced.
+  `ScheduledCommandTest` calls `tenancy()->end()` first, on purpose, and
+  `PublicSiteTest` does the same for the public site — anything that resolves
+  its academy from something OTHER than the signed-in user has to.
 
 Provisioning tests build real schemas, which is why the suite went from ~118s
 to ~1,150s. If that becomes painful, provision one academy per *file* rather than

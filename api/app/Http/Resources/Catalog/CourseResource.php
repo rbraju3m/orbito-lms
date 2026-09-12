@@ -154,11 +154,19 @@ final class CourseResource extends BaseResource
              * one indexed exists() per page view. The catalogue list must not
              * carry it: that would be a query per card, and the grid's cards
              * are single links with no room for a control anyway.
+             *
+             * ABSENT for a stranger rather than false, now that the public
+             * site renders this same resource with no viewer. `false` invites
+             * a wishlist toggle onto a page whose reader has no account to
+             * save anything to; missing says there is no such question here.
              */
-            'is_wishlisted' => $viewer !== null && WishlistItem::query()
-                ->where('user_id', $viewer->id)
-                ->where('course_id', $this->id)
-                ->exists(),
+            'is_wishlisted' => $this->when(
+                $viewer !== null,
+                fn (): bool => WishlistItem::query()
+                    ->where('user_id', $viewer?->id)
+                    ->where('course_id', $this->id)
+                    ->exists(),
+            ),
         ];
     }
 }

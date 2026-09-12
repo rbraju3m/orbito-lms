@@ -73,6 +73,10 @@ return [
         // POST /media, per person. More than anybody attaches by hand; how
         // much they may KEEP is the media quota below.
         'uploads' => (int) env('RATE_LIMIT_UPLOADS', 20),
+        // The anonymous marketing surface, per IP. A landing page makes a
+        // handful of calls and a crawler makes many; this is generous enough
+        // for a real visitor and finite for a script.
+        'public' => (int) env('RATE_LIMIT_PUBLIC', 90),
     ],
 
     /*

@@ -104,7 +104,12 @@ export interface Course extends Omit<CourseListItem, 'category' | 'thumbnail_url
    * not carry it, because that would be a query per card and a card is a
    * single link with nowhere to put a control.
    */
-  is_wishlisted: boolean;
+  /**
+   * ABSENT for a reader with no account — the public site renders this same
+   * resource with no viewer, and "not saved" and "cannot save" are different
+   * facts.
+   */
+  is_wishlisted?: boolean;
 
   description: string | null;
   completion_mode: 'flexible' | 'strict';
