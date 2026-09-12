@@ -266,7 +266,7 @@ reads yet.
 | J1 | Product abstraction (course/bundle/download/plan/coaching) | Partial | Yes | **P10 · M** → **P16** | Courses, bundles and downloads. P16 also connected the wire P10 left dangling: `SyncCourseProduct` was called by nothing, so no product existed outside a factory and no price could be set at all |
 | J2 | Cart | Core | Yes | **P10 · M** | Takes the base currency at creation and never changes it |
 | J3 | Checkout | Core | Yes | **P10 · M** | Priced server-side from the DB; the client is never believed |
-| J4 | Guest checkout | Core | Yes | **Not possible** | Tenancy resolves from the authenticated user — there is no anonymous surface |
+| J4 | Guest checkout | Core | Yes | **Not possible** | An anonymous visitor can now BROWSE (O3, the public site) but not buy: an order grants an enrolment, an enrolment belongs to a user, and tenancy resolves the academy from that user. Guest checkout means creating the account during checkout, which is a signup flow rather than a payment one |
 | J5 | Orders + order items with price snapshot | Core | Yes | **P10 · M** | Title and price frozen per line at checkout |
 | J6 | Payments table + gateway events | Partial | Yes | **P10 · M** | Unique `(gateway, external_id)` makes a replay a no-op |
 | J7 | Server-side payment verification / webhooks | Core | Yes | **P10 · M ⚠** | The only unauthenticated write in the system; each omitted middleware is load-bearing |

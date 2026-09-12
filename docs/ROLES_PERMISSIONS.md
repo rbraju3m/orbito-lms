@@ -300,6 +300,28 @@ caller could legitimately fix answers **423 Locked** with the reason, not 403.
 
 ---
 
+## 6a. The public site authorizes nothing — and that is the design
+
+`/api/v1/public/{academy}/…` runs no policy and asks no permission, because
+there is nobody to ask about: the caller has no account (`tenant.public`,
+§ Multi-tenancy). Its boundary is therefore not authorization at all, it is
+the QUERY:
+
+- `Course::listed()` (published + public visibility) for the catalogue and
+  `Course::live()` for a course page reached by direct link. A draft or
+  private course is not refused, it is not in the result set — which is why
+  the answer is 404 rather than 403.
+- `Webinar::published()` for events.
+- A stranger's request has no viewer, so every viewer-scoped key computed
+  from `$request->user()` is absent rather than false. Nothing is stripped by
+  the controller, and `PublicSiteTest` asserts the absence so a new key
+  cannot leak by being forgotten.
+
+The consequence for anything added there later: a scope is the only thing
+standing between that endpoint and the internet. An endpoint that needs to
+ask *who is calling* does not belong on this surface — it belongs behind
+`tenant`, where there is a user and a policy to ask.
+
 ## 7. Seeding & lifecycle
 
 - Roles and permissions are seeded from a single `config/permissions.php` registry.

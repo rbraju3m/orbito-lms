@@ -1008,28 +1008,44 @@ screen is no longer the blocker, the credentials are. Google Meet asks for a
 service account rather than an access token, because a token that lives an
 hour cannot be a thing an academy types in once.
 
-**3. Phase 16 (Advanced Business), continued.** Plan limits, **bundles**,
-**digital downloads**, **upload permissions** and **upload volume limits** are
-done — bundles closed a Phase 10 hole on the way (nothing could set a price),
-downloads fixed two bugs bundles shipped, uploads closed a hole downloads
-found, and volume limits closed the rest of it (§ Patterns established in
-Phase 16), and a nightly sweep now deletes the submission uploads nothing
-used. **Outbound webhooks**, **coupons** and **refunds** are done too
-(`docs/WEBHOOKS.md`, `COUPONS.md`, `REFUNDS.md`), and Stripe's refund events
-now reach the books (`REFUNDS.md` §6), and a learner pays on Stripe's hosted
-Checkout page. Also ahead: subscriptions and memberships (after the Stripe test), coaching, blog,
-page builder, multilingual, RTL. It is
-markedly larger than the phases before it, and it is where the public
-marketing surface finally arrives — which is what webinar registration and
-lead capture have both been waiting for. Webinars can now be authored
-(created, published, called off) and SOLD — a place is the fourth purchasable,
-priced like a course and delivered by the same `GrantOrderAccess`. What is
-Calling one off now tells everybody holding a place, and takes the event out
-of their calendar and reminders. A stranger can READ a published webinar's
-page on the academy's public site (`/a/:academy`, `/api/v1/public/{academy}`)
-— what is still missing is a guest REGISTRATION, which needs a mail-only
-delivery first, because nothing can tell an email with no account that an
-event was called off.
+**3. Phase 16 (Advanced Business), continued.** What is DONE: plan limits,
+**bundles**, **course pricing**, **digital downloads**, **upload permissions**
+and **upload volume limits** (bundles closed a Phase 10 hole on the way —
+nothing could set a price; downloads fixed two bugs bundles shipped; uploads
+closed a hole downloads found, and a nightly sweep now deletes the submission
+uploads nothing used). **Outbound webhooks**, **coupons** and **refunds**
+(`docs/WEBHOOKS.md`, `COUPONS.md`, `REFUNDS.md`), with Stripe's refund events
+reaching the books (`REFUNDS.md` §6) and a learner paying on Stripe's hosted
+Checkout page. **Live-session scheduling**, **connecting a meeting provider**,
+**webinar authoring**, **paid webinars** — a place is the fourth purchasable
+— and the **cancellation notice** that tells everybody holding one, which
+also took the event out of their calendar and reminders.
+
+And the **public site**: `/a/:academy` over `/api/v1/public/{academy}`, the
+first and only anonymous surface. It is the thing the rest of this phase was
+waiting on, because a blog, a page builder and a lead form are all pages a
+stranger has to be able to read.
+
+The obvious next pieces, in the order they unblock each other:
+
+- **Lead capture (O4)** — the first anonymous WRITE, so it needs its own
+  abuse story before it joins that route group: a rate limit per IP is not a
+  spam defence on its own.
+- **Guest webinar registration** — blocked on a mail-only delivery for
+  `NotifyOnWebinarCancelled`, because nothing can currently tell an email
+  with no account that an event was called off. Registration is already keyed
+  on EMAIL so a guest place and a later account cannot become two places.
+- **The blog (O1) and the page builder (O2)** — the `Content` context is
+  still an empty placeholder, and the public site is now the surface they
+  render on. Both want SEO, which the SPA cannot currently give them: these
+  pages render client-side, so a crawler sees an empty document. That is a
+  real decision (prerender, SSR, or accept it) and it belongs before the
+  blog, not after.
+- **Subscriptions and memberships** — ROADMAP puts them after the Stripe
+  sandbox test, and that ordering is deliberate: recurring billing on a
+  gateway that has never been called is building on sand.
+
+Also ahead: coaching, multilingual, RTL.
 
 ### The platform owner
 
@@ -1124,6 +1140,11 @@ Every one of these has already cost time at least once.
 
 ### Known debt, deliberately left
 
+- **No shell has a skip-to-content link**, though `docs/DESIGN_SYSTEM.md`
+  has required one since Phase 2. Five shells, each with a nav a keyboard
+  user tabs through on every page. One component plus a `<main id>` per
+  shell, done in ONE pass — a skip link present on three of five teaches a
+  keyboard user not to trust it.
 - **The public site is not authorable, and the academy has no logo.** The
   layout at `/a/:academy` is fixed — the academy's name, its course grid, its
   events — and `tenants.logo_path` has been declared since Phase 1 with

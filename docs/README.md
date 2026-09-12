@@ -5,11 +5,21 @@ retrofit** (ADR-13) that reversed the single-tenant decision partway through.
 **Phase 16 is in progress**: plan limits, bundles, digital downloads, course
 pricing, upload permissions and volume limits, outbound webhooks, coupons,
 refunds — Stripe's refund events included — Stripe Checkout, refund reports,
-and live-session scheduling from the studio have shipped. What is left, and
-the one Stripe sandbox payment that signs off the MVP, is in `ROADMAP.md`.
+live-session scheduling from the studio, connecting a meeting provider,
+webinar authoring, **paid webinars**, the **webinar cancellation notice** and
+the academy's **public site** have shipped. What is left, and the one Stripe
+sandbox payment that signs off the MVP, is in `ROADMAP.md`.
 
-1,164 backend tests / 3,970 assertions · 279 frontend tests · Pint, PHPStan
-level 6, oxlint, tsc and build all clean.
+The public site is worth calling out here because it changed a rule this
+documentation states everywhere: there is now **one anonymous surface**
+(`/api/v1/public/{academy}`, `/a/:academy` in the SPA), and everything else
+is still members-only. `CLAUDE.md` § Multi-tenancy carries the three ways a
+route with no user can resolve an academy, and why they are not
+interchangeable.
+
+1,432 backend tests / 5,324 assertions · 365 frontend tests · Pint, PHPStan
+level 6, oxlint, tsc and build all clean · first-paint JS 249.68 KB of a
+255 KB budget.
 
 Audit, architecture, foundation, identity, course management, the curriculum
 builder, the learning experience, quizzes, assignments, enrolment & access,
@@ -53,10 +63,10 @@ is worth less than one that says "this came out differently, and here is why".
 |---|---|
 | `ROADMAP.md` | Phases 0–15, Phase T and every Phase 16 slice so far carry delivery notes; each retro opens with what the phase decided and closes with what it deliberately left |
 | `ARCHITECTURE_PROPOSAL.md` | every ADR carries a delivery status; ADR-13 records the tenancy reversal, and risk R4 says why its own estimate was wrong |
-| `API.md` | endpoints are marked **live** or **planned**; §2a explains why nothing is public any more |
+| `API.md` | endpoints are marked **live** or **planned**; §2a explains what is members-only and why, and § The public site covers the one anonymous namespace |
 | `DATABASE.md` | §0 is the central/tenant boundary and is authoritative — including what lives in `tenants.data` rather than a column; every context matches the migrations, and each records where the built schema DIFFERS from the sketch and why |
 | `FEATURE_MATRIX.md` | shipped rows are bolded and carry the decision that shaped them; ⚠ marks the two unproven integrations |
-| `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅; the header explains what tenancy removed |
+| `FRONTEND_ARCHITECTURE.md` | routes and feature folders that exist are marked ✅; §1 lists the shells, including the academy site — the only one with no account |
 | `DESIGN_SYSTEM.md` | tokens and patterns hold; the component inventory is partly still a wish list, and says so |
 | `EVENTS.md` | current — 50 events across 13 contexts, with who listens, and §4 names the operator actions that deliberately fire nothing yet |
 | `BUNDLES.md` | **built** — one Phase 16 slice, written before the code; §8 records what changed on the way |

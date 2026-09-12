@@ -3,17 +3,19 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
-**Where it stands during Phase 16:** 1,164 backend tests / 3,970 assertions across
-18 Feature suites and 9 Unit suites · 279 frontend tests across 52 files ·
-PHPStan level 6 clean · Pint, oxlint, `tsc` and `vite build` clean.
+**Where it stands during Phase 16:** 1,432 backend tests / 5,324 assertions
+(1 skipped) · 365 frontend tests across 67 files · PHPStan level 6 clean ·
+Pint, oxlint, `tsc` and `vite build` clean · first-paint JS 249.68 KB against
+a 255 KB budget (`npm run size`, which is the only comparable measurement).
 
 **Playwright specs exist for phases 2 and 3 only** — two files, `auth.spec.ts`
 and `shell.spec.ts`. That gap has now outlasted thirteen phases and is the
 oldest untouched item in this document; see §4.
 
-**The suite takes ~14 minutes on a quiet machine** — 13 to 15 across Phase
-16's runs, 26 once when a production build ran alongside it — up from ~2
-before tenancy. Provisioning tests
+**The suite takes ~20 minutes on a quiet machine** — 18 to 26 across Phase
+16's later runs, and 30 once while another project's suite shared the
+machine, which is worth remembering before reading a single slow run as a
+regression. Up from ~2 before tenancy. Provisioning tests
 build real schemas, and that is the price of testing the isolation rather than
 trusting it. Provision one academy per FILE rather than per test where it
 hurts.

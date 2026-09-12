@@ -181,7 +181,13 @@ something the user can already see happened.
 - Live regions announce async results (save state, drag moves, quiz timer at 5 min / 1 min).
 - Video: captions supported, keyboard controls, no autoplay with sound.
 - Colour is never the only signal; motion respects `prefers-reduced-motion`.
-- Skip-to-content link on every shell.
+- Skip-to-content link on every shell. **NOT BUILT — and it is a rule this
+  document has stated since Phase 2 while no shell has ever had one.** There
+  are five (`AppLayout`, `PublicLayout`, `AcademySiteLayout`, the player's,
+  the auth shell), each with a nav a keyboard user currently tabs through on
+  every page. Building it is one component plus a `<main id>` per shell, and
+  it should be done in one pass rather than a shell at a time — a skip link
+  that works on three of five is a keyboard user learning not to trust it.
 - Target size ≥ 44 × 44 px on touch.
 
 ---

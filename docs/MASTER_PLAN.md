@@ -96,9 +96,11 @@ certificate — on a phone, in dark mode, with a keyboard.
 **Phases 0–15 are complete, front and back**, plus a multi-tenancy retrofit.
 **Phase 16 is under way**: plan limits, course pricing, bundles, digital
 downloads, upload permissions and volume limits, outbound webhooks, coupons,
-refunds with Stripe's refund events, Stripe Checkout, refund reports and the
-studio's live-session scheduling have shipped.
-1,164 backend tests / 3,970 assertions · 279 frontend tests.
+refunds with Stripe's refund events, Stripe Checkout, refund reports, the
+studio's live-session scheduling, connecting a meeting provider, webinar
+authoring, paid webinars, the webinar cancellation notice and the academy's
+public site have shipped.
+1,432 backend tests / 5,324 assertions · 365 frontend tests.
 
 An instructor can build and publish a course, write quizzes across ten
 question types, set assignments, schedule live sessions and cohorts, announce
@@ -114,6 +116,15 @@ Underneath: progress **stored** (ADR-02), access answered by a **single
 service** (ADR-03), correct answers that never leave the server during an
 attempt (ADR-06), analytics as a log plus rollups (ADR-08), and **one database
 per academy** (ADR-13), which made the catalogue members-only.
+
+**A stranger can now see something.** The academy's public site — its own
+header, its published courses, a course sales page and an event page — is
+readable with no account at `/a/:academy`, served by the one anonymous API
+namespace (`/api/v1/public/{academy}`) with the academy's slug in the path
+because no user can supply it. It exposes published data only and writes
+nothing, which is what makes a path safe where ADR-13 assumed a subdomain
+would be needed. Buying, enrolling and registering for an event all still
+need an account.
 
 **The platform operator now has a surface of their own.** A permanent owner
 account exists in every environment, cannot be deleted, suspended or demoted,

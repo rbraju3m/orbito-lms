@@ -950,11 +950,14 @@ Six things about this surface are decisions rather than shape:
   (`docs/EVENTS.md`). A place bought is told the place is refundable and who
   issues it; refunding is still the academy's action, not a side effect of
   calling the event off.
-- **Webinar registration is members-only**, and that follows from the tenancy
-  design rather than a product choice: tenancy resolves from the authenticated
-  user, so there is no anonymous surface to register from. The public path
-  arrives with the marketing site in P16 — the registration is already keyed
-  on EMAIL so the two cannot produce two places for one person.
+- **Reading about a webinar is public; REGISTERING is members-only.** A
+  stranger reads a published event on the academy's public site
+  (`GET /public/{academy}/webinars/{slug}`); holding a place needs an account,
+  because a place is something somebody has to be TOLD about when the event
+  moves or is called off, and delivery is to an account rather than an email.
+  The registration is already keyed on EMAIL so a guest place and the account
+  that person later creates cannot become two places — what a guest place
+  still needs is a mail-only delivery for the cancellation notice.
 
 A session carries both an instant and the IANA `timezone` it was **scheduled**
 in. That is the opposite of every other dated thing in this API — analytics

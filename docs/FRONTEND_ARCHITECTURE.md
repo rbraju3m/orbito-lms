@@ -73,7 +73,7 @@ checks.
 /                                  home / marketing                       ✅
 /courses                           catalogue  (filters in the URL, shareable)✅ members-only
 /courses/:slug                     course page: prerequisites, seats, enrol ✅ members-only
-/courses/:slug/preview/:itemId     ~~free preview item~~  removed — no anonymous surface
+/courses/:slug/preview/:itemId     ~~free preview item~~  removed — a preview needs an account (the public site at /a/:academy shows no lesson content)
 /instructors/:slug
 /categories/:slug
 /blog · /blog/:slug                                       (P16)

@@ -347,11 +347,21 @@ impossible.
 
 **Why identification by user, not by domain.** This follows the Orbito
 product, and it is the decision with the widest blast radius, because it
-removes the anonymous surface entirely: with no user there is no academy, so
-the catalogue, course pages, previews and the player all became members-only.
-`is_preview` now means "try before you *enrol*", not "try before you sign up".
-A public marketing storefront, if one is ever wanted, needs subdomain
-identification and is a real change — not a config flag.
+removes the anonymous surface from every route that resolves its academy that
+way: with no user there is no academy, so the catalogue, course pages,
+previews and the player all became members-only. `is_preview` now means "try
+before you *enrol*", not "try before you sign up".
+
+**P16 added the one exception, and by PATH rather than by subdomain.** The
+academy's public site (`/api/v1/public/{academy}/…`, `tenant.public`) takes
+the academy's slug from the URL — the slug is already public, being in the
+registration link an academy hands out — and serves only published,
+deliberately-public data. That is what makes a path acceptable where a
+subdomain was assumed necessary: the URL segment is not a credential and
+nothing behind it is private, so guessing an academy grants exactly what
+visiting its site grants. Per-academy DOMAINS are still a real change, and
+still the right answer when academies want their own addresses; they are not
+a prerequisite for a storefront.
 
 **What it costs, concretely.**
 

@@ -44,13 +44,23 @@ step INSIDE any academy to use its own screens as a Super Admin.
 **What an academy admin can do, as of Phase 16:** see the academy's usage
 against its plan, price any course — which, until Phase 16, nothing in the
 product could do — sell several courses as one bundle with the saving shown,
-and sell or give away digital downloads.
+sell or give away digital downloads, connect the academy's own meeting
+provider, author a standalone webinar and sell places at it, call one off
+(which tells everybody holding a place), and hand out a link to a public site
+a stranger can read without an account.
 
 **What a learner can do:** find a course or a bundle, buy it, enrol, learn through a
 player with video resume and notes, take a timed quiz, hand in written and
-uploaded work, read the feedback and hand in again, attend a live class, ask a
+uploaded work, read the feedback and hand in again, attend a live class, hold
+a place at a webinar — free or bought — ask a
 question, review the course, earn points and badges, download a verifiable
 certificate or a file they bought — and see all of it in a calendar, an inbox and a dashboard.
+
+**What somebody with NO account can do, as of Phase 16:** read an academy's
+public site — its published courses, a course's sales page, a published
+event — and then sign up into that academy from a link that names it. That is
+the whole of the anonymous surface: nothing is bought, enrolled in or
+registered for without an account.
 
 **What is conspicuously missing:** most of Phase 16 onward —
 subscriptions, the blog and page builder (whose foundation, the public site,
@@ -619,9 +629,11 @@ centrally with no academy open, and a connection purge discarding an open
 transaction.
 
 **The decision with the widest blast radius** was identification-by-user,
-which removes the anonymous surface: the catalogue, course pages, previews and
-the player are members-only. A public storefront would need subdomain
-identification and is a real change, not a flag.
+which removes the anonymous surface from everything behind `tenant`: the
+catalogue, course pages, previews and the player are members-only. The
+storefront this seemed to rule out arrived in P16 by PATH rather than by
+subdomain (§ Phase 16, the public site) — the academy's slug in the URL, and
+published data only. Per-academy domains remain a real change.
 
 ### Phase 10 — Commerce  ⚠️ COMPLETE against FakeGateway; never run against Stripe
 
@@ -1054,9 +1066,11 @@ attendance, which is the part a video service does badly.
 
 **Webinar registration is members-only**, which is a consequence of the
 tenancy design rather than a product choice: tenancy resolves from the
-authenticated user, so there is no anonymous surface to register from. The
-registration is already keyed on EMAIL so the public path in P16 cannot
-produce two places for one person.
+authenticated user. P16 made READING about an event public without changing
+that — holding a place is what needs an account, because a place is something
+somebody must be told about when the event is called off. The registration is
+already keyed on EMAIL so a guest place and the account that person later
+creates cannot become two places.
 
 **The bug this phase caught, again:** `LiveSession` became an itemable and was
 not in the enforced morph map, so creating one was a 500 — the identical

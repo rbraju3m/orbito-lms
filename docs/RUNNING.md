@@ -91,6 +91,31 @@ academy.
 `http://localhost:5173/register?academy=demo-academy`. An account belongs to
 one academy, so plain `/register` has nowhere to put it.
 
+## Seeing what a stranger sees — the academy's public site
+
+Open **<http://localhost:5173/a/demo-academy>** signed out, ideally in a
+private window: it is the one part of the product that needs no account.
+
+What should be there: the academy's name in the header, its **published**
+courses, and any published webinar with a session. A course card opens
+`/a/demo-academy/courses/<slug>` and an event opens
+`/a/demo-academy/webinars/<slug>`; both offer Sign in and Sign up, and both
+CTAs carry `?academy=demo-academy` — that is what tells registration which
+academy to create the account in.
+
+What should NOT be there, and is worth checking by hand at least once:
+
+| Try | Expect |
+|---|---|
+| A draft or private course's slug | 404 — the status must not confirm it exists |
+| A slug of a course marked *unlisted* | 200. Unlisted means "not in the catalogue", not "secret" |
+| `/a/no-such-academy` | 404, and the SAME 404 as a suspended academy |
+| An academy whose registration is closed | The page still renders; the Sign up button is absent rather than disabled |
+
+The API behind it is `http://localhost:8000/api/v1/public/demo-academy`, and
+it takes no cookie — `curl` it with no headers to prove the surface really is
+anonymous. Nothing there writes, so there is nothing to undo afterwards.
+
 ## Taking a test payment with Stripe
 
 You need a Stripe **sandbox** and the [Stripe CLI](https://docs.stripe.com/cli)
