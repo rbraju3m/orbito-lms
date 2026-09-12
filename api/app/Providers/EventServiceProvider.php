@@ -62,6 +62,10 @@ use App\Domain\Identity\Events\UserRegistered;
 use App\Domain\Identity\Listeners\SendEmailVerification;
 use App\Domain\Identity\Listeners\TouchLastSeen;
 use App\Domain\Live\Events\AttendanceRecorded;
+use App\Domain\Live\Events\WebinarCreated;
+use App\Domain\Live\Events\WebinarDeleted;
+use App\Domain\Live\Events\WebinarPricingChanged;
+use App\Domain\Live\Events\WebinarStatusChanged;
 use App\Domain\Live\Listeners\CompleteItemOnAttendance;
 use App\Domain\Media\Events\MediaDeleted;
 use App\Domain\Media\Events\MediaUploaded;
@@ -149,6 +153,24 @@ final class EventServiceProvider extends ServiceProvider
             [SyncProductForPurchasable::class, 'downloadDeleted'],
             [TrackDownloadUsage::class, 'deleted'],
         ],
+        /*
+         * Paid webinars (P16). The fourth purchasable, wired the same way —
+         * the product exists from creation so the event can be priced while
+         * it is still a draft, and is sellable only while it is published.
+         */
+        WebinarCreated::class => [
+            [SyncProductForPurchasable::class, 'webinarCreated'],
+        ],
+        WebinarStatusChanged::class => [
+            [SyncProductForPurchasable::class, 'webinarStatusChanged'],
+        ],
+        WebinarPricingChanged::class => [
+            [SyncProductForPurchasable::class, 'webinarPricingChanged'],
+        ],
+        WebinarDeleted::class => [
+            [SyncProductForPurchasable::class, 'webinarDeleted'],
+        ],
+
         CourseDeleted::class => [
             [TrackCourseUsage::class, 'deleted'],
         ],

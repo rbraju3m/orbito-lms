@@ -7,8 +7,10 @@ namespace App\Domain\Commerce\Actions;
 use App\Domain\Commerce\Exceptions\CheckoutRejected;
 use App\Domain\Commerce\Models\Cart;
 use App\Domain\Commerce\Models\Product;
+use App\Domain\Commerce\Support\WebinarPurchase;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Models\User;
+use App\Domain\Live\Models\Webinar;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -67,6 +69,23 @@ final class AddToCart
     /** Same rule PlaceOrder enforces, and for the same reason. */
     private function assertNotAlreadyOwned(User $user, Product $product): void
     {
+        if ($product->purchasable_type === 'webinar') {
+            $webinar = Webinar::find($product->purchasable_id);
+
+            /*
+             * A place, not a thing: already held, already over and already
+             * full are all reasons this basket could never be delivered, and
+             * `WebinarPurchase` is the one definition of them — asked again by
+             * `PlaceOrder`, because the room can fill while somebody reads the
+             * page.
+             */
+            if ($webinar !== null) {
+                WebinarPurchase::assertBuyable($user, $webinar);
+            }
+
+            return;
+        }
+
         if ($product->purchasable_type !== 'course') {
             return;
         }

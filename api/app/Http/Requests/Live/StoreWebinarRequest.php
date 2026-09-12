@@ -37,6 +37,13 @@ final class StoreWebinarRequest extends FormRequest
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             // Null is UNCAPPED, which is not the same as no places left.
             'capacity' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100000'],
+            /*
+             * Whether a place has to be bought. The PRICE is not here: it
+             * hangs off a product, which does not exist until the webinar
+             * does, so it is set through `PUT /webinars/{webinar}/price` —
+             * the same split as a course and a download.
+             */
+            'is_paid' => ['sometimes', 'boolean'],
         ];
 
         if (! $creating) {

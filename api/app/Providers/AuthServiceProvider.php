@@ -47,6 +47,7 @@ use App\Domain\Identity\Policies\InstructorProfilePolicy;
 use App\Domain\Identity\Policies\RolePolicy;
 use App\Domain\Identity\Policies\UserPolicy;
 use App\Domain\Live\Models\LiveSession;
+use App\Domain\Live\Models\Webinar;
 use App\Domain\Media\Models\Media;
 use App\Domain\Media\Policies\MediaPolicy;
 use App\Domain\Platform\Models\Tenant;
@@ -156,6 +157,7 @@ final class AuthServiceProvider extends ServiceProvider
              */
             'bundle' => Bundle::class,
             'download' => Download::class,
+            'webinar' => Webinar::class,
         ]);
     }
 

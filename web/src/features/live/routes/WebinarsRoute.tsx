@@ -4,6 +4,8 @@ import { IconBroadcast, IconDots, IconPlus } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { useAddToCart } from '@/features/commerce/api/queries';
+import { PriceTag } from '@/features/commerce/components/PriceTag';
 import { formatDateTime } from '@/shared/lib/datetime';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
@@ -138,16 +140,30 @@ function ManageMenu({ webinar, onEdit }: { webinar: Webinar; onEdit: () => void 
         <Menu.Dropdown>
           <Menu.Item onClick={onEdit}>Edit</Menu.Item>
 
-          {actions.map((action) => (
-            <Menu.Item
-              key={action}
-              color={action === 'cancelled' ? 'red' : undefined}
-              disabled={action === 'published' && webinar.is_publishable === false}
-              onClick={() => status.mutate({ id: webinar.id, status: action })}
-            >
-              {ACTION_LABEL[action] ?? action}
-            </Menu.Item>
-          ))}
+          {actions.map((action) => {
+            const blocked = action === 'published' && webinar.is_publishable === false;
+
+            return (
+              <Menu.Item
+                key={action}
+                color={action === 'cancelled' ? 'red' : undefined}
+                disabled={blocked}
+                onClick={() => status.mutate({ id: webinar.id, status: action })}
+              >
+                {ACTION_LABEL[action] ?? action}
+                {/*
+                 * WHY it cannot be published, from the same rule the API
+                 * enforces. A disabled button with no reason is the dead end
+                 * the server went out of its way to avoid.
+                 */}
+                {blocked && webinar.publish_blockers?.[0] ? (
+                  <Text size="xs" c="dimmed" component="span" display="block">
+                    {webinar.publish_blockers[0].message}
+                  </Text>
+                ) : null}
+              </Menu.Item>
+            );
+          })}
 
           {webinar.is_deletable && (
             <>
@@ -186,7 +202,13 @@ function ManageMenu({ webinar, onEdit }: { webinar: Webinar; onEdit: () => void 
 
 function WebinarCard({ webinar, onEdit }: { webinar: Webinar; onEdit: () => void }) {
   const registration = useWebinarRegistration();
+  const addToCart = useAddToCart();
   const full = webinar.places_remaining === 0 && !webinar.is_registered;
+
+  // A ticket, not a sign-up sheet: registering free at a paid event is a 423,
+  // so the button offers the basket instead of a refusal.
+  const buying = webinar.is_paid && !webinar.is_registered;
+  const price = webinar.price ?? null;
 
   return (
     <Card withBorder>
@@ -194,6 +216,14 @@ function WebinarCard({ webinar, onEdit }: { webinar: Webinar; onEdit: () => void
         <Stack gap={4} style={{ minWidth: 0 }}>
           <Group gap="xs" wrap="wrap">
             <Text fw={600}>{webinar.title}</Text>
+            {webinar.is_paid && price ? (
+              <PriceTag
+                amountMinor={price.amount_minor}
+                currency={price.currency}
+                listAmountMinor={price.list_amount_minor}
+                size="sm"
+              />
+            ) : null}
             {webinar.status !== 'published' ? (
               <Badge size="xs" variant="light" color="warning">
                 {webinar.status_label}
@@ -234,15 +264,38 @@ function WebinarCard({ webinar, onEdit }: { webinar: Webinar; onEdit: () => void
         </Stack>
 
         <Group gap="xs" wrap="nowrap">
-          <Button
-            size="compact-sm"
-            variant={webinar.is_registered ? 'default' : 'filled'}
-            disabled={full || webinar.status !== 'published'}
-            loading={registration.isPending && registration.variables?.id === webinar.id}
-            onClick={() => registration.mutate({ id: webinar.id, register: !webinar.is_registered })}
-          >
-            {webinar.is_registered ? 'Cancel' : full ? 'Full' : 'Register'}
-          </Button>
+          {buying ? (
+            <Button
+              size="compact-sm"
+              disabled={full || !price || webinar.status !== 'published'}
+              loading={addToCart.isPending}
+              onClick={() => price && addToCart.mutate(price.product_id)}
+            >
+              {full ? 'Full' : 'Buy a place'}
+            </Button>
+          ) : webinar.is_registered && !webinar.can_cancel ? (
+            /*
+             * A place they BOUGHT. The server refuses to let them drop it —
+             * re-registering at a paid event 423s, so the way back in is the
+             * one thing they cannot do — and a button that would 409 is a bug,
+             * not a permission check.
+             */
+            <Text size="xs" c="dimmed" ta="right" maw={160}>
+              Ask the academy for a refund to give up your place.
+            </Text>
+          ) : (
+            <Button
+              size="compact-sm"
+              variant={webinar.is_registered ? 'default' : 'filled'}
+              disabled={full || webinar.status !== 'published'}
+              loading={registration.isPending && registration.variables?.id === webinar.id}
+              onClick={() =>
+                registration.mutate({ id: webinar.id, register: !webinar.is_registered })
+              }
+            >
+              {webinar.is_registered ? 'Cancel' : full ? 'Full' : 'Register'}
+            </Button>
+          )}
 
           {/* Present only when the server said this reader may author it. */}
           {webinar.available_actions !== undefined && (

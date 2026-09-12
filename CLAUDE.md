@@ -790,6 +790,35 @@ Gate::authorize('publish', $course);                   // in a controller
   `attempts` in the database and `release()`s, which the sync test queue
   ignores; tests drive each retry by running the job again. The alternative —
   re-dispatching — retries eight times inside the request that fired the event.
+- **A second link between the same two rows is a second thing to keep in
+  step.** `webinars.product_id` was declared in P15 beside the morph that
+  already names it; paid webinars DROPPED the column rather than maintaining
+  both, because the pair are free to disagree and nothing says which one is
+  right. Same argument the live migration makes about not putting a
+  `course_item_id` on `live_sessions`. A new purchasable is reached through
+  `products.purchasable_type/purchasable_id` and nothing else.
+- **Some checks cannot be atomic across a PAYMENT, so ask them twice before
+  the money and never after.** `WebinarPurchase` — already held, already over,
+  already full — is consulted by the basket and again by checkout, and
+  `GrantOrderAccess` registers the place whatever the room looks like. A room
+  with one extra person in it is a smaller failure than a learner who has paid
+  and holds nothing, and the alternative is reserving a place across a redirect
+  with an expiry to sweep, which is its own slice. Say which you chose, in the
+  code. Do NOT copy the reasoning to a seat on a course: that one is bounded by
+  a transaction and a row lock, so it can simply be correct.
+- **A rule that GATES and a figure that DISPLAYS must count the same rows.**
+  `placesRemaining()` counted cancelled registrations while `assertHasRoom()`
+  counted only live ones, so a webinar somebody had pulled out of read as full
+  and the register endpoint would have taken them anyway. Two counts with
+  different meanings is fine — `registrations_count` is "does any record
+  exist?", which is what makes a webinar undeletable — but each one has to be
+  named for what it counts, and the displayed one has to be the gate's.
+- **A "not ready yet" list reports its FIRST blocker and carries the rest.**
+  `WebinarPublishRules` is ordered on purpose: a missing session before a
+  missing price, because an event with no time cannot be priced into existence
+  either. `error.code` is that first blocker's, so the existing code keeps
+  meaning what it meant, and `meta.blockers` is the whole list — the same reason
+  a 423 carries how to get in.
 
 ---
 
@@ -875,9 +904,9 @@ so the action that fixes a lapse survives it.
 plan limits, bundles, course pricing, digital downloads, upload
 permissions, upload volume limits, outbound webhooks, coupons, refunds,
 provider refund webhooks, Stripe Checkout, refund reports, the studio's
-live-session scheduling, connecting a meeting provider and webinar
-authoring** (§ Patterns established in Phase 16).
-1,394 backend tests / 5,191 assertions · 346 frontend tests.
+live-session scheduling, connecting a meeting provider, webinar authoring
+and paid webinars** (§ Patterns established in Phase 16).
+1,411 backend tests / 5,257 assertions · 349 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -916,8 +945,9 @@ page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
 lead capture have both been waiting for. Webinars can now be authored
-(created, published, called off); what they still cannot be is PAID, and
-nothing tells their registrants when one is called off.
+(created, published, called off) and SOLD — a place is the fourth purchasable,
+priced like a course and delivered by the same `GrantOrderAccess`. What is
+still missing is that nothing tells the registrants when one is called off.
 
 ### The platform owner
 
@@ -1049,7 +1079,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 249.39. It had crept to 250.91 — nav icons
+  purpose**, and first paint is 249.42. It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

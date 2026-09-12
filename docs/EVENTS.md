@@ -201,6 +201,9 @@ reading a flag to decide whether to do nothing should not have been called.
 | `SessionScheduled` | `LiveSession $session`, `bool $isNew` | a session is created or moved |
 | `AttendanceRecorded` | `SessionAttendance $attendance` | somebody is at a session for the first time |
 | `WebinarStatusChanged` | `Webinar $webinar`, `WebinarStatus $from`, `WebinarStatus $to`, `int $actorId` | any transition through `ChangeWebinarStatus` |
+| `WebinarCreated` | `Webinar $webinar` | a standalone event is created |
+| `WebinarPricingChanged` | `Webinar $webinar`, `bool $wasPaid`, `bool $isPaid` | free ⇄ paid, on a real flip only |
+| `WebinarDeleted` | `int $webinarId` | a webinar nobody had registered for is removed |
 
 `SessionScheduled` covers creation AND rescheduling, because both are "there
 is a thing in your calendar at this moment"; `$isNew` says which rather than
@@ -209,11 +212,20 @@ making it two events that must never disagree.
 `WebinarStatusChanged` carries BOTH ends of the move, like
 `CourseStatusChanged`, and fires only on a real change — a listener that knew
 only the new state could not tell a publish from a re-publish, and the previous
-status is gone by the time a queued one runs. **Nothing listens yet.** The
-obvious listener is telling the registrants when an event they hold a place at
-is called off; that needs a notification type of its own, not a hook bolted on
-here. It is not a webhook topic either — a topic is added when somebody has a
-use for it.
+status is gone by the time a queued one runs. Since paid webinars it has one
+consumer: `SyncProductForPurchasable`, because publishing is what opens the
+sale and cancelling is what closes it. **What still listens to nothing is the
+CANCELLATION**: telling the registrants an event they hold a place at is off
+needs a notification type of its own, not a hook bolted on here. It is not a
+webhook topic either — a topic is added when somebody has a use for it.
+
+The other three are the purchasable wiring, and they are the fourth set of
+these after courses, bundles and downloads: the product is created with the
+webinar so a draft can be priced, retired when it goes free or is called off,
+and retired again when the row is deleted — a basket still holding a deleted
+purchasable would otherwise check out, take the money and find nothing to
+deliver. `WebinarDeleted` carries the ID rather than the model, because by
+then there is no row to re-read.
 
 `AttendanceRecorded` fires once per (session, learner) — the unique key makes
 a second impossible — so a listener may complete a curriculum item without

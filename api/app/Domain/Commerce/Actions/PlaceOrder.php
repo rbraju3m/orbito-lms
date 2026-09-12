@@ -16,8 +16,10 @@ use App\Domain\Commerce\Models\Order;
 use App\Domain\Commerce\Models\Product;
 use App\Domain\Commerce\Support\CouponRules;
 use App\Domain\Commerce\Support\RevenueAllocator;
+use App\Domain\Commerce\Support\WebinarPurchase;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Models\User;
+use App\Domain\Live\Models\Webinar;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -198,6 +200,23 @@ final class PlaceOrder
 
         if ($product->purchasable_type === 'bundle') {
             $this->assertBundleHasSomethingToDeliver($user, $product);
+
+            return;
+        }
+
+        /*
+         * A place at an event, asked of the same rule the basket asked — and
+         * asked again HERE because the room can fill, or the event pass,
+         * between adding and paying. This is the last time it is asked: once
+         * the payment lands, `GrantOrderAccess` registers whatever the room
+         * looks like.
+         */
+        if ($product->purchasable_type === 'webinar') {
+            $webinar = Webinar::find($product->purchasable_id);
+
+            if ($webinar !== null) {
+                WebinarPurchase::assertBuyable($user, $webinar);
+            }
 
             return;
         }

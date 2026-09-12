@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories\Live;
 
+use App\Domain\Commerce\Enums\ProductStatus;
+use App\Domain\Commerce\Models\Product;
+use App\Domain\Commerce\Models\ProductPrice;
 use App\Domain\Live\Enums\WebinarStatus;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
@@ -30,7 +33,6 @@ final class WebinarFactory extends Factory
             'live_session_id' => null,
             'capacity' => null,
             'is_paid' => false,
-            'product_id' => null,
             'status' => WebinarStatus::Draft,
         ];
     }
@@ -43,6 +45,36 @@ final class WebinarFactory extends Factory
     public function withCapacity(int $capacity): static
     {
         return $this->state(fn () => ['capacity' => $capacity]);
+    }
+
+    /**
+     * A ticketed event, with the product and price the application would have
+     * created for it.
+     *
+     * The flag ALONE is not a paid webinar — it is one that cannot be
+     * published and cannot be bought — so this state mints what
+     * `SyncWebinarProduct` and `SetProductPrice` mint, rather than leaving a
+     * test to discover the difference. Sellable only once published, exactly
+     * as the sync decides it.
+     */
+    public function paid(int $amountMinor = 2500, ?string $currency = null): static
+    {
+        return $this->afterCreating(function (Webinar $webinar) use ($amountMinor, $currency): void {
+            $webinar->forceFill(['is_paid' => true])->save();
+
+            $product = Product::query()->create([
+                'purchasable_type' => $webinar->getMorphClass(),
+                'purchasable_id' => $webinar->id,
+                'title' => $webinar->title,
+                'status' => $webinar->status->isOpen() ? ProductStatus::Active : ProductStatus::Inactive,
+            ]);
+
+            ProductPrice::query()->create([
+                'product_id' => $product->id,
+                'currency' => strtoupper($currency ?? (string) config('orbito.currency.base')),
+                'amount_minor' => $amountMinor,
+            ]);
+        });
     }
 
     /**

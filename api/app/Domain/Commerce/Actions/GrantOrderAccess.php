@@ -14,11 +14,13 @@ use App\Domain\Enrollment\Actions\EnrollInCourse;
 use App\Domain\Enrollment\Data\EnrollmentIntent;
 use App\Domain\Enrollment\Exceptions\EnrollmentRejected;
 use App\Domain\Identity\Models\User;
+use App\Domain\Live\Actions\RegisterForWebinar;
+use App\Domain\Live\Models\Webinar;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Delivers every line of a PAID order: an enrolment per course, one per course
- * in a bundle, a grant per download.
+ * in a bundle, a grant per download, a place at a webinar.
  *
  * One place, reached two ways — a captured payment (`CapturePayment`) and an
  * order the server priced at nothing (`CompleteFreeOrder`) — so a free order
@@ -33,6 +35,7 @@ final class GrantOrderAccess
     public function __construct(
         private readonly EnrollInCourse $enroll,
         private readonly GrantDownload $grants,
+        private readonly RegisterForWebinar $webinars,
     ) {}
 
     public function handle(Order $order): void
@@ -51,6 +54,7 @@ final class GrantOrderAccess
                 'course' => $this->grantCourse($order, $user, (int) $item->purchasable_id),
                 'bundle' => $this->grantBundle($order, $user, (int) $item->purchasable_id),
                 'download' => $this->grantDownload($order, $user, (int) $item->purchasable_id),
+                'webinar' => $this->grantWebinar($order, $user, (int) $item->purchasable_id),
                 // A product type with no grant path yet — a coaching slot.
                 // Silence is deliberate: the order's other lines must still
                 // be delivered.
@@ -119,6 +123,34 @@ final class GrantOrderAccess
         }
 
         $this->grants->handle($user, $download, DownloadSource::Purchase, $order->id);
+    }
+
+    /**
+     * Holds the place that was bought — and holds it unconditionally.
+     *
+     * The capacity check and the "is it still open?" check both happened at
+     * the basket and again at checkout (`WebinarPurchase`). They are NOT
+     * repeated here: the money has moved, and refusing a paid registrant
+     * because the room filled during the redirect leaves them paid and
+     * holding nothing. A room with one extra person in it is the smaller
+     * failure, and the order is the record that says who to talk to.
+     *
+     * Idempotent: a second delivery finds the registration the first made.
+     */
+    private function grantWebinar(Order $order, User $user, int $webinarId): void
+    {
+        $webinar = Webinar::find($webinarId);
+
+        if ($webinar === null) {
+            Log::error('Paid order references a webinar that no longer exists.', [
+                'order' => $order->uuid,
+                'webinar_id' => $webinarId,
+            ]);
+
+            return;
+        }
+
+        $this->webinars->handle($user, $webinar, $order->id);
     }
 
     private function enrolOne(Order $order, User $user, Course $course, EnrollmentIntent $intent): void

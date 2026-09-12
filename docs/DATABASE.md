@@ -408,7 +408,8 @@ lesson_notes(id, user_id, course_item_id, course_id, body TEXT,
 > carries its share in `order_items.discount_minor`.
 
 ```sql
-products(id, uuid, purchasable_type, purchasable_id,   -- course | bundle | download | plan | coaching
+products(id, uuid, purchasable_type, purchasable_id,   -- course | bundle | download | webinar
+                                                      -- | plan | coaching
       slug UNIQUE, title, status ENUM(draft,active,inactive),
       tax_class_id NULL, is_taxable BOOL DEFAULT 1)
       UNIQUE (purchasable_type, purchasable_id)
@@ -753,9 +754,20 @@ session_attendance(id, live_session_id, user_id, joined_at, left_at,
       UNIQUE (live_session_id, user_id)
 
 webinars(id, uuid, slug UNIQUE, title, description, live_session_id NULL,
-      capacity NULL, is_paid, product_id NULL, status)
-webinar_registrations(id, webinar_id, user_id NULL, email, name, status, registered_at)
-      UNIQUE (webinar_id, email)
+      capacity NULL, is_paid, status)
+webinar_registrations(id, webinar_id, user_id NULL, order_id NULL,        -- order_id P16
+      email, name, status, registered_at)
+      UNIQUE (webinar_id, email), INDEX (order_id)
+
+-- DIFFERS FROM P15: `webinars.product_id` is GONE (P16). A webinar's product
+-- is reached the way a bundle's and a download's are, through
+-- `products.purchasable_type/purchasable_id`, and two links between the same
+-- two rows are two things to keep in step — the same argument this file makes
+-- about not putting a `course_item_id` on `live_sessions`.
+--
+-- `webinar_registrations.order_id` is which order BOUGHT the place, so a
+-- refund revokes exactly that one and never a place the academy gave away.
+-- Same column, same reason, as `download_grants.order_id`.
 
 enrollments.cohort_id NULL          -- which RUN they joined; null is self-paced
 

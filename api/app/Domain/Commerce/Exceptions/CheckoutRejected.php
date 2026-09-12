@@ -39,6 +39,25 @@ final class CheckoutRejected extends DomainException
         return new self("You already have access to “{$title}”.");
     }
 
+    /**
+     * A place at an event with none left.
+     *
+     * Refused at the basket and again at checkout, and NOT at the moment the
+     * payment lands: by then the money has moved, and refusing a paid
+     * registrant is worse than a room with one extra person in it. See
+     * `GrantOrderAccess::grantWebinar()`.
+     */
+    public static function webinarFull(string $title): self
+    {
+        return new self("“{$title}” has no places left.");
+    }
+
+    /** Selling a ticket to something that has already happened. */
+    public static function webinarOver(string $title): self
+    {
+        return new self("“{$title}” has already taken place.");
+    }
+
     public static function notPayable(): self
     {
         return new self('This order can no longer be paid.');

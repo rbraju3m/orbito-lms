@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Live\CalendarController;
 use App\Http\Controllers\Api\V1\Live\CohortController;
 use App\Http\Controllers\Api\V1\Live\LiveSessionController;
 use App\Http\Controllers\Api\V1\Live\WebinarController;
+use App\Http\Controllers\Api\V1\Studio\PricingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -80,6 +81,15 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
         ->name('live.webinars.status');
     Route::delete('webinars/{webinar}', [WebinarController::class, 'destroy'])
         ->name('live.webinars.destroy');
+
+    /*
+     * What a place costs. Beside the webinar rather than under /admin,
+     * because a webinar is CONTENT and this is the same `webinar.manage`
+     * decision as the rest of it — unlike a course, where what it EARNS is
+     * its own permission held by different people.
+     */
+    Route::put('webinars/{webinar}/price', [PricingController::class, 'webinar'])
+        ->name('live.webinars.price');
 });
 
 /*

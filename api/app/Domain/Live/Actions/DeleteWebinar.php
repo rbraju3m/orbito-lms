@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Live\Actions;
 
+use App\Domain\Live\Events\WebinarDeleted;
 use App\Domain\Live\Exceptions\LiveSessionRejected;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
@@ -42,6 +43,13 @@ final class DeleteWebinar
             $session = $locked->loadMissing('session')->session;
 
             $locked->delete();
+
+            /*
+             * Inside the transaction, so a rollback cannot leave Commerce
+             * having retired the product of a webinar that still exists. The
+             * listener is synchronous and touches one row.
+             */
+            WebinarDeleted::dispatch($locked->id);
 
             return $session;
         });

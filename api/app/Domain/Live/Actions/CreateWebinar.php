@@ -6,6 +6,7 @@ namespace App\Domain\Live\Actions;
 
 use App\Domain\Identity\Models\User;
 use App\Domain\Live\Enums\WebinarStatus;
+use App\Domain\Live\Events\WebinarCreated;
 use App\Domain\Live\Models\Webinar;
 use Illuminate\Support\Facades\DB;
 
@@ -43,13 +44,21 @@ final class CreateWebinar
                 'cohort_id' => null,
             ]);
 
-            return Webinar::create([
+            $webinar = Webinar::create([
                 'title' => $attributes['title'],
                 'description' => $attributes['description'] ?? null,
                 'capacity' => $attributes['capacity'] ?? null,
+                // Free unless the academy says otherwise. A paid one gets its
+                // (dormant) product from the event below, so it can be priced
+                // while it is still a draft.
+                'is_paid' => (bool) ($attributes['is_paid'] ?? false),
                 'live_session_id' => $session->id,
                 'status' => WebinarStatus::Draft,
             ]);
+
+            WebinarCreated::dispatch($webinar);
+
+            return $webinar;
         });
     }
 }

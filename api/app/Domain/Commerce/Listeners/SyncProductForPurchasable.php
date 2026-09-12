@@ -17,8 +17,13 @@ use App\Domain\Catalog\Events\DownloadStatusChanged;
 use App\Domain\Commerce\Actions\SyncBundleProduct;
 use App\Domain\Commerce\Actions\SyncCourseProduct;
 use App\Domain\Commerce\Actions\SyncDownloadProduct;
+use App\Domain\Commerce\Actions\SyncWebinarProduct;
 use App\Domain\Commerce\Enums\ProductStatus;
 use App\Domain\Commerce\Models\Product;
+use App\Domain\Live\Events\WebinarCreated;
+use App\Domain\Live\Events\WebinarDeleted;
+use App\Domain\Live\Events\WebinarPricingChanged;
+use App\Domain\Live\Events\WebinarStatusChanged;
 
 /**
  * Catalog announces; Commerce decides whether there is anything to sell.
@@ -35,6 +40,7 @@ final class SyncProductForPurchasable
         private readonly SyncCourseProduct $syncCourse,
         private readonly SyncBundleProduct $syncBundle,
         private readonly SyncDownloadProduct $syncDownload,
+        private readonly SyncWebinarProduct $syncWebinar,
     ) {}
 
     public function courseCreated(CourseCreated $event): void
@@ -84,6 +90,26 @@ final class SyncProductForPurchasable
     }
 
     /**
+     * A webinar gets its product while still a DRAFT, like a bundle: the
+     * publish rule wants a price, and a price hangs off a product.
+     */
+    public function webinarCreated(WebinarCreated $event): void
+    {
+        $this->syncWebinar->handle($event->webinar);
+    }
+
+    /** Publishing opens the sale; cancelling or unpublishing closes it. */
+    public function webinarStatusChanged(WebinarStatusChanged $event): void
+    {
+        $this->syncWebinar->handle($event->webinar);
+    }
+
+    public function webinarPricingChanged(WebinarPricingChanged $event): void
+    {
+        $this->syncWebinar->handle($event->webinar);
+    }
+
+    /**
      * A deleted purchasable must stop being sellable IMMEDIATELY.
      *
      * The bundles slice shipped without this: a deleted bundle's product
@@ -99,6 +125,11 @@ final class SyncProductForPurchasable
     public function downloadDeleted(DownloadDeleted $event): void
     {
         $this->retire('download', $event->downloadId);
+    }
+
+    public function webinarDeleted(WebinarDeleted $event): void
+    {
+        $this->retire('webinar', $event->webinarId);
     }
 
     private function retire(string $type, int $id): void

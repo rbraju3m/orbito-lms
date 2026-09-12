@@ -18,9 +18,9 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,394 Pest tests / 5,191 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
-| Frontend | 346 Vitest tests across 64 files · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS **249.39 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
+| Backend | 1,411 Pest tests / 5,257 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
+| Frontend | 349 Vitest tests across 64 files · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS **249.42 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~20 minutes on a quiet machine (18–26 across Phase 16's later runs), up from ~2 — provisioning tests build real schemas |
 
@@ -1510,10 +1510,51 @@ tests assume.
   is now what both the course session form and the webinar form are built
   from, rather than a private copy in one controller.
 
-Still open: a webinar cannot be PAID (`is_paid` and `product_id` are on the
-model and no authoring path sets them — a paid webinar needs a product, and
-that is its own slice), and nothing tells the registrants when one is called
-off.
+Still open: nothing tells the registrants when a webinar is called off.
+
+**Paid webinars — done.** `is_paid` and `product_id` had sat on the model
+since P15 and nothing ever wrote either, so every webinar the product could
+make was free. A place is now a purchasable like any other — the fourth, after
+courses, bundles and downloads, wired through the same
+`SyncProductForPurchasable`.
+
+- **The column went, not the feature.** `webinars.product_id` is dropped:
+  `products.purchasable_type/purchasable_id` already names the webinar, as it
+  names a bundle and a download, and two links between the same two rows are
+  two things to keep in step — the argument the live migration itself makes
+  about not putting a `course_item_id` on `live_sessions`.
+- **A paid webinar with no price cannot be published**, and the row says which
+  rule stopped it. `WebinarPublishRules` is read by `ChangeWebinarStatus` and
+  rendered as `is_publishable` + `publish_blockers`, so the disabled menu item
+  carries the reason rather than being a dead end. The rejection reports the
+  FIRST blocker — a missing session before a missing price, because an event
+  with no time cannot be priced into existence either — with the whole list in
+  `meta.blockers`.
+- **Registering free at a paid event is a 423, not a 403**, and it carries the
+  product to buy. Nothing was done wrong and there is a way in.
+- **One definition of "can this place be sold?", asked twice.**
+  `WebinarPurchase` is consulted by the basket and again by checkout: already
+  held, already over, already full. It is deliberately NOT asked a third time
+  when the money lands — `GrantOrderAccess` registers whatever the room looks
+  like, because a room with one extra person in it is a smaller failure than a
+  learner who has paid and holds nothing. Holding a place across a payment
+  redirect needs a reservation with an expiry, and that is its own slice.
+- **A refund gives the place back.** `webinar_registrations.order_id` is which
+  order bought it — the same column, for the same reason, as
+  `download_grants.order_id` — so `RevokeOrderAccess` cancels exactly that
+  place and never one the academy gave away. Cancelled, not deleted: the
+  record that somebody was coming survives and the place returns to the room.
+- **A bought place cannot be dropped by the person who bought it**, and that
+  is not paternalism: re-registering at a paid event 423s, so one click on
+  Cancel would have locked them out of something they paid for. 409
+  `webinar_place_purchased`, `can_cancel` on the row says which places are
+  which, and the way to give one up is a refund — which cancels the
+  registration itself.
+- **Found on the way:** `placesRemaining()` counted CANCELLED registrations,
+  so a webinar somebody had pulled out of read as full while the register
+  endpoint — which counts only live ones — would happily have taken them. It
+  now counts what `assertHasRoom()` counts, off an eager-loaded
+  `registered_count` rather than one COUNT per row.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL.

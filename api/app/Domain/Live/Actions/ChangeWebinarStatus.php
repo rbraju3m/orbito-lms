@@ -9,6 +9,7 @@ use App\Domain\Live\Enums\WebinarStatus;
 use App\Domain\Live\Events\WebinarStatusChanged;
 use App\Domain\Live\Exceptions\LiveSessionRejected;
 use App\Domain\Live\Models\Webinar;
+use App\Domain\Live\Support\WebinarPublishRules;
 
 /**
  * Every lifecycle move a webinar makes — publish, unpublish, cancel, revive.
@@ -24,6 +25,8 @@ use App\Domain\Live\Models\Webinar;
  */
 final class ChangeWebinarStatus
 {
+    public function __construct(private readonly WebinarPublishRules $rules) {}
+
     public function handle(Webinar $webinar, WebinarStatus $target, User $actor): Webinar
     {
         $from = $webinar->status;
@@ -41,12 +44,19 @@ final class ChangeWebinarStatus
         }
 
         /*
-         * The one content requirement, and it is not a formality: a published
-         * webinar is offered for registration, and a webinar with no session
-         * has no time, no link and nothing to attend.
+         * The content requirements, and neither is a formality: a published
+         * webinar is offered for registration, and one with no session has
+         * nothing to attend while one marked paid with no price has nothing
+         * to charge. Read from `WebinarPublishRules`, the same class the
+         * resource renders, so the disabled button and this refusal cannot
+         * disagree.
          */
-        if ($target === WebinarStatus::Published && $webinar->live_session_id === null) {
-            throw LiveSessionRejected::webinarNeedsSession();
+        if ($target === WebinarStatus::Published) {
+            $blockers = $this->rules->blockers($webinar);
+
+            if ($blockers !== []) {
+                throw LiveSessionRejected::webinarNotPublishable($blockers);
+            }
         }
 
         $webinar->forceFill(['status' => $target])->save();

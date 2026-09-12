@@ -19,6 +19,8 @@ export function webinarSchema(isNew: boolean) {
       description: z.string().max(5000),
       /** Empty means uncapped, which is not the same as no places left. */
       capacity: z.string(),
+      /** Whether a place has to be bought. The price is set after saving. */
+      is_paid: z.boolean(),
       provider: z.enum(['manual', 'zoom', 'google_meet']),
       join_url: z.string().trim().max(2000),
       starts_at: z.string(),
@@ -63,6 +65,7 @@ export function toWebinarInput(
     description: description === '' ? null : description,
     // Present-and-null CLEARS: an emptied box is "no limit", not "unchanged".
     capacity: values.capacity === '' ? null : Number(values.capacity),
+    is_paid: values.is_paid,
   };
 
   if (!options.isNew) return webinar;

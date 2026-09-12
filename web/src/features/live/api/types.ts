@@ -2,6 +2,8 @@
  * Live-learning wire contract. Source of truth: docs/API.md.
  */
 
+import type { CoursePrice } from '@/features/catalog/api/types';
+
 export type LiveProvider = 'manual' | 'zoom' | 'google_meet';
 export type SessionStatus = 'scheduled' | 'live' | 'ended' | 'cancelled';
 export type CohortStatus = 'draft' | 'open' | 'running' | 'completed' | 'cancelled';
@@ -113,7 +115,14 @@ export interface Webinar {
   status_label: string;
   capacity: number | null;
   places_remaining: number | null;
+  /** Whether a place has to be bought. The price is set separately. */
   is_paid: boolean;
+  /**
+   * What a place costs — absent when the product was not loaded, null for a
+   * free event and for one not on sale, which a draft's always is. DISPLAY
+   * only: the figure that charges is re-read at checkout (ADR-05).
+   */
+  price?: CoursePrice | null;
   session?: {
     id: string;
     starts_at: string;
@@ -122,6 +131,12 @@ export interface Webinar {
     status: SessionStatus;
   } | null;
   is_registered: boolean;
+  /**
+   * Whether they may give the place up themselves. False for one they BOUGHT:
+   * the cancel endpoint refuses it, because re-registering at a paid event
+   * 423s — giving it up is a refund.
+   */
+  can_cancel: boolean;
   registration_count?: number;
 
   /*
@@ -130,8 +145,10 @@ export interface Webinar {
    */
   /** The statuses it may move to, from the rule the API enforces. */
   available_actions?: Array<'draft' | 'published' | 'cancelled'>;
-  /** False until it has a session: there would be nothing to attend. */
+  /** False until every publish rule passes; `publish_blockers` says which. */
   is_publishable?: boolean;
+  /** Why it cannot be published yet, from the rule publishing enforces. */
+  publish_blockers?: Array<{ code: string; field: string; message: string }>;
   /** False once anybody has registered — cancel it instead. */
   is_deletable?: boolean;
 }

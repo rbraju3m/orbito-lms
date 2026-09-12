@@ -786,7 +786,15 @@ write path and a rebuild source (ADR-08); every read here comes from a rollup.
 Exposing the log would let one screen ask a question the rollups cannot
 answer, which is two definitions of one metric a release later.
 
-Eight things about this surface are decisions rather than shape:
+Nine things about this surface are decisions rather than shape:
+
+- **A paid webinar is a purchasable like any other.** `is_paid` says a place
+  has to be bought; the price hangs off a `Product`, which is why it is a
+  separate `PUT` and why `POST /webinars` cannot take one — the product does
+  not exist until the webinar does. The free registration path then 423s with
+  the product to buy, the basket and checkout refuse a place that is already
+  held, full or over, and `GrantOrderAccess` holds the place when the money
+  lands. A refund cancels exactly the place that order bought.
 
 - **A webinar's time is its SESSION's, and there is one way to move it.**
   Creating a webinar creates a `LiveSession` with no course and no cohort —
@@ -883,15 +891,24 @@ PATCH  /cohorts/{id} · DELETE                   DELETE is 409 cohort_in_use onc
 POST   /cohorts/{id}/join
 
 GET    /webinars · GET /webinars/{id}                 meta: can_manage, providers; a manager's rows also
-                                                carry available_actions, is_publishable, is_deletable
-POST   /webinars                                webinar.manage; creates the SESSION too, always a draft
-PATCH  /webinars/{id}                           the words and the places — NOT the time
+                                                carry available_actions, is_publishable,
+                                                publish_blockers, is_deletable. is_paid and price on
+                                                every row — price is null when free or not on sale
+POST   /webinars                                webinar.manage; creates the SESSION too, always a draft;
+                                                {is_paid} but never a price — there is no product yet
+PATCH  /webinars/{id}                           the words, the places and is_paid — NOT the time
+PUT    /webinars/{id}/price                     {currency, amount_minor, sale_*}; 422 pricing_rejected
+                                                (details.0.field = pricing_model) for a free webinar
 POST   /webinars/{id}/status                    {status} — publish, unpublish, cancel, revive; 409
                                                 webinar_transition_rejected with meta.available_actions,
-                                                422 webinar_needs_session
+                                                422 webinar_needs_session / webinar_needs_price, both
+                                                with meta.blockers
 DELETE /webinars/{id}                           409 webinar_in_use once anybody has registered; the
                                                 session is cancelled, never deleted
-POST   /webinars/{id}/register · DELETE
+POST   /webinars/{id}/register · DELETE         423 webinar_requires_purchase with meta.product_id at a
+                                                paid event; 409 webinar_not_on_sale if its price is gone.
+                                                DELETE is 409 webinar_place_purchased for a place that was
+                                                BOUGHT — can_cancel on the row says which
 
 GET    /admin/live-providers                    live.provider.manage; every provider, connected or
                                                 not, each with the fields it needs and how many

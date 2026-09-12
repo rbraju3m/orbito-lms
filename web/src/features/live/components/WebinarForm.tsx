@@ -1,4 +1,15 @@
-import { Alert, Button, Group, NumberInput, Select, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Button,
+  Group,
+  NumberInput,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  Textarea,
+  TextInput,
+} from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -7,7 +18,10 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { toLocalInputValue } from '@/shared/lib/datetime';
 import { applyServerErrors } from '@/shared/lib/form';
 
-import { useSaveWebinar } from '../api/queries';
+import { useSession } from '@/features/auth/hooks/useSession';
+import { formatMinor } from '@/shared/lib/money';
+
+import { useSaveWebinar, useSetWebinarPrice } from '../api/queries';
 import type { LiveProviderOption, Webinar } from '../api/types';
 import { toWebinarInput, webinarSchema, type WebinarValues } from '../webinarSchema';
 
@@ -15,6 +29,7 @@ const FIELDS = [
   'title',
   'description',
   'capacity',
+  'is_paid',
   'provider',
   'join_url',
   'starts_at',
@@ -60,6 +75,7 @@ export function WebinarForm({
       title: existing?.title ?? '',
       description: existing?.description ?? '',
       capacity: existing?.capacity === null || existing === null ? '' : String(existing.capacity),
+      is_paid: existing?.is_paid ?? false,
       provider: firstAvailable,
       join_url: '',
       starts_at: toLocalInputValue(existing?.session?.starts_at),
@@ -68,6 +84,7 @@ export function WebinarForm({
   });
 
   const provider = useWatch({ control, name: 'provider' });
+  const isPaid = useWatch({ control, name: 'is_paid' });
 
   const submit = handleSubmit((values) => {
     setFailure(null);
@@ -114,6 +131,33 @@ export function WebinarForm({
             />
           )}
         />
+
+        <Controller
+          control={control}
+          name="is_paid"
+          render={({ field }) => (
+            <Switch
+              label="People pay for a place"
+              description="Free events are open to everybody in the academy."
+              checked={field.value}
+              onChange={(event) => field.onChange(event.currentTarget.checked)}
+            />
+          )}
+        />
+
+        {/*
+         * The price is its own write, and it is offered only once the SERVER
+         * says the webinar is paid — flipping the switch above and typing a
+         * figure before saving would post a price at a product that does not
+         * exist yet, and be refused.
+         */}
+        {isPaid && existing?.is_paid === true ? (
+          <WebinarPrice webinar={existing} />
+        ) : isPaid ? (
+          <Text size="xs" c="dimmed">
+            Save first, then set the price. A paid webinar cannot be published until it has one.
+          </Text>
+        ) : null}
 
         {isNew ? (
           <>
@@ -193,5 +237,49 @@ export function WebinarForm({
         </Group>
       </Stack>
     </form>
+  );
+}
+
+/**
+ * What a place costs.
+ *
+ * A separate write from the rest of the form, because a price hangs off a
+ * product — the same split the course and download editors make, and the same
+ * minor-units box, so an academy meets one convention rather than three.
+ */
+function WebinarPrice({ webinar }: { webinar: Webinar }) {
+  const { session } = useSession();
+  const currency = session?.academy?.currency ?? 'USD';
+  const setPrice = useSetWebinarPrice(webinar.id);
+
+  // Mantine reports a string for anything not yet canonical ("070", "1."), so
+  // this is the union and never assumed to be a number (§ Phase 7).
+  const [amount, setAmount] = useState<string | number>(webinar.price?.amount_minor ?? '');
+
+  return (
+    <Stack gap={4}>
+      <Text size="xs" c="dimmed">
+        In {currency}, in minor units — {formatMinor(100, currency)} is entered as 100.
+      </Text>
+      <Group align="flex-end" gap="sm">
+        <NumberInput
+          label={`Price (${currency})`}
+          min={1}
+          value={amount}
+          onChange={setAmount}
+          flex={1}
+        />
+        <Button
+          variant="light"
+          loading={setPrice.isPending}
+          disabled={typeof amount !== 'number'}
+          onClick={() =>
+            typeof amount === 'number' && setPrice.mutate({ currency, amount_minor: amount })
+          }
+        >
+          Set price
+        </Button>
+      </Group>
+    </Stack>
   );
 }

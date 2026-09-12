@@ -147,18 +147,80 @@ final class LiveSessionRejected extends DomainException
     }
 
     /**
-     * Publishing something nobody can attend.
+     * Publishing something that is not ready to be offered.
      *
-     * The one content requirement a webinar has: a time and a place. Checked
-     * where it is enforced, and rendered by `is_publishable` so the button is
-     * disabled rather than refused.
+     * The blockers come from `WebinarPublishRules`, the same class that draws
+     * `is_publishable` and `publish_blockers`, so the disabled button and this
+     * rejection cannot disagree. Reported as the FIRST blocker's code — a
+     * webinar with no session is `webinar_needs_session`, as it always was —
+     * with the whole list in `meta.blockers`, because one line of "not ready"
+     * is a dead end on a form with two things wrong with it.
+     *
+     * @param  non-empty-list<array{code: string, field: string, message: string}>  $blockers
      */
-    public static function webinarNeedsSession(): self
+    public static function webinarNotPublishable(array $blockers): self
+    {
+        $rejection = new self(
+            $blockers[0]['message'],
+            $blockers[0]['code'],
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+        );
+
+        $rejection->meta = ['blockers' => $blockers];
+
+        return $rejection;
+    }
+
+    /**
+     * Registering free at an event with a ticket price.
+     *
+     * 423, not 403: the caller has done nothing wrong and there is a way in
+     * (§ Patterns established in Phase 6). `meta` carries the product so the
+     * page can offer the basket rather than a dead end.
+     */
+    public static function webinarRequiresPurchase(string $productUuid): self
+    {
+        $rejection = new self(
+            'This webinar is a paid event. Buy a place to register.',
+            'webinar_requires_purchase',
+            Response::HTTP_LOCKED,
+        );
+
+        $rejection->meta = ['product_id' => $productUuid];
+
+        return $rejection;
+    }
+
+    /**
+     * A paid webinar whose price nobody has set yet.
+     *
+     * Unreachable through the UI — the same rule stops it being published —
+     * but a learner holding a link to one that was published before the price
+     * was removed must be told something better than a 500.
+     */
+    public static function webinarNotOnSale(): self
     {
         return new self(
-            'Schedule the session before publishing this webinar.',
-            'webinar_needs_session',
-            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'This webinar is not on sale at the moment.',
+            'webinar_not_on_sale',
+            Response::HTTP_CONFLICT,
+        );
+    }
+
+    /**
+     * Giving up a place that was PAID for.
+     *
+     * Refused rather than allowed, because the way back in is the one thing
+     * this learner cannot do: re-registering at a paid event 423s, so a stray
+     * click would lock them out of something they bought. Letting it go is a
+     * refund, which is the admin's call and cancels the registration itself.
+     */
+    public static function webinarPlacePurchased(): self
+    {
+        return new self(
+            'You bought this place. Ask the academy for a refund to give it up.',
+            'webinar_place_purchased',
+            Response::HTTP_CONFLICT,
         );
     }
 

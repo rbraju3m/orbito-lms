@@ -30,6 +30,7 @@ function webinar(overrides: Partial<Webinar> = {}): Webinar {
       status: 'scheduled',
     },
     is_registered: false,
+    can_cancel: true,
     ...overrides,
   };
 }
@@ -217,5 +218,80 @@ describe('WebinarsRoute', () => {
       'data-disabled',
       'true',
     );
+  });
+
+  /* ------------------------------------------------------- a paid webinar */
+
+  it('offers the basket rather than a sign-up at a paid event', async () => {
+    let bought: Record<string, unknown> | null = null;
+    serve([
+      webinar({
+        is_paid: true,
+        price: {
+          product_id: 'product-uuid',
+          currency: 'USD',
+          amount_minor: 2500,
+          list_amount_minor: null,
+          is_on_sale: false,
+        },
+      }),
+    ]);
+    server.use(
+      http.post(`${API}/cart/items`, async ({ request }) => {
+        bought = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ data: { item_count: 1 } }, { status: 201 });
+      }),
+    );
+
+    renderWithRouter(<WebinarsRoute />);
+
+    // Registering free at a paid event is a 423, so the button never offers
+    // it — and the price is on the row rather than behind the click.
+    expect(await screen.findByText('$25.00')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Register' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Buy a place' }));
+
+    await waitFor(() => expect(bought).not.toBeNull());
+    // The id the basket speaks comes with the row: no second request to find
+    // out what to buy.
+    expect(bought).toMatchObject({ product_id: 'product-uuid' });
+  });
+
+  it('offers no cancel for a place that was bought, and says what to do instead', async () => {
+    // The API refuses it: re-registering at a paid event 423s, so dropping a
+    // bought place would lock them out of something they paid for.
+    serve([webinar({ is_paid: true, is_registered: true, can_cancel: false })]);
+    renderWithRouter(<WebinarsRoute />);
+
+    expect(await screen.findByText(/refund to give up your place/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+  });
+
+  it('says why a paid webinar cannot be published yet', async () => {
+    serve(
+      [
+        webinar({
+          status: 'draft',
+          status_label: 'Draft',
+          is_paid: true,
+          available_actions: ['published', 'cancelled'],
+          is_publishable: false,
+          publish_blockers: [
+            { code: 'webinar_needs_price', field: 'price', message: 'A paid webinar needs a price in USD before it can be published.' },
+          ],
+          is_deletable: true,
+        }),
+      ],
+      true,
+    );
+
+    renderWithRouter(<WebinarsRoute />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Manage Open evening/ }));
+
+    // The reason travels with the disabled button, from the rule the API
+    // enforces — a disabled control with no explanation is a dead end.
+    expect(await screen.findByText(/needs a price in USD/)).toBeInTheDocument();
   });
 });

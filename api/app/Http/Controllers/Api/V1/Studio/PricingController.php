@@ -11,8 +11,10 @@ use App\Domain\Commerce\Actions\SetProductPrice;
 use App\Domain\Commerce\Actions\SyncBundleProduct;
 use App\Domain\Commerce\Actions\SyncCourseProduct;
 use App\Domain\Commerce\Actions\SyncDownloadProduct;
+use App\Domain\Commerce\Actions\SyncWebinarProduct;
 use App\Domain\Commerce\Exceptions\PricingRejected;
 use App\Domain\Commerce\Models\Product;
+use App\Domain\Live\Models\Webinar;
 use App\Http\Requests\Catalog\SetPriceRequest;
 use App\Http\Resources\Commerce\ProductPriceResource;
 use App\Support\Http\ApiResponse;
@@ -20,7 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * What a course or a bundle costs.
+ * What a course, a bundle, a download or a webinar costs.
  *
  * Two endpoints, one Action, because the rules about money do not change with
  * what is being sold — and because `SetProductPrice` is the only write path
@@ -36,6 +38,7 @@ final class PricingController
         private readonly SyncCourseProduct $syncCourse,
         private readonly SyncBundleProduct $syncBundle,
         private readonly SyncDownloadProduct $syncDownload,
+        private readonly SyncWebinarProduct $syncWebinar,
     ) {}
 
     public function course(SetPriceRequest $request, Course $course): JsonResponse
@@ -71,6 +74,27 @@ final class PricingController
 
         // A free download has no product, exactly like a free course.
         $product = $this->syncDownload->handle($download);
+
+        if ($product === null) {
+            throw PricingRejected::purchasableIsFree();
+        }
+
+        return $this->respond($request, $product);
+    }
+
+    /**
+     * What a place at a webinar costs.
+     *
+     * Authorized by the academy-wide `manage-webinars` gate rather than a
+     * policy, because a webinar belongs to no course and there is nothing to
+     * scope against — the same reasoning as every other webinar endpoint.
+     */
+    public function webinar(SetPriceRequest $request, Webinar $webinar): JsonResponse
+    {
+        Gate::authorize('manage-webinars');
+
+        // A free webinar has no product, exactly like a free course.
+        $product = $this->syncWebinar->handle($webinar);
 
         if ($product === null) {
             throw PricingRejected::purchasableIsFree();

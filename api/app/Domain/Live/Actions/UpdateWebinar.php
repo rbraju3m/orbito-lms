@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Live\Actions;
 
+use App\Domain\Live\Events\WebinarPricingChanged;
 use App\Domain\Live\Models\Webinar;
 
 /**
@@ -16,6 +17,12 @@ use App\Domain\Live\Models\Webinar;
  * in step.
  *
  * The slug is not here either: it is a link somebody may already hold.
+ *
+ * Free ⇄ paid IS here, and it is the one field that announces itself:
+ * `WebinarPricingChanged` fires only on a real flip, because that is what
+ * creates or retires the product a price hangs off. Saving the form again with
+ * the switch untouched must announce nothing (§ Patterns established in Phase
+ * 16: an operation is not a transition).
  */
 final class UpdateWebinar
 {
@@ -30,7 +37,24 @@ final class UpdateWebinar
             }
         }
 
+        $wasPaid = $webinar->is_paid;
+        $isPaid = array_key_exists('is_paid', $attributes)
+            ? (bool) $attributes['is_paid']
+            : $wasPaid;
+
+        $webinar->is_paid = $isPaid;
         $webinar->save();
+
+        /*
+         * After the save, so the listener that syncs the product reads the new
+         * answer rather than the old one. Only on a flip: a title edit leaves
+         * the product's own title behind, exactly as a download's does, and
+         * that is harmless — an order line snapshots the title it was sold
+         * under and never re-reads the product for it.
+         */
+        if ($wasPaid !== $isPaid) {
+            WebinarPricingChanged::dispatch($webinar, $wasPaid, $isPaid);
+        }
 
         return $webinar->refresh();
     }

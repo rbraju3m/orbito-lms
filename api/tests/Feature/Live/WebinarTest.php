@@ -280,6 +280,6 @@ it('tells a learner nothing about what an author may do', function (): void {
     $response = $this->actingAs($this->student)->getJson('/api/v1/webinars')->assertOk();
 
     expect($response->json('data.0'))->not->toHaveKeys([
-        'available_actions', 'is_publishable', 'is_deletable',
+        'available_actions', 'is_publishable', 'publish_blockers', 'is_deletable',
     ]);
 });

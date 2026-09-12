@@ -279,6 +279,9 @@ export interface WebinarInput {
   title: string;
   description?: string | null;
   capacity?: number | null;
+  /* Whether a place has to be bought. The PRICE is not here — it hangs off a
+   * product, which does not exist until the webinar does. */
+  is_paid?: boolean;
   /* Only on a create: the session it happens at. A reschedule goes through
    * the session endpoint, which resets the reminder and tells the provider. */
   provider?: 'manual' | 'zoom' | 'google_meet';
@@ -314,6 +317,26 @@ export function useChangeWebinarStatus() {
     mutationFn: ({ id, status }: { id: string; status: 'draft' | 'published' | 'cancelled' }) =>
       apiPost<Webinar>(`/webinars/${id}/status`, { status }),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: liveKeys.all });
+    },
+  });
+}
+
+/**
+ * What a place costs.
+ *
+ * Its own endpoint, and not part of saving the form, for the same reason a
+ * course's and a download's are: a price hangs off a product, and the product
+ * does not exist until the webinar does.
+ */
+export function useSetWebinarPrice(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { currency: string; amount_minor: number }) =>
+      apiPut<unknown>(`/webinars/${id}/price`, payload),
+    onSuccess: () => {
+      // The publish rule reads the price, so the list has to come back too.
       void queryClient.invalidateQueries({ queryKey: liveKeys.all });
     },
   });
