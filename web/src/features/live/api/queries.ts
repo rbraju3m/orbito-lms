@@ -1,12 +1,13 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { apiDelete, apiGet, apiGetRaw, apiPatch, apiPost } from '@/shared/api/client';
+import { apiDelete, apiGet, apiGetRaw, apiPatch, apiPost, apiPut } from '@/shared/api/client';
 import type { Paginated } from '@/shared/api/types';
 
 import type {
   CalendarResponse,
   Cohort,
   CohortStatus,
+  LiveProviderAccount,
   LiveProviderOption,
   LiveSession,
   Roster,
@@ -24,6 +25,8 @@ export const liveKeys = {
   cohortPage: (courseId: string, page: number) => [...liveKeys.cohorts(courseId), page] as const,
   roster: (sessionId: string) => [...liveKeys.all, 'roster', sessionId] as const,
   webinars: () => [...liveKeys.all, 'webinars'] as const,
+  /** The academy's connected meeting providers. */
+  providers: () => [...liveKeys.all, 'providers'] as const,
 };
 
 /** A list that also says what the reader may do with it. */
@@ -214,6 +217,55 @@ export function useWebinarRegistration() {
         : apiDelete<Webinar>(`/webinars/${id}/register`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: liveKeys.webinars() });
+    },
+  });
+}
+
+/* ------------------------------------------------ connecting a provider */
+
+/**
+ * Every provider the platform supports, connected or not — an admin cannot
+ * connect Zoom from a list of what is already connected.
+ */
+export const liveProvidersQuery = () =>
+  queryOptions({
+    queryKey: liveKeys.providers(),
+    queryFn: ({ signal }) => apiGet<LiveProviderAccount[]>('/admin/live-providers', { signal }),
+    staleTime: 60_000,
+  });
+
+export interface ConnectLiveProviderInput {
+  provider: string;
+  credentials?: Record<string, string>;
+  is_active?: boolean;
+}
+
+/**
+ * A partial update: what is left out KEEPS its stored value, so switching a
+ * provider off does not blank a secret the API will never read back.
+ *
+ * Invalidates the whole live prefix rather than just this list, because
+ * connecting changes what the studio's scheduling picker may offer.
+ */
+export function useConnectLiveProvider() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ provider, ...input }: ConnectLiveProviderInput) =>
+      apiPut<LiveProviderAccount>(`/admin/live-providers/${provider}`, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: liveKeys.all });
+    },
+  });
+}
+
+export function useDisconnectLiveProvider() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (provider: string) => apiDelete(`/admin/live-providers/${provider}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: liveKeys.all });
     },
   });
 }

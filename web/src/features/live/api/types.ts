@@ -74,6 +74,36 @@ export interface LiveProviderOption {
   available: boolean;
 }
 
+/** One box on the connect form — the server's declaration, not the SPA's. */
+export interface CredentialField {
+  key: string;
+  label: string;
+  help: string;
+  required: boolean;
+  /** A password input. Every credential is encrypted either way. */
+  secret: boolean;
+}
+
+/**
+ * Whether the academy has connected a meeting provider — never with what.
+ *
+ * The API returns no credential under any key, so the form starts empty even
+ * for a connected provider and an empty box means "keep what is stored".
+ */
+export interface LiveProviderAccount {
+  provider: LiveProvider;
+  label: string;
+  /** False for `manual`, which is why a fresh academy can schedule on day one. */
+  needs_account: boolean;
+  is_connected: boolean;
+  is_active: boolean;
+  fields: CredentialField[];
+  setup_url: string | null;
+  /** What a disconnect would strand: still joinable, no longer reschedulable. */
+  upcoming_sessions: number;
+  updated_at: string | null;
+}
+
 export interface Webinar {
   id: string;
   slug: string;

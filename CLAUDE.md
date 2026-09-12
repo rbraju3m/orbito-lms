@@ -765,6 +765,21 @@ Gate::authorize('publish', $course);                   // in a controller
   `is_deletable` comes from the same `Cohort::isInUse()`. And strict mode
   throws on reading a count that was never loaded: check `getAttributes()`,
   not the magic property.
+- **A credential a provider issues with an EXPIRY cannot be the credential an
+  academy types in.** `GoogleMeetProvider` read a stored `access_token`, which
+  Google issues for an hour: the connect screen would have worked until
+  lunchtime and then failed on a class nobody was watching. Take the
+  long-lived thing (a service account key, a client secret) and mint the
+  short-lived one per use, cached — and key that cache on a hash of the
+  CREDENTIALS, so rotating a leaked secret takes effect at once and nothing
+  else has to know a cache exists.
+- **The boxes on a credentials form are the SERVER's declaration.**
+  `LiveProvider::credentialFields()` is rendered by the screen and enforced by
+  the form request (`array:a,b,c` refuses any other key). The `PublishChecklist`
+  rule applied to a form: two definitions of what a provider needs is one
+  drift away from a box the API refuses or a key stored and never read. And
+  judge completeness on the MERGED result, because a partial update keeps what
+  it is not given — nobody re-types a secret the provider shows once.
 - **Retry state belongs on the row, not the queue.** `DeliverWebhook` counts
   `attempts` in the database and `release()`s, which the sync test queue
   ignores; tests drive each retry by running the job again. The alternative —
@@ -853,9 +868,10 @@ so the action that fixes a lapse survives it.
 (T1–T7) that reversed the single-tenant decision. **Phase 16 in progress:
 plan limits, bundles, course pricing, digital downloads, upload
 permissions, upload volume limits, outbound webhooks, coupons, refunds,
-provider refund webhooks, Stripe Checkout, refund reports and the studio's
-live-session scheduling** (§ Patterns established in Phase 16).
-1,374 backend tests / 5,096 assertions · 336 frontend tests.
+provider refund webhooks, Stripe Checkout, refund reports, the studio's
+live-session scheduling and connecting a meeting provider** (§ Patterns
+established in Phase 16).
+1,386 backend tests / 5,144 assertions · 341 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -873,9 +889,12 @@ dashboard refund end to end. Until 5837bc8 a key saved from the Payments
 screen was never read, and until Checkout there was nowhere to type a card.
 
 **2. Zoom / Google Meet, likewise.** Both providers are written and have never
-been called. `ManualProvider` works and is what most academies will use. The
-studio's Live tab lists the other two as not connected: nothing in the product
-can connect an account yet, so that screen comes with the credentials.
+been called. `ManualProvider` works and is what most academies will use.
+`/admin/live-providers` now connects an account (`live.provider.manage`), so
+what is left is a real Zoom app and a real Google service account — the
+screen is no longer the blocker, the credentials are. Google Meet asks for a
+service account rather than an access token, because a token that lives an
+hour cannot be a thing an academy types in once.
 
 **3. Phase 16 (Advanced Business), continued.** Plan limits, **bundles**,
 **digital downloads**, **upload permissions** and **upload volume limits** are
@@ -1022,7 +1041,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 249.24. It had crept to 250.91 — nav icons
+  purpose**, and first paint is 249.37. It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

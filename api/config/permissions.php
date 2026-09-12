@@ -170,6 +170,11 @@ $permissions = [
         // it is an academy-wide capability and its own key.
         'webinar.manage' => 'Create and publish webinars',
         'attendance.mark' => 'Mark a session roster',
+        // Connecting the academy's Zoom or Google account is an ADMIN act,
+        // not an authoring one: the credentials are the academy's, and every
+        // instructor scheduling a class must not hold them. Same reasoning as
+        // `gateway.manage`, which the instructor role does not hold either.
+        'live.provider.manage' => 'Connect a meeting provider',
     ],
 
     'analytics' => [

@@ -39,6 +39,7 @@ import {
   IconTrophy,
   IconUser,
   IconUsers,
+  IconVideo,
   IconWebhook,
 } from '@tabler/icons-react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
@@ -125,6 +126,12 @@ const NAV: NavItem[] = [
     label: 'Payments',
     icon: IconCreditCard,
     anyOf: ['gateway.manage'],
+  },
+  {
+    to: '/admin/live-providers',
+    label: 'Live providers',
+    icon: IconVideo,
+    anyOf: ['live.provider.manage'],
   },
   { to: '/admin/coupons', label: 'Coupons', icon: IconTicket, anyOf: ['coupon.manage'] },
   // Refunds the provider reported that the books could not take in (REFUNDS.md §6).

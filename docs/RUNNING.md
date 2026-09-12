@@ -131,6 +131,41 @@ dashboard for this.
    course away again. The order page's **Refund…** dialog goes the other way —
    through Stripe — and the same events settle it.
 
+## Connecting Zoom or Google Meet
+
+Neither integration has ever contacted its provider, so this is the walkthrough
+for proving one — the same position Stripe was in until it was paid with. Live
+sessions work without either: **Paste a link** needs nothing connected and is
+what most academies will use.
+
+Sign in as `owner@orbito.test` and open **Live providers**
+(`/admin/live-providers`). Every box there is stored encrypted and never read
+back, so an empty box means "keep what is saved".
+
+**Zoom** needs a *Server-to-Server OAuth* app from the
+[Zoom App Marketplace](https://marketplace.zoom.us/develop/create) — not a
+user-facing OAuth app, because the academy connects one account rather than
+each instructor consenting. Give it the `meeting:write:admin` and
+`meeting:read:admin` scopes, activate it, and copy the **Account ID**, **Client
+ID** and **Client secret** across. *Default host email* is optional: it is the
+Zoom user meetings are created for when whoever is scheduling has no Zoom
+account of their own.
+
+**Google Meet** needs a *service account* from the
+[Google Cloud console](https://console.cloud.google.com/iam-admin/serviceaccounts)
+with the Calendar API enabled and domain-wide delegation granted for
+`https://www.googleapis.com/auth/calendar.events`. Paste the `client_email` and
+`private_key` from its JSON key file (the key can go in with its literal `\n`
+sequences — it is repaired on the way through), and set **Calendar owner
+email** to the account in your organisation whose calendar the events should
+belong to. There is no box for an access token on purpose: Google's expire in
+an hour, so the provider mints its own from this key.
+
+Then schedule a session in any course's **Live** tab and pick the provider —
+it is offered only once connected. A failure surfaces at that moment rather
+than at the class's start time, which is the only moment anybody can do
+something about it.
+
 ## When it does not work
 
 | Symptom | Cause |

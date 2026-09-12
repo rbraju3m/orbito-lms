@@ -78,7 +78,8 @@ or is assigned to"; policies resolve ownership.
 `certificate.revoke`, `certificate.template.manage`
 **engagement** — `review.create`, `review.moderate`, `review.reply.own`, `review.delete`,
 `discussion.create`, `discussion.reply`, `discussion.moderate`, `announcement.manage`
-**live** — `live.manage.own`, `live.manage.any`, `webinar.manage`, `attendance.mark`
+**live** — `live.manage.own`, `live.manage.any`, `webinar.manage`, `attendance.mark`,
+`live.provider.manage`
 **media** — `media.upload`, `media.delete.own`, `media.delete.any`, `media.library.view.any`
 **analytics** — `analytics.view.own`, `analytics.view.platform`, `analytics.export`
 **settings** — `settings.view`, `settings.update`, `settings.payment`, `settings.email`
@@ -143,6 +144,7 @@ or is assigned to"; policies resolve ownership.
 | live.manage.own | ✔ | any | — | own | — | own | — | — |
 | webinar.manage | ✔ | ✔ | — | — | — | — | — | — |
 | attendance.mark | ✔ | ✔ | — | own | — | own | — | — |
+| live.provider.manage | ✔ | ✔ | — | — | — | — | — | — |
 | analytics.view.own | ✔ | ✔ | — | ✔ | — | ✔ | — | — |
 | analytics.view.platform | ✔ | ✔ | — | — | — | — | — | — |
 | analytics.export | ✔ | ✔ | — | ✔⁵ | — | ✔⁵ | — | — |
@@ -317,7 +319,7 @@ caller could legitimately fix answers **423 Locked** with the reason, not 403.
 - `RoleAssigned` and `RoleRevoked` events are emitted. A general audit log
   (P19) will listen to them; today nothing does.
 
-**Counts today:** 102 permission keys across 8 system roles, synced into every
+**Counts today:** 107 permission keys across 8 system roles, synced into every
 academy's schema from `config/permissions.php` by `php artisan permissions:sync`
 — and by `TenantDatabaseSeeder` when an academy is provisioned, because an
 academy with no roles is one where nobody can do anything, including its owner.

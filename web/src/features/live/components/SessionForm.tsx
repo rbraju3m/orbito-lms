@@ -1,9 +1,21 @@
-import { Alert, Button, Group, Select, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Anchor,
+  Button,
+  Group,
+  Select,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+} from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
+import { Link } from 'react-router';
 
+import { useSession } from '@/features/auth/hooks/useSession';
 import { toLocalInputValue } from '@/shared/lib/datetime';
 import { applyServerErrors } from '@/shared/lib/form';
 
@@ -71,6 +83,14 @@ export function SessionForm({
   });
 
   const provider = useWatch({ control, name: 'provider' });
+  /*
+   * "Not connected" is a dead end for whoever can do something about it, and
+   * noise for whoever cannot — so the way out is shown only to the admin who
+   * holds the key. Same instinct as a 423 that names how to get in.
+   */
+  const { canAny } = useSession();
+  const canConnect = canAny(['live.provider.manage']);
+  const unconnected = providers.some((option) => !option.available);
   const providerLabel = providers.find((option) => option.value === provider)?.label ?? provider;
 
   // A new session is offered only runs that can still happen; an edit shows
@@ -130,6 +150,16 @@ export function SessionForm({
             />
           )}
         />
+
+        {isNew && unconnected && canConnect && (
+          <Text size="xs" c="dimmed">
+            A provider shown as not connected needs the academy's account.{' '}
+            <Anchor component={Link} to="/admin/live-providers" size="xs">
+              Connect one
+            </Anchor>
+            .
+          </Text>
+        )}
 
         {provider === 'manual' ? (
           <TextInput

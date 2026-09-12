@@ -91,6 +91,22 @@ export const adminRoutes: RouteObject[] = [
           },
         ],
       },
+      /*
+       * The academy's own meeting provider. Its own permission: an instructor
+       * schedules classes and must not hold the academy's Zoom credentials.
+       */
+      {
+        element: <RequirePermission anyOf={['live.provider.manage']} />,
+        children: [
+          {
+            path: 'admin/live-providers',
+            lazy: async () => ({
+              Component: (await import('@/features/live/routes/LiveProvidersRoute'))
+                .LiveProvidersRoute,
+            }),
+          },
+        ],
+      },
       {
         element: <RequirePermission anyOf={['gateway.manage']} />,
         children: [

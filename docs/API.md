@@ -786,7 +786,17 @@ write path and a rebuild source (ADR-08); every read here comes from a rollup.
 Exposing the log would let one screen ask a question the rollups cannot
 answer, which is two definitions of one metric a release later.
 
-Six things about this surface are decisions rather than shape:
+Seven things about this surface are decisions rather than shape:
+
+- **The academy connects its own provider, and the credentials are
+  write-only.** No resource emits one under any key, so every box on the
+  connect form starts empty and an empty box means "keep what is stored".
+  `fields` is the server's declaration of what a provider needs
+  (`LiveProvider::credentialFields()`) — the form renders it and
+  `ConnectLiveProviderRequest` validates against it, so the two cannot drift.
+  Google Meet asks for a SERVICE ACCOUNT rather than an access token: Google's
+  tokens live an hour, and a stored one would connect an academy until
+  lunchtime.
 
 - **`POST /analytics/track` accepts only four names** — `course_viewed`,
   `item_started`, `search_performed`, `cart_abandoned` — and 422s everything
@@ -867,6 +877,15 @@ POST   /cohorts/{id}/join
 
 GET    /webinars · GET /webinars/{id}
 POST   /webinars/{id}/register · DELETE
+
+GET    /admin/live-providers                    live.provider.manage; every provider, connected or
+                                                not, each with the fields it needs and how many
+                                                scheduled sessions a disconnect would strand
+PUT    /admin/live-providers/{provider}         partial; omitted credentials are KEPT. 422
+                                                live_provider_credentials_incomplete with
+                                                meta.missing, or live_provider_needs_no_account
+                                                for `manual`
+DELETE /admin/live-providers/{provider}         disconnect — deletes the row
 ```
 
 Six things about this surface are decisions rather than shape:

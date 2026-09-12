@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Admin\LiveProviderController;
 use App\Http\Controllers\Api\V1\Live\AttendanceController;
 use App\Http\Controllers\Api\V1\Live\CalendarController;
 use App\Http\Controllers\Api\V1\Live\CohortController;
@@ -65,3 +66,20 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
     Route::delete('webinars/{webinar}/register', [WebinarController::class, 'cancel'])
         ->name('live.webinars.cancel');
 });
+
+/*
+ * The academy connecting its own meeting provider.
+ *
+ * Inside the subscription gate, like the payment gateways it mirrors: this is
+ * the academy configuring how it teaches, not the action that fixes a lapsed
+ * subscription.
+ */
+Route::middleware(['auth:sanctum', 'tenant', 'subscription'])
+    ->prefix('admin')->name('admin.')->group(function (): void {
+        Route::get('live-providers', [LiveProviderController::class, 'index'])
+            ->name('live.providers.index');
+        Route::put('live-providers/{provider}', [LiveProviderController::class, 'update'])
+            ->name('live.providers.update');
+        Route::delete('live-providers/{provider}', [LiveProviderController::class, 'destroy'])
+            ->name('live.providers.destroy');
+    });

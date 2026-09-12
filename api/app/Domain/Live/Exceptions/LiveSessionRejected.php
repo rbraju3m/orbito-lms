@@ -37,6 +37,42 @@ final class LiveSessionRejected extends DomainException
         );
     }
 
+    /**
+     * Connecting the one provider that has nothing to connect.
+     *
+     * `Manual` is not an integration — the host pastes a link per session —
+     * so a row of credentials for it would be a row nothing ever reads.
+     */
+    public static function providerNeedsNoAccount(string $provider): self
+    {
+        return new self(
+            "The {$provider} provider does not use a connected account.",
+            'live_provider_needs_no_account',
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+        );
+    }
+
+    /**
+     * Saved credentials that would not be enough to schedule with.
+     *
+     * `meta.missing` names the keys, because "incomplete" with no list is a
+     * dead end on a four-box form (§ Patterns established in Phase 9).
+     *
+     * @param  list<string>  $missing
+     */
+    public static function credentialsIncomplete(string $provider, array $missing): self
+    {
+        $rejection = new self(
+            "The {$provider} credentials are incomplete: ".implode(', ', $missing).'.',
+            'live_provider_credentials_incomplete',
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+        );
+
+        $rejection->meta = ['missing' => $missing];
+
+        return $rejection;
+    }
+
     public static function endsBeforeItStarts(): self
     {
         return new self(

@@ -118,7 +118,14 @@ final class ZoomProvider implements LiveSessionProvider
         $accountId = $account->require('account_id');
 
         return Cache::remember(
-            'live:zoom:token:'.md5($accountId),
+            // Keyed on the CREDENTIALS, not just the account id. An academy
+            // that rotates a leaked secret would otherwise keep presenting a
+            // token minted from the old one for the rest of the hour, and the
+            // connect screen has no business knowing a cache exists.
+            'live:zoom:token:'.hash(
+                'sha256',
+                $accountId.'|'.$account->require('client_id').'|'.$account->require('client_secret'),
+            ),
             now()->addMinutes(55),
             function () use ($account, $accountId): string {
                 $response = Http::asForm()

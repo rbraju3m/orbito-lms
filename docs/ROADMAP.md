@@ -18,9 +18,9 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,374 Pest tests / 5,096 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
-| Frontend | 336 Vitest tests across 63 files · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS **249.25 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
+| Backend | 1,386 Pest tests / 5,144 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
+| Frontend | 341 Vitest tests across 64 files · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS **249.37 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~20 minutes on a quiet machine (18–26 across Phase 16's later runs), up from ~2 — provisioning tests build real schemas |
 
@@ -1433,6 +1433,45 @@ does yet, so every academy schedules with a pasted link.
 - **Still open:** connecting a Zoom or Google Meet account (a screen, and the
   credentials those integrations have never had), and webinars, which have no
   authoring API at all.
+
+**Connecting a meeting provider — done.** The Live tab listed Zoom and Google
+Meet as not connected and nothing in the product could connect them.
+`/admin/live-providers` now does, behind its own permission
+(`live.provider.manage`): connecting the academy's Zoom is an admin act, not
+an authoring one, and an instructor who schedules classes has no business
+holding the keys. The same shape as payment gateways (ADR-13) — the academy's
+credentials, in the academy's schema, encrypted, and returned by no resource
+under any key.
+
+- **The form's boxes are the SERVER's declaration.**
+  `LiveProvider::credentialFields()` is rendered by the screen and validated
+  against by `ConnectLiveProviderRequest` (`array:a,b,c` refuses any other
+  key), so a provider cannot ship with a form that asks for one thing and a
+  validator that expects another. Adding a provider is a case in the enum and
+  a class beside it.
+- **A stored access token is not a connection.** `GoogleMeetProvider` read
+  `access_token` — a credential that expires in an hour, which would have
+  connected an academy until lunchtime and then failed on a class nobody was
+  watching. It now takes a service account key and mints its own token, the
+  way Zoom's does. Both remain ⚠ unproven.
+- **A cached token is keyed on the credentials that minted it.** Zoom's was
+  keyed on the account id, so an academy rotating a leaked secret would have
+  kept presenting the old token for the rest of the hour. Keyed on a hash of
+  the credentials, rotation takes effect at once and the connect screen never
+  has to know a cache exists.
+- **Completeness is judged on the MERGED result.** A partial update keeps what
+  it is not given — nobody should have to re-type a secret Zoom shows once —
+  so "is this enough to schedule with?" is asked of what is stored after the
+  merge, at connect time rather than at a class's start time. 422
+  `live_provider_credentials_incomplete` names the missing keys in
+  `meta.missing`, and the screen puts the error on those boxes.
+- **A disconnect says what it strands.** Sessions scheduled through a provider
+  keep their links and can still be cancelled (`CancelLiveSession` writes
+  locally first and swallows the provider call), but nothing can move them.
+  The count comes from the same list the resource returns.
+
+Still open: nobody has ever connected a real Zoom or Google account, which is
+the credentials half of §What to do next item 2.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL.

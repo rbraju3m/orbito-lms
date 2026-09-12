@@ -191,6 +191,13 @@ final class AuthServiceProvider extends ServiceProvider
             'mark-attendance',
             fn (User $user): bool => $user->hasPermission('attendance.mark'),
         );
+
+        // The academy's own credentials, so academy-wide and unscoped — an
+        // instructor who staffs one course has no business connecting them.
+        Gate::define(
+            'manage-live-providers',
+            fn (User $user): bool => $user->hasPermission('live.provider.manage'),
+        );
     }
 
     /**
