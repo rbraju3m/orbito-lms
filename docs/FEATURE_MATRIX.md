@@ -341,7 +341,7 @@ still agree to the minor unit. `CouponRevenueTest` asserts it.
 | N3 | Google Meet integration | Pro | Yes | **P15 ⚠** | Written, never contacted. Connectable (P16), and it now takes a service account key rather than an access token that would expire in an hour |
 | N4 | Cohorts (a scheduled run of a course) | — | Yes | **P15** | Narrows the audience; capacity locked with enrolment. Created and edited in the Live tab (P16); a run with sessions or learners is cancelled, never deleted |
 | N5 | Attendance | Pro | Yes | **P15** | The join click is the record; `source` says which evidence |
-| N6 | Webinars (standalone, registration) | — | Yes | **P15** | Members-only until P16 gives it a public site |
+| N6 | Webinars (standalone, registration) | — | Yes | **P15** | Members-only until P16 gives it a public site. Created, edited, published and called off from the webinars screen (P16); paid webinars still need a product |
 | N7 | Reminders | Pro | Yes | **P15** | Claimed before sending; window floored as well as capped |
 | N8 | Recording linkage | Pro | Yes | **P15** | A media id on the session; no upload flow yet |
 | N9 | Calendar view | Pro | Yes | **P15** | Grouped by local day; a cohort only sees its own |

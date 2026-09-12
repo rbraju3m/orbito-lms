@@ -123,6 +123,17 @@ export interface Webinar {
   } | null;
   is_registered: boolean;
   registration_count?: number;
+
+  /*
+   * Present only for somebody who may author it — the server's answer to
+   * what they may DO, not a fact about the event.
+   */
+  /** The statuses it may move to, from the rule the API enforces. */
+  available_actions?: Array<'draft' | 'published' | 'cancelled'>;
+  /** False until it has a session: there would be nothing to attend. */
+  is_publishable?: boolean;
+  /** False once anybody has registered — cancel it instead. */
+  is_deletable?: boolean;
 }
 
 export interface CalendarResponse {

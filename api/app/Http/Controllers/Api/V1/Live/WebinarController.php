@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Live;
 
+use App\Domain\Live\Actions\ChangeWebinarStatus;
+use App\Domain\Live\Actions\CreateWebinar;
+use App\Domain\Live\Actions\DeleteWebinar;
 use App\Domain\Live\Actions\RegisterForWebinar;
+use App\Domain\Live\Actions\UpdateWebinar;
+use App\Domain\Live\Enums\WebinarStatus;
 use App\Domain\Live\Models\Webinar;
 use App\Domain\Live\Models\WebinarRegistration;
+use App\Domain\Live\Providers\LiveProviderFactory;
+use App\Http\Requests\Live\StoreWebinarRequest;
 use App\Http\Resources\Live\WebinarResource;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 /**
  * Standalone live events.
@@ -25,7 +33,7 @@ use Illuminate\Support\Facades\Gate;
  */
 final class WebinarController
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, LiveProviderFactory $providers): JsonResponse
     {
         $canManage = Gate::allows('manage-webinars');
 
@@ -44,22 +52,97 @@ final class WebinarController
                 fn (Webinar $webinar) => new WebinarResource(
                     $webinar,
                     in_array($webinar->id, $registered, true),
+                    $canManage,
                 ),
-            ))->additional(['meta' => ['can_manage' => $canManage]]),
+            ))->additional(['meta' => [
+                'can_manage' => $canManage,
+                // The same list the course session form is built from, and the
+                // same one scheduling enforces. Only for somebody who could
+                // schedule — it costs a query per provider.
+                'providers' => $canManage ? $providers->options() : [],
+            ]]),
         );
     }
 
     public function show(Request $request, Webinar $webinar): JsonResponse
     {
-        abort_unless(
-            $webinar->status->isOpen() || Gate::allows('manage-webinars'),
-            404,
-        );
+        $canManage = Gate::allows('manage-webinars');
+
+        abort_unless($webinar->status->isOpen() || $canManage, 404);
 
         return ApiResponse::ok(new WebinarResource(
             $webinar->load('session')->loadCount('registrations'),
             $this->registeredIds($request, [$webinar->id]) !== [],
+            $canManage,
         ));
+    }
+
+    /**
+     * Creating one — the webinar and the session it happens at, in one act.
+     *
+     * A DRAFT, always: publishing is its own decision, so nobody puts an
+     * event in front of the academy by filling in a form and pressing save.
+     */
+    public function store(StoreWebinarRequest $request, CreateWebinar $action): JsonResponse
+    {
+        Gate::authorize('manage-webinars');
+
+        $webinar = $action->handle($request->user(), $request->validated());
+
+        return ApiResponse::created($this->authored($webinar));
+    }
+
+    /** The words and the places. The TIME moves through the session endpoint. */
+    public function update(StoreWebinarRequest $request, Webinar $webinar, UpdateWebinar $action): JsonResponse
+    {
+        Gate::authorize('manage-webinars');
+
+        return ApiResponse::ok($this->authored($action->handle($webinar, $request->validated())));
+    }
+
+    /**
+     * Publish, unpublish, cancel, revive — one endpoint, because one Action
+     * owns the legal moves and `available_actions` says which are open.
+     */
+    public function status(Request $request, Webinar $webinar, ChangeWebinarStatus $action): JsonResponse
+    {
+        Gate::authorize('manage-webinars');
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::enum(WebinarStatus::class)],
+        ]);
+
+        return ApiResponse::ok($this->authored($action->handle(
+            $webinar,
+            WebinarStatus::from((string) $validated['status']),
+            $request->user(),
+        )));
+    }
+
+    /** 409 `webinar_in_use` once anybody has registered — cancel it instead. */
+    public function destroy(Webinar $webinar, DeleteWebinar $action): JsonResponse
+    {
+        Gate::authorize('manage-webinars');
+
+        $action->handle($webinar);
+
+        return ApiResponse::noContent();
+    }
+
+    /**
+     * The shape an author reads back: what it is, and what they may do next.
+     *
+     * `isRegistered` is false rather than looked up — somebody scheduling an
+     * event is not registering for it, and the authoring screens have no
+     * button that would care.
+     */
+    private function authored(Webinar $webinar): WebinarResource
+    {
+        return new WebinarResource(
+            $webinar->fresh()->load('session')->loadCount('registrations'),
+            isRegistered: false,
+            canManage: true,
+        );
     }
 
     public function register(Request $request, Webinar $webinar, RegisterForWebinar $action): JsonResponse

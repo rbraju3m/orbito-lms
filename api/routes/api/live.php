@@ -65,6 +65,21 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
         ->name('live.webinars.register');
     Route::delete('webinars/{webinar}/register', [WebinarController::class, 'cancel'])
         ->name('live.webinars.cancel');
+
+    /*
+     * Authoring (`webinar.manage`). A webinar is CONTENT, so it lives beside
+     * its own reads rather than under /admin — the academy's configuration is
+     * what sits there. Creating one creates its session too; moving that
+     * session is PATCH /live-sessions/{id}, which already resets the reminder
+     * and tells the provider.
+     */
+    Route::post('webinars', [WebinarController::class, 'store'])->name('live.webinars.store');
+    Route::patch('webinars/{webinar}', [WebinarController::class, 'update'])
+        ->name('live.webinars.update');
+    Route::post('webinars/{webinar}/status', [WebinarController::class, 'status'])
+        ->name('live.webinars.status');
+    Route::delete('webinars/{webinar}', [WebinarController::class, 'destroy'])
+        ->name('live.webinars.destroy');
 });
 
 /*

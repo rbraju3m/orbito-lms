@@ -780,6 +780,12 @@ Gate::authorize('publish', $course);                   // in a controller
   drift away from a box the API refuses or a key stored and never read. And
   judge completeness on the MERGED result, because a partial update keeps what
   it is not given — nobody re-types a secret the provider shows once.
+- **Ask what BUILDS the row your tests assume.** Webinars had a model, a
+  registration flow with capacity locking, and a screen — and nothing in the
+  product could create one; every webinar in the suite came from a factory.
+  Second time this phase (`SyncCourseProduct` was the first). A factory that
+  mints what the application is supposed to mint hides a missing endpoint
+  indefinitely.
 - **Retry state belongs on the row, not the queue.** `DeliverWebhook` counts
   `attempts` in the database and `release()`s, which the sync test queue
   ignores; tests drive each retry by running the job again. The alternative —
@@ -869,9 +875,9 @@ so the action that fixes a lapse survives it.
 plan limits, bundles, course pricing, digital downloads, upload
 permissions, upload volume limits, outbound webhooks, coupons, refunds,
 provider refund webhooks, Stripe Checkout, refund reports, the studio's
-live-session scheduling and connecting a meeting provider** (§ Patterns
-established in Phase 16).
-1,386 backend tests / 5,144 assertions · 341 frontend tests.
+live-session scheduling, connecting a meeting provider and webinar
+authoring** (§ Patterns established in Phase 16).
+1,394 backend tests / 5,191 assertions · 346 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -909,7 +915,9 @@ Checkout page. Also ahead: subscriptions and memberships (after the Stripe test)
 page builder, multilingual, RTL. It is
 markedly larger than the phases before it, and it is where the public
 marketing surface finally arrives — which is what webinar registration and
-lead capture have both been waiting for.
+lead capture have both been waiting for. Webinars can now be authored
+(created, published, called off); what they still cannot be is PAID, and
+nothing tells their registrants when one is called off.
 
 ### The platform owner
 
@@ -1041,7 +1049,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 249.37. It had crept to 250.91 — nav icons
+  purpose**, and first paint is 249.39. It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

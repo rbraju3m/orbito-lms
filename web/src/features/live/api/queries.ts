@@ -85,7 +85,10 @@ export const webinarsQuery = () =>
   queryOptions({
     queryKey: liveKeys.webinars(),
     queryFn: ({ signal }) =>
-      apiGetRaw<WithMeta<Webinar, { can_manage: boolean }>>('/webinars', { signal }),
+      apiGetRaw<WithMeta<Webinar, { can_manage: boolean; providers: LiveProviderOption[] }>>(
+        '/webinars',
+        { signal },
+      ),
     staleTime: 60_000,
   });
 
@@ -264,6 +267,63 @@ export function useDisconnectLiveProvider() {
 
   return useMutation({
     mutationFn: (provider: string) => apiDelete(`/admin/live-providers/${provider}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: liveKeys.all });
+    },
+  });
+}
+
+/* --------------------------------------------------- authoring a webinar */
+
+export interface WebinarInput {
+  title: string;
+  description?: string | null;
+  capacity?: number | null;
+  /* Only on a create: the session it happens at. A reschedule goes through
+   * the session endpoint, which resets the reminder and tells the provider. */
+  provider?: 'manual' | 'zoom' | 'google_meet';
+  join_url?: string;
+  starts_at?: string;
+  ends_at?: string;
+  timezone?: string;
+}
+
+/** Creating one creates its session too; editing one never touches the time. */
+export function useSaveWebinar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...input }: WebinarInput & { id?: string }) =>
+      id === undefined
+        ? apiPost<Webinar>('/webinars', input)
+        : apiPatch<Webinar>(`/webinars/${id}`, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: liveKeys.all });
+    },
+  });
+}
+
+/**
+ * Publish, unpublish, cancel, revive — one endpoint, because one Action owns
+ * the legal moves and `available_actions` says which are open.
+ */
+export function useChangeWebinarStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'draft' | 'published' | 'cancelled' }) =>
+      apiPost<Webinar>(`/webinars/${id}/status`, { status }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: liveKeys.all });
+    },
+  });
+}
+
+export function useDeleteWebinar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/webinars/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: liveKeys.all });
     },

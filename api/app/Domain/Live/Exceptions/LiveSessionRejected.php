@@ -130,6 +130,48 @@ final class LiveSessionRejected extends DomainException
         );
     }
 
+    /** @param  list<string>  $allowed */
+    public static function webinarTransitionRejected(string $from, string $to, array $allowed): self
+    {
+        $rejection = new self(
+            "A {$from} webinar cannot become {$to}.",
+            'webinar_transition_rejected',
+            Response::HTTP_CONFLICT,
+        );
+
+        // What it CAN become, so a stale screen can correct itself rather
+        // than offering the same impossible button again.
+        $rejection->meta = ['available_actions' => $allowed];
+
+        return $rejection;
+    }
+
+    /**
+     * Publishing something nobody can attend.
+     *
+     * The one content requirement a webinar has: a time and a place. Checked
+     * where it is enforced, and rendered by `is_publishable` so the button is
+     * disabled rather than refused.
+     */
+    public static function webinarNeedsSession(): self
+    {
+        return new self(
+            'Schedule the session before publishing this webinar.',
+            'webinar_needs_session',
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+        );
+    }
+
+    /** Registrations are somebody's record. A webinar with any is cancelled. */
+    public static function webinarInUse(): self
+    {
+        return new self(
+            'People have registered for this webinar. Cancel it instead of deleting it.',
+            'webinar_in_use',
+            Response::HTTP_CONFLICT,
+        );
+    }
+
     public function errorCode(): string
     {
         return $this->errorCode;

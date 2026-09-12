@@ -200,10 +200,20 @@ reading a flag to decide whether to do nothing should not have been called.
 |---|---|---|
 | `SessionScheduled` | `LiveSession $session`, `bool $isNew` | a session is created or moved |
 | `AttendanceRecorded` | `SessionAttendance $attendance` | somebody is at a session for the first time |
+| `WebinarStatusChanged` | `Webinar $webinar`, `WebinarStatus $from`, `WebinarStatus $to`, `int $actorId` | any transition through `ChangeWebinarStatus` |
 
 `SessionScheduled` covers creation AND rescheduling, because both are "there
 is a thing in your calendar at this moment"; `$isNew` says which rather than
 making it two events that must never disagree.
+
+`WebinarStatusChanged` carries BOTH ends of the move, like
+`CourseStatusChanged`, and fires only on a real change — a listener that knew
+only the new state could not tell a publish from a re-publish, and the previous
+status is gone by the time a queued one runs. **Nothing listens yet.** The
+obvious listener is telling the registrants when an event they hold a place at
+is called off; that needs a notification type of its own, not a hook bolted on
+here. It is not a webhook topic either — a topic is added when somebody has a
+use for it.
 
 `AttendanceRecorded` fires once per (session, learner) — the unique key makes
 a second impossible — so a listener may complete a curriculum item without

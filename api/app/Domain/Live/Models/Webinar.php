@@ -60,12 +60,50 @@ final class Webinar extends Model
     {
         self::creating(function (self $webinar): void {
             $webinar->uuid ??= (string) Str::uuid7();
+            $webinar->slug ??= self::generateSlug($webinar->title);
         });
     }
 
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    /**
+     * Stable once assigned, for the same reason a course's is: a link handed
+     * out for an event is a link somebody keeps until the event happens.
+     */
+    public static function generateSlug(string $title): string
+    {
+        $base = Str::slug($title) ?: 'webinar';
+        $slug = $base;
+        $suffix = 1;
+
+        while (self::where('slug', $slug)->exists()) {
+            $slug = $base.'-'.(++$suffix);
+        }
+
+        return Str::limit($slug, 190, '');
+    }
+
+    /**
+     * Whether anybody's record depends on this.
+     *
+     * A webinar with registrations is CANCELLED, never deleted — the place
+     * somebody holds is a fact about them, and the academy calling the event
+     * off still needs to know who to tell. Same shape, and the same reasoning,
+     * as `Cohort::isInUse()`; checked on the raw attributes because strict
+     * mode throws on a count that was never loaded.
+     */
+    public function isInUse(): bool
+    {
+        $attributes = $this->getAttributes();
+
+        if (array_key_exists('registrations_count', $attributes)) {
+            return (int) $attributes['registrations_count'] > 0;
+        }
+
+        return $this->registrations()->exists();
     }
 
     /** @return BelongsTo<LiveSession, $this> */

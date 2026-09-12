@@ -786,7 +786,14 @@ write path and a rebuild source (ADR-08); every read here comes from a rollup.
 Exposing the log would let one screen ask a question the rollups cannot
 answer, which is two definitions of one metric a release later.
 
-Seven things about this surface are decisions rather than shape:
+Eight things about this surface are decisions rather than shape:
+
+- **A webinar's time is its SESSION's, and there is one way to move it.**
+  Creating a webinar creates a `LiveSession` with no course and no cohort —
+  which is what standalone means — and moving it afterwards is
+  `PATCH /live-sessions/{id}`, the same call a course's session takes, so the
+  reminder is reset and the provider told by one piece of code. A webinar is
+  created as a DRAFT whatever else is sent: publishing is its own decision.
 
 - **The academy connects its own provider, and the credentials are
   write-only.** No resource emits one under any key, so every box on the
@@ -875,7 +882,15 @@ PATCH  /cohorts/{id} · DELETE                   DELETE is 409 cohort_in_use onc
                                                 learners — cancel it instead; is_deletable says which
 POST   /cohorts/{id}/join
 
-GET    /webinars · GET /webinars/{id}
+GET    /webinars · GET /webinars/{id}                 meta: can_manage, providers; a manager's rows also
+                                                carry available_actions, is_publishable, is_deletable
+POST   /webinars                                webinar.manage; creates the SESSION too, always a draft
+PATCH  /webinars/{id}                           the words and the places — NOT the time
+POST   /webinars/{id}/status                    {status} — publish, unpublish, cancel, revive; 409
+                                                webinar_transition_rejected with meta.available_actions,
+                                                422 webinar_needs_session
+DELETE /webinars/{id}                           409 webinar_in_use once anybody has registered; the
+                                                session is cancelled, never deleted
 POST   /webinars/{id}/register · DELETE
 
 GET    /admin/live-providers                    live.provider.manage; every provider, connected or

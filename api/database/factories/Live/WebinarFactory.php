@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories\Live;
 
 use App\Domain\Live\Enums\WebinarStatus;
+use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -42,5 +43,24 @@ final class WebinarFactory extends Factory
     public function withCapacity(int $capacity): static
     {
         return $this->state(fn () => ['capacity' => $capacity]);
+    }
+
+    /**
+     * The session it happens at — a live session with no course and no
+     * cohort, which is what makes a webinar standalone.
+     *
+     * The default leaves it null, and that is the factory lying on purpose
+     * (§ Traps that are still live): a webinar with no time is exactly the
+     * thing `ChangeWebinarStatus` refuses to publish, and a test for that
+     * needs to be able to build one. `CreateWebinar` always makes both.
+     */
+    public function withSession(): static
+    {
+        return $this->state(fn (): array => [
+            'live_session_id' => LiveSession::factory()->create([
+                'course_id' => null,
+                'cohort_id' => null,
+            ])->id,
+        ]);
     }
 }

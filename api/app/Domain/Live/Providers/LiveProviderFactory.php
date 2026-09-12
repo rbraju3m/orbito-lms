@@ -46,6 +46,22 @@ final class LiveProviderFactory
         return ! $provider->needsAccount() || $this->account($provider) !== null;
     }
 
+    /**
+     * Every provider and whether it can be scheduled with right now — the
+     * list every picker is built from, so a course's session form and a
+     * webinar's cannot disagree about what this academy has connected.
+     *
+     * @return list<array{value: string, label: string, available: bool}>
+     */
+    public function options(): array
+    {
+        return array_map(fn (LiveProvider $provider): array => [
+            'value' => $provider->value,
+            'label' => $provider->label(),
+            'available' => $this->isConnected($provider),
+        ], LiveProvider::cases());
+    }
+
     private function account(LiveProvider $provider): ?LiveProviderAccount
     {
         return LiveProviderAccount::query()

@@ -18,9 +18,9 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,386 Pest tests / 5,144 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
-| Frontend | 341 Vitest tests across 64 files · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS **249.37 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
+| Backend | 1,394 Pest tests / 5,191 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
+| Frontend | 346 Vitest tests across 64 files · `tsc` clean · oxlint clean · build clean |
+| Budget | first-paint JS **249.39 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~20 minutes on a quiet machine (18–26 across Phase 16's later runs), up from ~2 — provisioning tests build real schemas |
 
@@ -1472,6 +1472,48 @@ under any key.
 
 Still open: nobody has ever connected a real Zoom or Google account, which is
 the credentials half of §What to do next item 2.
+
+**Webinar authoring — done.** A webinar had a model, a registration flow with
+capacity locking, and a screen. Nothing in the product could create one: every
+webinar in the suite came from a factory. The same dead-wire shape
+`SyncCourseProduct` had, found the same way — by asking what builds the row the
+tests assume.
+
+- **Creating a webinar creates its SESSION**, through `CreateLiveSession`, so
+  a standalone event's meeting is made at the provider by exactly the same
+  code as a course's — including failing before anything is written when the
+  provider refuses. A session with no course and no cohort is what standalone
+  means, and `authorizeManage` already fell through to the academy-wide
+  `manage-webinars` key for one.
+- **Always a draft.** Filling in a form does not put an event in front of the
+  academy; publishing is its own call, with its own button.
+- **The time moves in one place.** `UpdateWebinar` edits the words and the
+  places and refuses to know about dates: rescheduling is
+  `PATCH /live-sessions/{id}`, which resets the reminder and tells the
+  provider. A second path to those fields would be a second set of rules to
+  keep in step.
+- **`WebinarStatus::allows()` is rendered and enforced.** The transition list
+  the action reads is returned as `available_actions`, so a button that would
+  409 cannot be drawn — and the 409 carries the list too, so a stale screen
+  can correct itself. Cancelled returns to DRAFT rather than straight to
+  published, so somebody looks at the date before registrations reopen.
+- **Deleted only while nobody holds a place** (409 `webinar_in_use`), and its
+  session is CANCELLED rather than deleted, because a live session row is
+  never deleted anywhere in this domain — the attendance and any recording
+  live on it. Same rule, same shape, as `DeleteCohort`.
+- **The factory lied, and now says so.** `WebinarFactory` left
+  `live_session_id` null, which is why nothing could be published in a test.
+  It keeps that default on purpose — publishing a webinar with no session is
+  exactly what has to be refused — and gained `withSession()` for everything
+  else.
+- **One definition of the provider picker.** `LiveProviderFactory::options()`
+  is now what both the course session form and the webinar form are built
+  from, rather than a private copy in one controller.
+
+Still open: a webinar cannot be PAID (`is_paid` and `product_id` are on the
+model and no authoring path sets them — a paid webinar needs a product, and
+that is its own slice), and nothing tells the registrants when one is called
+off.
 
 Still open in this phase: subscriptions and memberships, coaching, the blog,
 the page builder, multilingual, RTL.

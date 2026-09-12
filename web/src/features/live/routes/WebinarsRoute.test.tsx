@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -34,6 +34,11 @@ function webinar(overrides: Partial<Webinar> = {}): Webinar {
   };
 }
 
+const PROVIDERS = [
+  { value: 'manual' as const, label: 'Paste a link', available: true },
+  { value: 'zoom' as const, label: 'Zoom', available: false },
+];
+
 function serve(rows: Webinar[], canManage = false) {
   server.use(
     http.get(`${API}/webinars`, () =>
@@ -45,6 +50,7 @@ function serve(rows: Webinar[], canManage = false) {
           total: rows.length,
           last_page: 1,
           can_manage: canManage,
+          providers: canManage ? PROVIDERS : [],
         },
         links: { first: null, prev: null, next: null, last: null },
       }),
@@ -102,5 +108,114 @@ describe('WebinarsRoute', () => {
 
     expect(await screen.findByText('No webinars scheduled')).toBeInTheDocument();
     expect(screen.getByText(/whether or not you are on a course/i)).toBeInTheDocument();
+  });
+
+  /*
+   * Authoring. Until P16 nothing in the product could create a webinar: the
+   * model, the registration flow and this screen all existed, and only a
+   * factory ever made one.
+   */
+
+  it('offers nothing to author to somebody who may not', async () => {
+    serve([webinar()]);
+    renderWithRouter(<WebinarsRoute />);
+
+    await screen.findByText('Open evening');
+    expect(screen.queryByRole('button', { name: 'Schedule a webinar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Manage/ })).not.toBeInTheDocument();
+  });
+
+  it('creates a webinar with the session it happens at', async () => {
+    let body: Record<string, unknown> | null = null;
+    serve([], true);
+    server.use(
+      http.post(`${API}/webinars`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ data: webinar({ status: 'draft' }) }, { status: 201 });
+      }),
+    );
+
+    renderWithRouter(<WebinarsRoute />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Schedule a webinar' }));
+    await userEvent.type(await screen.findByLabelText(/Title/), 'Open evening');
+    await userEvent.type(screen.getByLabelText(/Join link/), 'https://meet.example.test/x');
+    await userEvent.type(screen.getByLabelText(/Starts/), '2026-10-01T18:00');
+    await userEvent.type(screen.getByLabelText(/Ends/), '2026-10-01T19:00');
+    await userEvent.click(screen.getByRole('button', { name: 'Schedule it' }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    // The session travels with it: a webinar with no time cannot be published.
+    expect(body).toMatchObject({
+      title: 'Open evening',
+      provider: 'manual',
+      join_url: 'https://meet.example.test/x',
+    });
+  });
+
+  it('renders only the moves the server says are open', async () => {
+    // `available_actions` is the transition list the API enforces, so a
+    // button that would 409 cannot exist.
+    serve(
+      [
+        webinar({
+          status: 'cancelled',
+          status_label: 'Cancelled',
+          available_actions: ['draft'],
+          is_publishable: true,
+          is_deletable: true,
+        }),
+      ],
+      true,
+    );
+
+    renderWithRouter(<WebinarsRoute />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Manage Open evening/ }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Take back to draft' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Publish' })).not.toBeInTheDocument();
+  });
+
+  it('offers no delete once somebody has registered', async () => {
+    serve(
+      [webinar({ available_actions: ['draft', 'cancelled'], is_publishable: true, is_deletable: false })],
+      true,
+    );
+
+    renderWithRouter(<WebinarsRoute />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Manage Open evening/ }));
+
+    // A place held is somebody's record — it is cancelled, never deleted.
+    expect(await screen.findByRole('menuitem', { name: 'Call it off' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
+  });
+
+  it('cannot publish a webinar with nothing to attend', async () => {
+    serve(
+      [
+        webinar({
+          status: 'draft',
+          status_label: 'Draft',
+          session: null,
+          available_actions: ['published', 'cancelled'],
+          is_publishable: false,
+          is_deletable: true,
+        }),
+      ],
+      true,
+    );
+
+    renderWithRouter(<WebinarsRoute />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Manage Open evening/ }));
+
+    // Present and disabled rather than hidden: the author needs to know the
+    // button exists and what is missing.
+    expect(await screen.findByRole('menuitem', { name: 'Publish' })).toHaveAttribute(
+      'data-disabled',
+      'true',
+    );
   });
 });

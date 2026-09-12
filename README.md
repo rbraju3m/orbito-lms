@@ -15,7 +15,7 @@ included — Stripe Checkout, a refund-reports screen and live-session
 scheduling from the studio have shipped.
 [`docs/ROADMAP.md`](docs/ROADMAP.md) opens with exactly where things stand.
 
-1,386 backend tests / 5,144 assertions · 341 frontend tests · PHPStan level 6.
+1,394 backend tests / 5,191 assertions · 346 frontend tests · PHPStan level 6.
 
 An instructor can build and publish a course with lessons, resources, quizzes,
 assignments and live sessions, price it, schedule cohorts, announce things,
