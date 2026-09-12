@@ -212,12 +212,23 @@ making it two events that must never disagree.
 `WebinarStatusChanged` carries BOTH ends of the move, like
 `CourseStatusChanged`, and fires only on a real change — a listener that knew
 only the new state could not tell a publish from a re-publish, and the previous
-status is gone by the time a queued one runs. Since paid webinars it has one
-consumer: `SyncProductForPurchasable`, because publishing is what opens the
-sale and cancelling is what closes it. **What still listens to nothing is the
-CANCELLATION**: telling the registrants an event they hold a place at is off
-needs a notification type of its own, not a hook bolted on here. It is not a
-webhook topic either — a topic is added when somebody has a use for it.
+status is gone by the time a queued one runs. It has two consumers:
+`SyncProductForPurchasable`, because publishing is what opens the sale and
+cancelling is what closes it, and `NotifyOnWebinarCancelled`, which tells the
+people holding a place. That second one is the reason `became()` exists here —
+a cancellation is a transition INTO `cancelled`, and the Action returns early
+on a no-op, so an academy pressing the button twice says nothing twice. It is
+not a webhook topic; a topic is added when somebody has a use for it.
+
+**A cancellation notice is only half of telling somebody.** The webinar's
+`LiveSession` is deliberately NOT cancelled with it — the provider meeting
+would go with the row, nothing in the product can reschedule a webinar's
+session (editing a webinar never touches the time), and `WebinarStatus`
+allows a cancelled event to be revived, so reviving would be a dead end.
+Instead the WEBINAR's status is what the reads consult: `SessionAudience`
+answers that nobody is expected (which stops the reminder, the roster and the
+join), and `CalendarQuery` drops the entry. One fact, asked of one place,
+rather than a cancellation half the product has not heard about.
 
 The other three are the purchasable wiring, and they are the fourth set of
 these after courses, bundles and downloads: the product is created with the
@@ -292,6 +303,7 @@ because starting again is worth knowing too.
 | `PointsAwarded` | `EvaluateBadges@points` | Gamification | **yes** |
 | `StreakExtended` | `EvaluateBadges@streak` | Gamification | **yes** |
 | `BadgeAwarded` | `NotifyOnBadgeAwarded` | Notification | **yes** |
+| `WebinarStatusChanged` | `NotifyOnWebinarCancelled` | Notification | **yes** |
 | `AttendanceRecorded` | `CompleteItemOnAttendance` | Live | **yes** |
 | the 16 events in `EventServiceProvider::$webhooks` | `SendWebhooks@<method>` | Webhook | payload built inline; **the HTTP is queued** (`DeliverWebhook`) |
 

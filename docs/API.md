@@ -937,6 +937,12 @@ Six things about this surface are decisions rather than shape:
   become true would be wrong exactly when somebody is trying to join.
 - **`DELETE` on a session CANCELS it.** The attendance, the recording and the
   fact that it was called off are all things somebody may need later.
+- **Cancelling a webinar tells everybody holding a place**, and takes the
+  event out of their calendar and out of the reminder sweep — the session row
+  stays `scheduled`, so the WEBINAR's status is what those reads consult
+  (`docs/EVENTS.md`). A place bought is told the place is refundable and who
+  issues it; refunding is still the academy's action, not a side effect of
+  calling the event off.
 - **Webinar registration is members-only**, and that follows from the tenancy
   design rather than a product choice: tenancy resolves from the authenticated
   user, so there is no anonymous surface to register from. The public path

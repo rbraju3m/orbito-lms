@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Live\Queries;
 
 use App\Domain\Enrollment\Models\Enrollment;
+use App\Domain\Live\Enums\WebinarStatus;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
 use App\Domain\Live\Models\WebinarRegistration;
@@ -43,6 +44,25 @@ final class SessionAudience
         $webinar = Webinar::query()->where('live_session_id', $session->id)->first();
 
         if ($webinar === null) {
+            return [];
+        }
+
+        /*
+         * NOBODY is expected at an event that was called off, and this is the
+         * one place that has to say so: the reminder, the roster and "may I
+         * join?" all read it, so a cancelled webinar stops reminding, stops
+         * admitting people and stops filling a roster without three separate
+         * checks that could disagree.
+         *
+         * The SESSION row is deliberately left alone — `scheduled`, with its
+         * meeting intact. Cancelling it would be the tidier-looking move and
+         * it is a trap: the provider meeting is deleted with it, nothing in
+         * the product can reschedule a webinar's session (editing a webinar
+         * never touches the time), and `WebinarStatus::allows()` lets a
+         * cancelled event be revived. Reviving would then be a dead end.
+         * Asking the webinar means revival restores everything by itself.
+         */
+        if ($webinar->status === WebinarStatus::Cancelled) {
             return [];
         }
 

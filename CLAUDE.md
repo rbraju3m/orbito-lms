@@ -819,6 +819,30 @@ Gate::authorize('publish', $course);                   // in a controller
   either. `error.code` is that first blocker's, so the existing code keeps
   meaning what it meant, and `meta.blockers` is the whole list — the same reason
   a 423 carries how to get in.
+- **A cancellation half the product has not heard about is worse than
+  silence.** Telling a webinar's registrants it is off was the easy half; the
+  event kept its calendar entry and still sent "starts soon", so the learner
+  got two messages and no way to tell which was current. `SessionAudience`
+  answers it once — nobody is expected at an event that is off — and that one
+  edit settles the reminder, the roster and the join; `CalendarQuery` reads the
+  webinar's status beside the session's. Ask what ELSE asserts the thing is
+  still happening, and fix the answer in the place they all read.
+- **Do not cancel the row that looks untidy — check the way BACK first.**
+  Cancelling the webinar's `LiveSession` would have swept all three reads for
+  free, and it is a trap: the provider meeting goes with it, nothing in the
+  product can reschedule a webinar's session (editing a webinar never touches
+  the time), and `WebinarStatus::allows()` lets a cancelled event be revived.
+  A tidy write that leaves the user with no way out is worse than a read that
+  asks one more question.
+- **A flag claimed to prevent a double send must not be claimed when there is
+  nothing to send.** `SendSessionReminders` burned `reminder_sent_at` before
+  resolving the audience, so a webinar called off and revived never reminded
+  again. Claim it before SENDING — not before deciding whether to.
+- **Two messages when the audience splits on a FACT about them.** A cancelled
+  webinar's free places and bought places get different bodies, because money
+  is a different fact from a diary entry and one frozen payload cannot say it
+  to half a room. The paid one says the place is refundable and who issues it —
+  never that a refund is on its way, which cancelling does not start.
 
 ---
 
@@ -906,7 +930,7 @@ permissions, upload volume limits, outbound webhooks, coupons, refunds,
 provider refund webhooks, Stripe Checkout, refund reports, the studio's
 live-session scheduling, connecting a meeting provider, webinar authoring
 and paid webinars** (§ Patterns established in Phase 16).
-1,411 backend tests / 5,257 assertions · 349 frontend tests.
+1,423 backend tests / 5,287 assertions · 349 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -947,7 +971,10 @@ marketing surface finally arrives — which is what webinar registration and
 lead capture have both been waiting for. Webinars can now be authored
 (created, published, called off) and SOLD — a place is the fourth purchasable,
 priced like a course and delivered by the same `GrantOrderAccess`. What is
-still missing is that nothing tells the registrants when one is called off.
+Calling one off now tells everybody holding a place, and takes the event out
+of their calendar and reminders — what is still missing is that a GUEST
+registration (an email with no account) cannot be told anything, which waits
+for the public registration path.
 
 ### The platform owner
 

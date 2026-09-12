@@ -18,7 +18,7 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,411 Pest tests / 5,257 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
+| Backend | 1,423 Pest tests / 5,287 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
 | Frontend | 349 Vitest tests across 64 files · `tsc` clean · oxlint clean · build clean |
 | Budget | first-paint JS **249.42 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
@@ -1510,7 +1510,33 @@ tests assume.
   is now what both the course session form and the webinar form are built
   from, rather than a private copy in one controller.
 
-Still open: nothing tells the registrants when a webinar is called off.
+**Calling one off now tells the room.** `NotifyOnWebinarCancelled` is the
+eighth notification type, and the slice is mostly about what makes the message
+TRUE:
+
+- **Two messages, split on whether the place was BOUGHT.** Money is a
+  different fact from a diary entry, and one payload cannot say it to half a
+  room. The paid one says the place is refundable and who issues it — not that
+  a refund is on its way, because cancelling refunds nothing by itself.
+- **A cancellation the rest of the product has not heard about is worse than
+  silence.** Before this, a called-off webinar kept its calendar entry and
+  still sent "starts soon": two messages, and no way to tell which was
+  current. `SessionAudience` now answers that nobody is expected at an event
+  that is off — which settles the reminder, the roster and the join in one
+  place — and `CalendarQuery` reads the webinar's status as well as the
+  session's.
+- **The session row is left `scheduled` on purpose.** Cancelling it looks
+  tidier and is a trap: the provider meeting goes with it, nothing in the
+  product can reschedule a webinar's session, and a cancelled webinar may be
+  revived. Asking the webinar means revival restores everything by itself, and
+  there is a test that revives one and watches the reminder come back.
+- **An empty audience no longer burns `reminder_sent_at`.** There is nothing
+  to send and therefore nothing to protect against sending twice; claiming the
+  flag anyway meant a revived webinar never reminded again.
+
+Still open: a guest registration — one with an email and no account — cannot
+be told anything, because delivery is to a central account. That arrives with
+the public registration path.
 
 **Paid webinars — done.** `is_paid` and `product_id` had sat on the model
 since P15 and nothing ever wrote either, so every webinar the product could

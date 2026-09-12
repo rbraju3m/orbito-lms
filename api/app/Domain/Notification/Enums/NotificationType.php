@@ -39,6 +39,9 @@ enum NotificationType: string
     /** A live session you are expected at starts soon. */
     case SessionReminder = 'session.reminder';
 
+    /** An event you hold a place at has been called off. */
+    case WebinarCancelled = 'webinar.cancelled';
+
     public function label(): string
     {
         return match ($this) {
@@ -49,6 +52,7 @@ enum NotificationType: string
             self::CertificateIssued => 'My certificate is ready',
             self::BadgeAwarded => 'I earned a badge',
             self::SessionReminder => 'Live sessions I am due at',
+            self::WebinarCancelled => 'An event I registered for is called off',
         };
     }
 
@@ -62,6 +66,7 @@ enum NotificationType: string
             self::CertificateIssued => 'When you complete a course and the certificate is issued.',
             self::BadgeAwarded => 'When you earn a badge.',
             self::SessionReminder => 'Shortly before a live session you are enrolled in or registered for.',
+            self::WebinarCancelled => 'When a webinar you hold a place at is called off.',
         };
     }
 

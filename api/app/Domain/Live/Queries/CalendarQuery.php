@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Live\Queries;
 
 use App\Domain\Enrollment\Models\Enrollment;
+use App\Domain\Live\Enums\WebinarStatus;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
 use App\Domain\Live\Models\WebinarRegistration;
@@ -41,6 +42,11 @@ final class CalendarQuery
                 ->where('user_id', $userId)
                 ->where('status', WebinarRegistration::STATUS_REGISTERED)
                 ->pluck('webinar_id'))
+            // An event that was called off is not in anybody's week. The
+            // SESSION row stays `scheduled` on purpose (`SessionAudience`
+            // says why), so the webinar's own status is what has to be read
+            // here — the `whereNot` below only catches a cancelled session.
+            ->whereNot('status', WebinarStatus::Cancelled)
             ->whereNotNull('live_session_id')
             ->pluck('live_session_id')
             ->all();

@@ -74,6 +74,7 @@ use App\Domain\Notification\Listeners\NotifyOnAssignmentGraded;
 use App\Domain\Notification\Listeners\NotifyOnBadgeAwarded;
 use App\Domain\Notification\Listeners\NotifyOnCertificateIssued;
 use App\Domain\Notification\Listeners\NotifyOnDiscussionReplied;
+use App\Domain\Notification\Listeners\NotifyOnWebinarCancelled;
 use App\Domain\Notification\Listeners\NotifyStaffOnQuestionAsked;
 use App\Domain\Platform\Actions\EnsurePlatformOwner;
 use App\Domain\Platform\Listeners\TrackCourseUsage;
@@ -163,6 +164,7 @@ final class EventServiceProvider extends ServiceProvider
         ],
         WebinarStatusChanged::class => [
             [SyncProductForPurchasable::class, 'webinarStatusChanged'],
+            NotifyOnWebinarCancelled::class,
         ],
         WebinarPricingChanged::class => [
             [SyncProductForPurchasable::class, 'webinarPricingChanged'],

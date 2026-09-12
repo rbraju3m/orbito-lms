@@ -49,15 +49,23 @@ final class SendSessionReminders extends Command
                 ->get();
 
             foreach ($sessions as $session) {
-                // Claimed first: under-notifying a few beats mailing everybody
-                // twice on every retry.
-                $session->forceFill(['reminder_sent_at' => now()])->save();
-
+                /*
+                 * The audience BEFORE the claim, because an empty one has
+                 * nothing to send and therefore nothing to protect against
+                 * sending twice — and burning the flag on it would mean a
+                 * webinar called off and then revived never reminds again
+                 * (§ Patterns established in Phase 15: anything that
+                 * reschedules must clear what the old schedule triggered).
+                 */
                 $recipients = $audience->forSession($session);
 
                 if ($recipients === []) {
                     continue;
                 }
+
+                // Claimed before sending: under-notifying a few beats mailing
+                // everybody twice on every retry.
+                $session->forceFill(['reminder_sent_at' => now()])->save();
 
                 $notify->handle($recipients, new NotificationPayload(
                     type: NotificationType::SessionReminder,
