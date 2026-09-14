@@ -1699,7 +1699,26 @@ Posts written at `/admin/posts` and read by anybody at `/a/:academy/blog`.
 - **Reading time counts Unicode words**, because `str_word_count` would read a
   Bengali post as nearly empty.
 
-Still open in this phase: the page builder (O2), subscriptions and
+**The page builder (O2) — the public site becomes authorable.** *(WRITTEN, NOT
+YET COMMITTED — `CLAUDE.md` § Current phase has the stop point and the two
+fixes left.)* Pages of
+blocks at `/a/:academy/p/:slug`, one of which can be the site's front page.
+
+- **A closed set of block types.** No custom HTML and no embeds: every type is
+  one whose props are validated and whose output the SPA renders. An unknown
+  type is refused, never stored and skipped.
+- **The whole list, as JSON on the page.** The `page_blocks` table the sketch
+  drew would have been rewritten whole on every save anyway, and its
+  `position` column a second ordering to keep consistent.
+- **Resolved at render with the public scopes**, one query per block type — a
+  course that goes back to draft drops off every page that shows it.
+- **One front page, as a UNIQUE index**, and a draft may be chosen so a new
+  front page is built without taking the old one down.
+- **An image is ownership-checked when it is ADDED**, not on every save —
+  otherwise re-saving a page refuses a colleague's picture already on it.
+- **One renderer** for the public page and the builder's preview.
+
+Still open in this phase: subscriptions and
 memberships, coaching, multilingual, RTL. The blog's categories, tags, RSS
 and sitemap are named in `BLOG.md` §6.
 

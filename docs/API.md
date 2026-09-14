@@ -974,6 +974,9 @@ GET /public/{academy}/webinars            published webinars
 GET /public/{academy}/webinars/{slug}     one event's page
 GET /public/{academy}/posts              live blog posts, newest first, no bodies
 GET /public/{academy}/posts/{slug}       one live post — a draft or scheduled one is the same 404
+GET /public/{academy}/home               the front page the academy built, or 404 — then the standard one
+GET /public/{academy}/navigation         the pages linked from the header
+GET /public/{academy}/pages/{slug}       a published page, its blocks rendered — PAGES.md
 GET /public/{academy}/lead-form          a lead form's token and consent wording (no-store)
 POST /public/{academy}/leads             the first anonymous write — LEADS.md
 GET /public/{academy}/form-token         a public form's token (no-store)
@@ -1008,6 +1011,23 @@ namespace rather than a relaxation of `/courses`:
   back, holds a place (`GUEST_REGISTRATION.md`).
 - **Throttled per IP, not per academy** (`public`, 90/min): a bucket shared by
   everybody reading one academy's site would let a script take that site down.
+
+### Pages — in progress (P16, written and not yet committed)
+```
+GET    /admin/pages                   no blocks in the list
+GET    /admin/pages/{uuid}            rendered blocks + authoring keys
+POST   /admin/pages                   {title, slug?} — a draft with no blocks
+PATCH  /admin/pages/{uuid}            title, slug (locked once published), show_in_nav, seo
+PUT    /admin/pages/{uuid}/blocks     {blocks: [...]} — the WHOLE list
+POST   /admin/pages/{uuid}/publish    422 page_not_publishable with no blocks
+POST   /admin/pages/{uuid}/unpublish
+POST   /admin/pages/{uuid}/home       409 page_home_conflict if another was chosen at the same moment
+DELETE /admin/pages/{uuid}/home
+DELETE /admin/pages/{uuid}
+```
+
+All need `page.manage`; writes sit behind `subscription`. Block types are a
+closed set and an unknown one is refused. Full contract: `PAGES.md`.
 
 ### Blog — live (P16)
 ```

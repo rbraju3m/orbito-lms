@@ -7,7 +7,7 @@ Public-facing identifiers use a separate `uuid CHAR(36)` or `ulid` where an id m
 be guessable (certificates, orders, media).
 
 > **Status: mostly built.** Phases 2–15 are migrated; §12's Content half
-> (except `leads` and `posts`, built in P16) and §14 onward remain a proposal. Column lists are indicative of shape and
+> (except `leads` and `posts`, built in P16, and `pages`, written and not yet committed) and §14 onward remain a proposal. Column lists are indicative of shape and
 > intent, not exhaustive — **the migrations are authoritative**.
 >
 > Where the built schema DIFFERS from the sketch below, the section says so and
@@ -830,8 +830,13 @@ posts(id, uuid, slug UNIQUE, author_id, title, excerpt NULL, body MEDIUMTEXT NUL
 -- ahead, read against the clock rather than stored (BLOG.md §2).
 post_categories / post_tags / post_category / post_tag      -- not built
 
-pages(id, slug UNIQUE, title, status, seo JSON)
-page_blocks(id, page_id, type, position, props JSON)      -- the page-builder seam
+pages(id, uuid, slug UNIQUE, author_id, title, blocks JSON, status ENUM(draft,published),
+      published_at NULL, show_in_nav, home_key NULL UNIQUE, seo_title NULL,
+      seo_description NULL)                                 -- WRITTEN (P16), NOT YET COMMITTED
+-- DIFFERS FROM THE SKETCH: no `page_blocks` table. The blocks are a JSON LIST
+-- on the page — saved whole every time, never queried into, and a `position`
+-- column would be a second ordering to keep consistent. `home_key` is 'home'
+-- on at most one row, and the UNIQUE index is what says so (PAGES.md §4).
 leads(id, uuid, email UNIQUE, name NULL, status, source ENUM(site,course,webinar),
       source_id NULL, source_title NULL, consent_text, consented_at,
       submissions_count, last_submitted_at)          -- BUILT (P16), see below

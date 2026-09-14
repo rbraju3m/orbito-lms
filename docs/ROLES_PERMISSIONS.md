@@ -81,7 +81,7 @@ or is assigned to"; policies resolve ownership.
 **live** — `live.manage.own`, `live.manage.any`, `webinar.manage`, `attendance.mark`,
 `live.provider.manage`
 **media** — `media.upload`, `media.delete.own`, `media.delete.any`, `media.library.view.any`
-**content** — `lead.view`, `lead.manage`, `lead.export`, `post.manage`
+**content** — `lead.view`, `lead.manage`, `lead.export`, `post.manage`, `page.manage`
 **analytics** — `analytics.view.own`, `analytics.view.platform`, `analytics.export`
 **settings** — `settings.view`, `settings.update`, `settings.payment`, `settings.email`
 **system** — `audit.view`, `queue.manage`, `webhook.manage`, `ai.use`, `ai.configure`
@@ -130,6 +130,7 @@ or is assigned to"; policies resolve ownership.
 | download.manage | ✔ | ✔ | — | — | — | — | — | — |
 | lead.view / manage / export | ✔ | ✔ | — | — | — | — | — | — |
 | post.manage | ✔ | ✔ | — | — | — | — | — | — |
+| page.manage | ✔ | ✔ | — | — | — | — | — | — |
 | earning.view | ✔ | any | — | own | — | — | — | — |
 | payout.request | — | — | — | ✔ | — | — | — | — |
 | payout.approve | ✔ | ✔ | — | — | — | — | — | — |

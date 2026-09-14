@@ -111,7 +111,7 @@ integrations, ADR-12 — listeners only, on the event catalogue).
 
 Every context is filled in except `AI`, which stays an empty placeholder so
 the shape of the system is visible before it is built. `Content` holds leads
-and the blog — the page builder is the rest of it.
+and the blog; the page builder is written and NOT yet committed (§ Current phase).
 
 ### Rules
 - A controller method is at most ~20 lines: authorize → validate → call Action → return Resource.
@@ -950,6 +950,20 @@ Gate::authorize('publish', $course);                   // in a controller
   say so rather than fire early.
 - **Count words with Unicode, never `str_word_count`.** It knows ASCII
   letters only, and this product's first academy writes in Bengali.
+- **A page is a closed set of blocks, saved WHOLE.** No custom-HTML block: a
+  page is edited through the API and rendered to strangers, so every type is
+  one whose props are validated and whose output the SPA draws. An unknown
+  type refuses — the gamification operators' rule, applied to layout.
+- **What a block points at is resolved at RENDER with the public scopes**,
+  one query per block type. A course that goes back to draft drops off every
+  page that shows it, with nothing to update.
+- **In a whole-list save, check ownership of what is NEW.** Re-validating
+  every image on every save refuses an admin re-saving a page because a
+  colleague's picture is on it. References already stored were checked when
+  they were added.
+- **One renderer for the preview and the public page.** `PageBlocks.tsx` draws
+  both from the same shape, so the preview cannot show what visitors do not
+  see.
 
 ---
 
@@ -1054,7 +1068,8 @@ provider refund webhooks, Stripe Checkout, refund reports, the studio's
 live-session scheduling, connecting a meeting provider, webinar authoring,
 paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
-GUEST WEBINAR REGISTRATION, its second, and the BLOG** (§ Patterns established in
+GUEST WEBINAR REGISTRATION, its second, and the BLOG**. The PAGE BUILDER is
+written and NOT committed — see the stop point below (§ Patterns established in
 Phase 16).
 1,503 backend tests / 5,695 assertions · 396 frontend tests.
 
@@ -1063,6 +1078,34 @@ Per-phase retros — what each delivered, decided, and deliberately left — are
 touching anything.
 
 ### What to do next
+
+**0. STOP POINT — the page builder (O2) is in the working tree, uncommitted.**
+Work was halted on purpose mid-verification on 2026-09-15. Everything for O2 is
+written — backend, frontend, tests, `docs/PAGES.md` and the doc updates — and
+the last COMMITTED slice is the blog (`4e61c6f`, pushed). The test counts in
+this section are the blog's. What was verified, and what is left, in order:
+
+- **Verified:** targeted backend tests pass — `tests/Feature/Content`,
+  `tests/Feature/PublicSite`, `tests/Feature/Media`, 132 tests — and Pint is
+  clean. Frontend Vitest passes, 75/75 across `features/content`,
+  `features/publicsite` and `app`; oxlint is clean.
+- **Fix — PHPStan, 1 error:** `app/Domain/Content/Queries/PageRenderer.php:163`.
+  `whereHas('session', fn (Builder $session) => $session->upcoming())` is typed
+  `Builder<Model>`, which has no `upcoming()`. Annotate the closure parameter as
+  `Builder<LiveSession>`, or inline the scope's two conditions.
+- **Fix — frontend typecheck, 4 errors, all in tests:**
+  `features/content/routes/PageBuilderRoute.test.tsx` lines 64, 65 and 94 — a
+  `let sent: T | null = null` assigned inside an MSW handler narrows to `never`;
+  collect into an array instead (`const bodies: T[] = []`), as
+  `LeadCaptureForm.test.tsx` does. `features/publicsite/components/PageBlocks.test.tsx`
+  line 42 — `courseFixture()` lacks `ref` and `price` for `CourseListItem`; pass
+  them in the fixture call.
+- **Then:** `composer check` (the full suite, ~20 min), `npm run check` and
+  `npm run size`; update the test counts above; commit the O2 slice on `main`.
+  The page-builder retro in `docs/ROADMAP.md` is the commit body.
+- **Never checked in a browser:** lead capture, guest registration, the blog
+  and the page builder — light and dark, 360px, keyboard. Worth one pass before
+  calling Phase 16's public site finished.
 
 **1. One Stripe sandbox payment.** Every MVP phase has shipped, but the MVP is
 not signed off: its own definition (`docs/ROADMAP.md` §3) says a student "buys
@@ -1115,11 +1158,11 @@ by mail, each with a manage link to join or give the place up
 (`docs/BLOG.md` §5) — pages set their own title and description tags, and a
 crawler that runs no JavaScript sees an empty document.
 
+**The page builder** (`docs/PAGES.md`) is WRITTEN BUT NOT COMMITTED — see the
+stop point at the top of "What to do next".
+
 The obvious next pieces, in the order they unblock each other:
 
-- **The page builder (O2)** — pages made of blocks on the public site, in the
-  `Content` context beside the blog. Rendering stays client-side, by the
-  decision the blog recorded (`docs/BLOG.md` §5).
 - **Subscriptions and memberships** — ROADMAP puts them after the Stripe
   sandbox test, and that ordering is deliberate: recurring billing on a
   gateway that has never been called is building on sand.
@@ -1224,18 +1267,18 @@ Every one of these has already cost time at least once.
   user tabs through on every page. One component plus a `<main id>` per
   shell, done in ONE pass — a skip link present on three of five teaches a
   keyboard user not to trust it.
-- **The public site is not authorable, and the academy has no logo.** The
-  layout at `/a/:academy` is fixed — the academy's name, its course grid, its
-  events — and `tenants.logo_path` has been declared since Phase 1 with
+- **The academy has no logo.** The standard front page at `/a/:academy` is
+  fixed — a page built with the page builder can replace it — and `tenants.logo_path` has been declared since Phase 1 with
   nothing ever writing it, so `logo_url` is always null and the header draws
-  the name alone. Templating that page is O3's other half and the page
-  builder is O2; an academy logo is an upload screen plus a decision about
+  the name alone. An academy logo is an upload screen plus a decision about
   whether it becomes a `Media` reference like every other image. Also
   missing: a public courses INDEX page (the front page lists them, there is
   no paginated `/a/:academy/courses`), a sitemap, and meta tags on any page
   but the blog's. Every public page renders client-side — ACCEPTED for now
   (`docs/BLOG.md` §5) — so a crawler that runs no JavaScript sees an empty
   document.
+- **Pages: no custom HTML, columns, revisions or scheduling**, and the course
+  picker offers only the first page of public courses. `docs/PAGES.md` §6.
 - **Blog: no categories, tags, RSS, sitemap or revisions, and a scheduled post
   never fires `post.published`** — telling integrations on time needs a sweep
   at the scheduled moment. `docs/BLOG.md` §6.

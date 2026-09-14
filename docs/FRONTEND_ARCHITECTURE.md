@@ -88,6 +88,7 @@ checks.
 /a/:academy/courses/:slug          a course sales page, with the lead form           ✅ anonymous
 /a/:academy/blog                   the academy's blog                                ✅ anonymous
 /a/:academy/blog/:slug             one post; sets its own title and description tags ✅ anonymous
+/a/:academy/p/:slug                a page built from blocks        (written, uncommitted) anonymous
 /a/:academy/webinars/:slug         an event page; a FREE one takes a guest place     ✅ anonymous
 /a/:academy/webinars/:slug/confirm where a guest's confirmation link lands            ✅ anonymous
 /a/:academy/webinars/:slug/place   a guest's manage link: see, join, give it up      ✅ anonymous
@@ -174,6 +175,7 @@ through, not a panel of the editor.
 /admin/coupons                     code, scope, limits, derived state       ✅
 /admin/leads                       from the public site: status, erase, CSV ✅
 /admin/posts · /admin/posts/:id    the blog: write, schedule, publish      ✅
+/admin/pages · /admin/pages/:id    the page builder, and the front page    (written, uncommitted)
 /admin/products · /admin/tax
 /admin/payouts
 /admin/certificates · /admin/certificate-templates
