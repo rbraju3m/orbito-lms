@@ -119,9 +119,9 @@ enum MediaCollection: string
             // `UpdateAssignmentRequest` also accepts submission files as
             // assignment attachments, which this leaves working.
             self::Avatar, self::Submission => ['media.upload'],
-            // Course covers — and bundle and download covers, which use this
-            // collection too.
-            self::CourseThumbnail => ['course.update.own', 'course.update.any', 'bundle.manage', 'download.manage'],
+            // Course covers — and bundle, download and blog-post covers, which
+            // use this collection too.
+            self::CourseThumbnail => ['course.update.own', 'course.update.any', 'bundle.manage', 'download.manage', 'post.manage'],
             self::CourseIntroVideo => ['course.update.own', 'course.update.any'],
             self::LessonVideo => ['curriculum.manage.own', 'curriculum.manage.any'],
             // Lesson attachments and assignment attachments.

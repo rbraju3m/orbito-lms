@@ -82,10 +82,12 @@ checks.
 /courses/:slug/preview/:itemId     ~~free preview item~~  removed — a preview needs an account (the public site at /a/:academy shows no lesson content)
 /instructors/:slug
 /categories/:slug
-/blog · /blog/:slug                                       (P16)
+~~/blog · /blog/:slug~~             the blog lives on the academy's site, below
 /verify/:token                     public certificate verification
 /a/:academy                        an academy's front page, with the lead form        ✅ anonymous
 /a/:academy/courses/:slug          a course sales page, with the lead form           ✅ anonymous
+/a/:academy/blog                   the academy's blog                                ✅ anonymous
+/a/:academy/blog/:slug             one post; sets its own title and description tags ✅ anonymous
 /a/:academy/webinars/:slug         an event page; a FREE one takes a guest place     ✅ anonymous
 /a/:academy/webinars/:slug/confirm where a guest's confirmation link lands            ✅ anonymous
 /a/:academy/webinars/:slug/place   a guest's manage link: see, join, give it up      ✅ anonymous
@@ -171,6 +173,7 @@ through, not a panel of the editor.
 /admin/orders · /admin/orders/:uuid
 /admin/coupons                     code, scope, limits, derived state       ✅
 /admin/leads                       from the public site: status, erase, CSV ✅
+/admin/posts · /admin/posts/:id    the blog: write, schedule, publish      ✅
 /admin/products · /admin/tax
 /admin/payouts
 /admin/certificates · /admin/certificate-templates

@@ -177,7 +177,7 @@ with its own abuse story — or hold a place at a free event, confirmed from
 their inbox. See `LEADS.md` and `GUEST_REGISTRATION.md`.
 
 Still ahead in the phase: subscriptions and
-memberships, coaching, the blog and page builder, multilingual and RTL. It is
+memberships, coaching, the page builder, multilingual and RTL. It is
 markedly larger than the phases before it.
 
 ## 8. Decisions taken

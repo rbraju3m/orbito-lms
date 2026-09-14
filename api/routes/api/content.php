@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Content\LeadController;
+use App\Http\Controllers\Api\V1\Content\PostController;
+use App\Http\Controllers\Api\V1\Content\PostStatusController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,9 +29,24 @@ Route::middleware(['auth:sanctum', 'tenant'])
             ->middleware('throttle:10,1')
             ->name('leads.export');
         Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
+
+        // The blog, read by its authors — drafts and scheduled posts included.
+        Route::get('posts', [PostController::class, 'index'])->name('posts.index');
+        Route::get('posts/{post}', [PostController::class, 'show'])->name('posts.show');
     });
 
 Route::middleware(['auth:sanctum', 'tenant', 'subscription'])
     ->prefix('admin')->name('admin.')->group(function (): void {
         Route::patch('leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
+
+        /*
+         * Writing the blog (docs/BLOG.md). Behind the subscription gate like
+         * every other authoring write; publishing is a sub-resource, never a
+         * field on the edit form.
+         */
+        Route::post('posts', [PostController::class, 'store'])->name('posts.store');
+        Route::patch('posts/{post}', [PostController::class, 'update'])->name('posts.update');
+        Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
+        Route::post('posts/{post}/publish', [PostStatusController::class, 'publish'])->name('posts.publish');
+        Route::post('posts/{post}/unpublish', [PostStatusController::class, 'unpublish'])->name('posts.unpublish');
     });

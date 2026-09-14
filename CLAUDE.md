@@ -111,7 +111,7 @@ integrations, ADR-12 — listeners only, on the event catalogue).
 
 Every context is filled in except `AI`, which stays an empty placeholder so
 the shape of the system is visible before it is built. `Content` holds leads
-and nothing else yet — the blog and the page builder are the rest of it.
+and the blog — the page builder is the rest of it.
 
 ### Rules
 - A controller method is at most ~20 lines: authorize → validate → call Action → return Resource.
@@ -936,6 +936,20 @@ Gate::authorize('publish', $course);                   // in a controller
   cancellation notice mail guests without a second definition of who is
   coming. A guest is not a `DomainNotification`: its `via()` asks
   preferences keyed on a user id a guest does not have.
+- **Accepting client-side rendering is a DECISION, written down with what
+  would reopen it.** Prerender and SSR were weighed against a site with no
+  search traffic yet (`docs/BLOG.md` §5). The page still names itself:
+  `<title>`, description and Open Graph tags, which React 19 hoists — the
+  cheap half of SEO is not the half that needed the decision.
+- **A published address is a promise.** A post's slug locks at its first
+  publication and stays locked after it is unpublished: the link is out
+  there whether or not the page currently is.
+- **An event that announces a thing must not fire before the thing exists.**
+  A scheduled post is published and not yet visible, so `PostPublished` fires
+  only for a post live at that moment. Firing on schedule would need a sweep —
+  say so rather than fire early.
+- **Count words with Unicode, never `str_word_count`.** It knows ASCII
+  letters only, and this product's first academy writes in Bengali.
 
 ---
 
@@ -1039,9 +1053,10 @@ permissions, upload volume limits, outbound webhooks, coupons, refunds,
 provider refund webhooks, Stripe Checkout, refund reports, the studio's
 live-session scheduling, connecting a meeting provider, webinar authoring,
 paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
-— the first anonymous surface — LEAD CAPTURE, its first anonymous write, and
-GUEST WEBINAR REGISTRATION, its second** (§ Patterns established in Phase 16).
-1,488 backend tests / 5,596 assertions · 382 frontend tests.
+— the first anonymous surface — LEAD CAPTURE, its first anonymous write,
+GUEST WEBINAR REGISTRATION, its second, and the BLOG** (§ Patterns established in
+Phase 16).
+1,503 backend tests / 5,695 assertions · 396 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1094,14 +1109,17 @@ that link holds a place. Reminders and the cancellation notice reach a guest
 by mail, each with a manage link to join or give the place up
 (`docs/GUEST_REGISTRATION.md`).
 
+**The blog** is the first thing an academy AUTHORS for that surface: posts at
+`/admin/posts`, read at `/a/:academy/blog`, scheduled by the clock, with a
+`post.published` webhook. The public site stays CLIENT-RENDERED by decision
+(`docs/BLOG.md` §5) — pages set their own title and description tags, and a
+crawler that runs no JavaScript sees an empty document.
+
 The obvious next pieces, in the order they unblock each other:
 
-- **The blog (O1) and the page builder (O2)** — the `Content` context is
-  still an empty placeholder, and the public site is now the surface they
-  render on. Both want SEO, which the SPA cannot currently give them: these
-  pages render client-side, so a crawler sees an empty document. That is a
-  real decision (prerender, SSR, or accept it) and it belongs before the
-  blog, not after.
+- **The page builder (O2)** — pages made of blocks on the public site, in the
+  `Content` context beside the blog. Rendering stays client-side, by the
+  decision the blog recorded (`docs/BLOG.md` §5).
 - **Subscriptions and memberships** — ROADMAP puts them after the Stripe
   sandbox test, and that ordering is deliberate: recurring billing on a
   gateway that has never been called is building on sand.
@@ -1214,9 +1232,13 @@ Every one of these has already cost time at least once.
   builder is O2; an academy logo is an upload screen plus a decision about
   whether it becomes a `Media` reference like every other image. Also
   missing: a public courses INDEX page (the front page lists them, there is
-  no paginated `/a/:academy/courses`), any SEO or meta tags, and a sitemap —
-  the SPA renders these pages client-side, so a crawler sees an empty
-  document, which is worth knowing before calling this a marketing surface.
+  no paginated `/a/:academy/courses`), a sitemap, and meta tags on any page
+  but the blog's. Every public page renders client-side — ACCEPTED for now
+  (`docs/BLOG.md` §5) — so a crawler that runs no JavaScript sees an empty
+  document.
+- **Blog: no categories, tags, RSS, sitemap or revisions, and a scheduled post
+  never fires `post.published`** — telling integrations on time needs a sweep
+  at the scheduled moment. `docs/BLOG.md` §6.
 - **Leads: no CAPTCHA, no double opt-in, no staff digest, and no link to the
   account a lead later becomes.** Each is in `docs/LEADS.md` §6 with what it
   would take. `source: webinar` is accepted by the API and not yet placed on

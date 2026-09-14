@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\PublicSite\CourseController;
 use App\Http\Controllers\Api\V1\PublicSite\FormTokenController;
 use App\Http\Controllers\Api\V1\PublicSite\GuestRegistrationController;
 use App\Http\Controllers\Api\V1\PublicSite\LeadController;
+use App\Http\Controllers\Api\V1\PublicSite\PostController;
 use App\Http\Controllers\Api\V1\PublicSite\WebinarController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,10 @@ Route::prefix('public/{academy}')
 
         Route::get('webinars', [WebinarController::class, 'index'])->name('webinars.index');
         Route::get('webinars/{slug}', [WebinarController::class, 'show'])->name('webinars.show');
+
+        // The blog: published posts whose time has come (docs/BLOG.md).
+        Route::get('posts', [PostController::class, 'index'])->name('posts.index');
+        Route::get('posts/{slug}', [PostController::class, 'show'])->name('posts.show');
 
         /*
          * Lead capture — the one anonymous WRITE (docs/LEADS.md). The form is

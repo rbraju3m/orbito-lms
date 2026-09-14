@@ -142,6 +142,25 @@ export const adminRoutes: RouteObject[] = [
           },
         ],
       },
+      // The academy's blog (docs/BLOG.md). `:id` after the list, a static segment first.
+      {
+        element: <RequirePermission anyOf={['post.manage']} />,
+        children: [
+          {
+            path: 'admin/posts',
+            lazy: async () => ({
+              Component: (await import('@/features/content/routes/PostsRoute')).PostsRoute,
+            }),
+          },
+          {
+            path: 'admin/posts/:id',
+            lazy: async () => ({
+              Component: (await import('@/features/content/routes/PostEditorRoute'))
+                .PostEditorRoute,
+            }),
+          },
+        ],
+      },
       // Strangers who asked to hear from the academy on its public site (docs/LEADS.md).
       {
         element: <RequirePermission anyOf={['lead.view']} />,

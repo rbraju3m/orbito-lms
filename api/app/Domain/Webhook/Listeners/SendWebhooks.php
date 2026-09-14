@@ -17,6 +17,7 @@ use App\Domain\Commerce\Events\PaymentCaptured;
 use App\Domain\Commerce\Events\RefundIssued;
 use App\Domain\Commerce\Models\OrderItem;
 use App\Domain\Content\Events\LeadCaptured;
+use App\Domain\Content\Events\PostPublished;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Engagement\Events\ReviewPublished;
 use App\Domain\Enrollment\Events\CourseEnrolled;
@@ -300,6 +301,21 @@ final class SendWebhooks
      * nothing (`CaptureLead`). The address and the consent wording travel
      * together, so a receiving system holds the record of what was agreed to.
      */
+    public function postPublished(PostPublished $event): void
+    {
+        $post = $event->post;
+
+        $this->queue->handle(WebhookTopic::PostPublished, fn (): array => [
+            'post' => [
+                'id' => $post->uuid,
+                'slug' => $post->slug,
+                'title' => $post->title,
+                'excerpt' => $post->excerpt,
+                'published_at' => $post->published_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
     public function leadCaptured(LeadCaptured $event): void
     {
         $lead = $event->lead;

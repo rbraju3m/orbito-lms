@@ -40,6 +40,9 @@ export function AcademySiteLayout() {
           </Link>
 
           <Group gap="sm">
+            <Button component={Link} to={`/a/${academy}/blog`} variant="subtle" size="sm">
+              Blog
+            </Button>
             <ThemeToggle />
             <Button
               component={Link}

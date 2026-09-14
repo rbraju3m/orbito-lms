@@ -1681,9 +1681,27 @@ event the way they can be reached: by mail, with a link to manage the place.
 - **The public form token moved** from the lead form to
   `App\Support\Http\PublicFormToken`, now that two forms carry it.
 
-Still open in this phase: the blog and page builder (the public site is
-their foundation), subscriptions and memberships, coaching, multilingual,
-RTL.
+**The blog (O1) — the first thing an academy AUTHORS for its public site.**
+Posts written at `/admin/posts` and read by anybody at `/a/:academy/blog`.
+
+- **Client-side rendering, accepted** (`BLOG.md` §5). Prerendering and SSR
+  were weighed and deferred: both add a production moving part before the
+  site has traffic to rank. Pages still set their own title, description and
+  Open Graph tags, which React 19 hoists into the head.
+- **Scheduled is not a status.** A published post with a future
+  `published_at`, read against the clock, so it appears on its own.
+  `post.published` fires only when a post goes live from draft — never for a
+  scheduled one, which would announce a page that does not exist yet.
+- **A published address is a promise.** The slug locks at first publication
+  and stays locked after unpublishing; the first date sticks too.
+- **HTML sanitised on write**, in a textarea, like lessons. The preview shows
+  the saved version, so it is what a visitor sees.
+- **Reading time counts Unicode words**, because `str_word_count` would read a
+  Bengali post as nearly empty.
+
+Still open in this phase: the page builder (O2), subscriptions and
+memberships, coaching, multilingual, RTL. The blog's categories, tags, RSS
+and sitemap are named in `BLOG.md` §6.
 
 ### Phase 17 — AI
 Provider abstraction · outline / lesson / quiz / description / summary generation ·

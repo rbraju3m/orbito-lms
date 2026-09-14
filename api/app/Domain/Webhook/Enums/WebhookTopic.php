@@ -43,6 +43,9 @@ enum WebhookTopic: string
     /* Somebody with no account asked the academy to keep in touch (docs/LEADS.md). */
     case LeadCaptured = 'lead.captured';
 
+    /* A blog post went live on the public site (docs/BLOG.md). */
+    case PostPublished = 'post.published';
+
     /* Sent by "send test event" only. Nobody subscribes to it. */
     case Ping = 'ping';
 
@@ -66,6 +69,7 @@ enum WebhookTopic: string
             self::DownloadGranted => 'Download granted',
             self::ReviewPublished => 'Review published',
             self::LeadCaptured => 'Lead captured',
+            self::PostPublished => 'Blog post published',
             self::Ping => 'Test event',
         };
     }
@@ -82,7 +86,7 @@ enum WebhookTopic: string
             self::CertificateIssued => 'Certification',
             self::CourseStatusChanged => 'Catalogue',
             self::ReviewPublished => 'Engagement',
-            self::LeadCaptured => 'Marketing',
+            self::LeadCaptured, self::PostPublished => 'Marketing',
             self::Ping => 'Testing',
         };
     }

@@ -36,6 +36,19 @@ export const publicSiteRoutes: RouteObject[] = [
             .PublicCourseRoute,
         }),
       },
+      // The academy's blog (docs/BLOG.md).
+      {
+        path: 'blog',
+        lazy: async () => ({
+          Component: (await import('@/features/publicsite/routes/BlogIndexRoute')).BlogIndexRoute,
+        }),
+      },
+      {
+        path: 'blog/:slug',
+        lazy: async () => ({
+          Component: (await import('@/features/publicsite/routes/BlogPostRoute')).BlogPostRoute,
+        }),
+      },
       // A guest's links from their email (docs/GUEST_REGISTRATION.md).
       {
         path: 'webinars/:slug/confirm',

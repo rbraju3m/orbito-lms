@@ -13,6 +13,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconAddressBook,
+  IconArticle,
   IconAward,
   IconBell,
   IconBroadcast,
@@ -136,6 +137,7 @@ const NAV: NavItem[] = [
   },
   { to: '/admin/coupons', label: 'Coupons', icon: IconTicket, anyOf: ['coupon.manage'] },
   // Strangers who asked to hear from the academy on its public site (docs/LEADS.md).
+  { to: '/admin/posts', label: 'Blog', icon: IconArticle, anyOf: ['post.manage'] },
   { to: '/admin/leads', label: 'Leads', icon: IconAddressBook, anyOf: ['lead.view'] },
   // Refunds the provider reported that the books could not take in (REFUNDS.md §6).
   {

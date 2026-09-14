@@ -972,6 +972,8 @@ GET /public/{academy}/courses             published + PUBLIC courses, paginated,
 GET /public/{academy}/courses/{slug}      the sales page — published, public or unlisted
 GET /public/{academy}/webinars            published webinars
 GET /public/{academy}/webinars/{slug}     one event's page
+GET /public/{academy}/posts              live blog posts, newest first, no bodies
+GET /public/{academy}/posts/{slug}       one live post — a draft or scheduled one is the same 404
 GET /public/{academy}/lead-form          a lead form's token and consent wording (no-store)
 POST /public/{academy}/leads             the first anonymous write — LEADS.md
 GET /public/{academy}/form-token         a public form's token (no-store)
@@ -1006,6 +1008,21 @@ namespace rather than a relaxation of `/courses`:
   back, holds a place (`GUEST_REGISTRATION.md`).
 - **Throttled per IP, not per academy** (`public`, 90/min): a bucket shared by
   everybody reading one academy's site would let a script take that site down.
+
+### Blog — live (P16)
+```
+GET    /admin/posts?status=&q=        every post, drafts included
+GET    /admin/posts/{uuid}
+POST   /admin/posts                   always a draft
+PATCH  /admin/posts/{uuid}            slug 422s once the post has been out
+POST   /admin/posts/{uuid}/publish    {published_at?} — a future instant schedules it
+POST   /admin/posts/{uuid}/unpublish
+DELETE /admin/posts/{uuid}
+```
+
+All need `post.manage`; writes sit behind `subscription`. Bodies are HTML,
+sanitised on write. `422 post_not_publishable` for a post with nothing in it.
+Full contract and the client-side rendering decision: `BLOG.md`.
 
 ### Leads — live (P16)
 ```

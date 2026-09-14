@@ -15,8 +15,8 @@ any event is readable in one place.
 
 ## 1. What exists today
 
-Fifty-one events across fourteen contexts. Phase 16 added the bundle, download and
-pricing events, `RefundIssued` and `LeadCaptured` — each with a consumer the day it landed. See
+Fifty-two events across fourteen contexts. Phase 16 added the bundle, download and
+pricing events, `RefundIssued`, `LeadCaptured` and `PostPublished` — each with a consumer the day it landed. See
 §4 for the operator actions that deliberately fire nothing yet.
 
 ### Identity
@@ -199,6 +199,7 @@ reading a flag to decide whether to do nothing should not have been called.
 | Event | Payload | Fired when |
 |---|---|---|
 | `LeadCaptured` | `Lead $lead` | a NEW address is left on an academy's public lead form |
+| `PostPublished` | `Post $post` | a blog post goes from draft to live — not when it is scheduled, and not when a scheduled one's time comes (`BLOG.md` §2) |
 
 Fired once per address, never for a repeat submission of one already on the
 list — the repeat may be a stranger typing somebody else's address, and a
@@ -316,7 +317,7 @@ because starting again is worth knowing too.
 | `BadgeAwarded` | `NotifyOnBadgeAwarded` | Notification | **yes** |
 | `WebinarStatusChanged` | `NotifyOnWebinarCancelled` | Notification | **yes** |
 | `AttendanceRecorded` | `CompleteItemOnAttendance` | Live | **yes** |
-| the 17 events in `EventServiceProvider::$webhooks` | `SendWebhooks@<method>` | Webhook | payload built inline; **the HTTP is queued** (`DeliverWebhook`) |
+| the 18 events in `EventServiceProvider::$webhooks` | `SendWebhooks@<method>` | Webhook | payload built inline; **the HTTP is queued** (`DeliverWebhook`) |
 
 `RecountEnrollmentTotals` was the first `ShouldQueue` listener: adding one
 lesson changes the denominator for every enrolled learner, and ten thousand

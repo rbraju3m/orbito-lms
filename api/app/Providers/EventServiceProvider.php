@@ -33,6 +33,7 @@ use App\Domain\Commerce\Events\PaymentCaptured;
 use App\Domain\Commerce\Events\RefundIssued;
 use App\Domain\Commerce\Listeners\SyncProductForPurchasable;
 use App\Domain\Content\Events\LeadCaptured;
+use App\Domain\Content\Events\PostPublished;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
 use App\Domain\Engagement\Events\AnnouncementPublished;
@@ -379,6 +380,7 @@ final class EventServiceProvider extends ServiceProvider
         DownloadGranted::class => 'downloadGranted',
         ReviewPublished::class => 'reviewPublished',
         LeadCaptured::class => 'leadCaptured',
+        PostPublished::class => 'postPublished',
     ];
 
     public function boot(): void

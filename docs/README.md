@@ -76,6 +76,7 @@ is worth less than one that says "this came out differently, and here is why".
 | `REFUNDS.md` | **built** — claim, move, complete; what a refund does to access, to coupons and to the revenue reports |
 | `LEADS.md` | **built** — the public lead form, the first anonymous write: its abuse story in layers, why every submission gets one answer, consent, erasure and the admin side |
 | `GUEST_REGISTRATION.md` | **built** — a webinar place with no account: why the mailbox is the write, the silent mail cap, the purpose-bound tokens, and how a guest is reminded and told |
+| `BLOG.md` | **built** — the academy's blog: drafts, scheduling by the clock, the locked address, sanitised HTML, and why the public site stays client-rendered |
 | `RUNNING.md` | current — run it locally and sign in, on one page |
 | `TESTING.md` | current, including the Playwright gap and why the suite has its own tenant prefix |
 | `ROLES_PERMISSIONS.md` | current — the policy table, the two unrelated "super admins", and §7 on the permanent owner |
@@ -107,7 +108,8 @@ is worth less than one that says "this came out differently, and here is why".
 15. One per Phase 16 slice, written with the code: [`BUNDLES.md`](BUNDLES.md) ·
     [`DOWNLOADS.md`](DOWNLOADS.md) · [`WEBHOOKS.md`](WEBHOOKS.md) ·
     [`COUPONS.md`](COUPONS.md) · [`REFUNDS.md`](REFUNDS.md) ·
-    [`LEADS.md`](LEADS.md) · [`GUEST_REGISTRATION.md`](GUEST_REGISTRATION.md)
+    [`LEADS.md`](LEADS.md) · [`GUEST_REGISTRATION.md`](GUEST_REGISTRATION.md) ·
+    [`BLOG.md`](BLOG.md)
 
 **Before writing any code** → [`../CLAUDE.md`](../CLAUDE.md)
 

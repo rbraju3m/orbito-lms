@@ -158,6 +158,7 @@ not recognise.
 | `download.granted` | `DownloadGranted` | `download {id, slug, title}`, `learner`, `source`, `granted_at` |
 | `review.published` | `ReviewPublished` | `review {id, rating, title, body, published_at}`, `learner`, `course` |
 | `lead.captured` | `LeadCaptured` | `lead {id, email, name, source, source_title, consent_text, consented_at, captured_at}` — a NEW address only; a repeat submission sends nothing (`LEADS.md` §5) |
+| `post.published` | `PostPublished` | `post {id, slug, title, excerpt, published_at}` — when a post goes live from draft; a SCHEDULED post sends nothing (`BLOG.md` §2) |
 
 `enrollment` is `{id, status, source, enrolled_at, expires_at, completed_at}`.
 

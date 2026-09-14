@@ -61,8 +61,8 @@ Events in **bold** exist today; the rest arrive with their phase.
 | **Analytics** | events, rollups, reports | — (listener-heavy; five listeners, no events of its own) |
 | **Gamification** | rules, points, badges, streaks, leaderboards | **`PointsAwarded`**, **`StreakExtended`**, **`BadgeAwarded`** |
 | **Live** | sessions, cohorts, webinars, attendance | **`SessionScheduled`**, **`AttendanceRecorded`** |
-| **Webhook** | endpoints, deliveries, signing, the SSRF guard | — (listener-only: `SendWebhooks` on 17 events, the whole of ADR-12; P16) |
-| **Content** *(P16)* | leads (built); blog, pages, blocks (planned) | **`LeadCaptured`** |
+| **Webhook** | endpoints, deliveries, signing, the SSRF guard | — (listener-only: `SendWebhooks` on 18 events, the whole of ADR-12; P16) |
+| **Content** *(P16)* | leads and blog posts (built); pages, blocks (planned) | **`LeadCaptured`**, **`PostPublished`** |
 
 A seventeenth directory, **Platform**, was added in Phase 4 and is not a bounded
 context in the same sense: it holds tenants, plans, subscriptions and the
@@ -73,7 +73,7 @@ before it is filled in.
 
 **Filled in as of Phase 15:** Identity, Catalog, Curriculum, Assessment,
 Enrollment, Progress, Media, Platform, Commerce, Certification, Engagement,
-Notification, Analytics, Gamification, Live, and Content — leads only (P16).
+Notification, Analytics, Gamification, Live, and Content — leads and the blog (P16).
 **Still empty:** AI (P17).
 
 **Bold events are built.** The unbolded ones are named here so the phase that

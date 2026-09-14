@@ -7,7 +7,7 @@ Public-facing identifiers use a separate `uuid CHAR(36)` or `ulid` where an id m
 be guessable (certificates, orders, media).
 
 > **Status: mostly built.** Phases 2–15 are migrated; §12's Content half
-> (except `leads`, built in P16) and §14 onward remain a proposal. Column lists are indicative of shape and
+> (except `leads` and `posts`, built in P16) and §14 onward remain a proposal. Column lists are indicative of shape and
 > intent, not exhaustive — **the migrations are authoritative**.
 >
 > Where the built schema DIFFERS from the sketch below, the section says so and
@@ -821,10 +821,14 @@ analytics_daily_platform + download_revenue_minor                    -- BUILT P1
 -- soft-deletes, which no foreign key sees. The guard is in the action.
 -- See docs/DOWNLOADS.md §7.
 
-posts(id, uuid, slug UNIQUE, author_id, title, excerpt, body LONGTEXT,
-      cover_media_id, status ENUM(draft,published,archived), published_at,
-      seo_title, seo_description)
-post_categories / post_tags / post_category / post_tag
+posts(id, uuid, slug UNIQUE, author_id, title, excerpt NULL, body MEDIUMTEXT NULL,
+      cover_media_id NULL, status ENUM(draft,published), published_at NULL,
+      seo_title NULL, seo_description NULL)             -- BUILT (P16)
+      INDEX (status, published_at), INDEX (updated_at), INDEX (author_id)
+-- DIFFERS FROM THE SKETCH: no `archived` — a post taken down goes back to
+-- draft; and SCHEDULED is a published post whose `published_at` is still
+-- ahead, read against the clock rather than stored (BLOG.md §2).
+post_categories / post_tags / post_category / post_tag      -- not built
 
 pages(id, slug UNIQUE, title, status, seo JSON)
 page_blocks(id, page_id, type, position, props JSON)      -- the page-builder seam
