@@ -56,6 +56,12 @@ patched into the signed-in shell, which assumes a user. Its Sign in and Sign up
 links carry `?academy=<slug>` — registration is TOLD which academy to create
 the account in, so a link without it signs somebody up into nowhere.
 
+The guest pages (`…/confirm`, `…/place`) are where links in a guest's email
+land. The token arrives in the query string and the page POSTs it — the API
+accepts no credential on a GET (`docs/GUEST_REGISTRATION.md`). The confirm
+page fires that POST once, behind a ref, because React 19 runs effects twice
+in development.
+
 The studio, admin and platform route TABLES are lazy too, not just their pages:
 `app/routes/{studio,admin,platform}.tsx` are discovered the first time one of
 their paths is visited (`patchRoutesOnNavigation` in `router.tsx`), so first
@@ -78,6 +84,11 @@ checks.
 /categories/:slug
 /blog · /blog/:slug                                       (P16)
 /verify/:token                     public certificate verification
+/a/:academy                        an academy's front page, with the lead form        ✅ anonymous
+/a/:academy/courses/:slug          a course sales page, with the lead form           ✅ anonymous
+/a/:academy/webinars/:slug         an event page; a FREE one takes a guest place     ✅ anonymous
+/a/:academy/webinars/:slug/confirm where a guest's confirmation link lands            ✅ anonymous
+/a/:academy/webinars/:slug/place   a guest's manage link: see, join, give it up      ✅ anonymous
 /cart · /checkout · /checkout/:orderUuid/status
 /login · /register?academy=<slug> · /forgot-password · /reset-password
 /verify-email                                                             ✅
@@ -159,6 +170,7 @@ through, not a panel of the editor.
 /admin/courses                     all courses, review queue
 /admin/orders · /admin/orders/:uuid
 /admin/coupons                     code, scope, limits, derived state       ✅
+/admin/leads                       from the public site: status, erase, CSV ✅
 /admin/products · /admin/tax
 /admin/payouts
 /admin/certificates · /admin/certificate-templates

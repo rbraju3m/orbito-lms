@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use App\Domain\Content\Enums\FormTokenVerdict;
-use App\Domain\Content\Support\LeadFormToken;
+use App\Support\Http\FormTokenVerdict;
+use App\Support\Http\PublicFormToken;
 use Illuminate\Support\Carbon;
 
 beforeEach(function (): void {
-    config(['orbito.leads.min_seconds' => 3, 'orbito.leads.token_ttl_hours' => 24]);
+    config(['orbito.public_forms.min_seconds' => 3, 'orbito.public_forms.token_ttl_hours' => 24]);
 
-    $this->tokens = app(LeadFormToken::class);
+    $this->tokens = app(PublicFormToken::class);
     $this->issued = Carbon::parse('2026-09-17 10:00:00');
     $this->token = $this->tokens->mint('dhaka-art-school', $this->issued);
 });

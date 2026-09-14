@@ -950,14 +950,13 @@ Six things about this surface are decisions rather than shape:
   (`docs/EVENTS.md`). A place bought is told the place is refundable and who
   issues it; refunding is still the academy's action, not a side effect of
   calling the event off.
-- **Reading about a webinar is public; REGISTERING is members-only.** A
-  stranger reads a published event on the academy's public site
-  (`GET /public/{academy}/webinars/{slug}`); holding a place needs an account,
-  because a place is something somebody has to be TOLD about when the event
-  moves or is called off, and delivery is to an account rather than an email.
-  The registration is already keyed on EMAIL so a guest place and the account
-  that person later creates cannot become two places — what a guest place
-  still needs is a mail-only delivery for the cancellation notice.
+- **Reading about a webinar is public, and so is a place at a FREE one.** A
+  stranger reads a published event on the academy's public site and can hold
+  a place as a GUEST: the request mails a confirmation link and writes
+  nothing until it is followed (§ The public site, `GUEST_REGISTRATION.md`).
+  Registrations are keyed on EMAIL, so a guest place and the account that
+  person later registers with are one place. A PAID place still needs an
+  account, because buying one does.
 
 A session carries both an instant and the IANA `timezone` it was **scheduled**
 in. That is the opposite of every other dated thing in this API — analytics
@@ -974,7 +973,11 @@ GET /public/{academy}/courses/{slug}      the sales page — published, public o
 GET /public/{academy}/webinars            published webinars
 GET /public/{academy}/webinars/{slug}     one event's page
 GET /public/{academy}/lead-form          a lead form's token and consent wording (no-store)
-POST /public/{academy}/leads             the ONE anonymous write — LEADS.md
+POST /public/{academy}/leads             the first anonymous write — LEADS.md
+GET /public/{academy}/form-token         a public form's token (no-store)
+POST /public/{academy}/webinars/{slug}/guest-registrations   ask for a guest place — writes nothing, mails a link
+POST /public/{academy}/guest-registrations/confirm           {token} from that mail — holds the place
+POST /public/{academy}/guest-places/{show|cancel|join}       {token} — the manage link's three actions
 ```
 
 The **only anonymous surface** in the API, and the reason it is its own
@@ -994,13 +997,13 @@ namespace rather than a relaxation of `/courses`:
 - **An unknown academy and a closed one return the SAME 404.** Anything more
   specific is an oracle for which academies exist and which were suspended,
   and both are reachable by anybody on the internet.
-- **It writes ONE thing: a lead.** `POST leads` stores what a stranger typed
+- **It writes TWO things.** `POST leads` stores what a stranger typed
   under an abuse story of its own (`LEADS.md` §2) — an encrypted form token, a
   honeypot, three limits, one row per address, and the same `202` whatever
   happened, so the answer never says whose address is already on the list.
-  Guest webinar registration will be the second write and needs its own story,
-  plus a mail-only notification, because nothing can currently tell an email
-  with no account that an event was called off.
+  A guest's webinar place is the second, and it writes nothing until the
+  mailbox answers: asking mails a confirmation link, and only that link, POSTed
+  back, holds a place (`GUEST_REGISTRATION.md`).
 - **Throttled per IP, not per academy** (`public`, 90/min): a bucket shared by
   everybody reading one academy's site would let a script take that site down.
 
@@ -1037,6 +1040,7 @@ GET    /admin/settings · PATCH /admin/settings
 | Unauthenticated default | 60/min per IP |
 | `/public/{academy}/*` | 90/min per IP — the marketing surface, and deliberately not bucketed per academy |
 | `POST /public/{academy}/leads` | 5/min and 50/day per IP, and 3/hour per address per academy, on top of `public` — one layer of `LEADS.md` §2, not the defence |
+| `POST /public/{academy}/webinars/{slug}/guest-registrations` | 5/min and 30/day per IP. Mail to one address is capped at 3/hour per academy — silently, with the same `202` (`GUEST_REGISTRATION.md` §2) |
 
 `429` returns `Retry-After` and `X-RateLimit-*`.
 

@@ -6,16 +6,18 @@ import { ErrorState, LoadingState } from '@/shared/ui';
 import { formatMinor } from '@/shared/lib/money';
 
 import { publicAcademyQuery, publicWebinarQuery } from '../api/queries';
+import { GuestRegistrationForm } from '../components/GuestRegistrationForm';
+import { offersGuestPlace } from '../lib/guest';
 
 /**
  * A webinar's public page — what `Webinar`'s docblock has been waiting for
  * since P15: the one live format not gated on buying a course, finally
  * readable by somebody who is not a member.
  *
- * REGISTERING still needs an account, and the page says so rather than
- * offering a form that cannot work. A guest place — an email with no account —
- * is a real feature and a bigger one than it looks: nothing could tell that
- * person the event had been called off, because delivery is to an account.
+ * A FREE event takes a guest: an email, a link to confirm, no account
+ * (docs/GUEST_REGISTRATION.md). A PAID place still needs an account, because
+ * buying one does, and the page says so rather than offering a form the
+ * server would refuse.
  */
 export function PublicWebinarRoute() {
   const { academy = '', slug = '' } = useParams();
@@ -69,16 +71,20 @@ export function PublicWebinarRoute() {
             </Text>
           ) : null}
 
-          {academyQuery.data?.registration_open === true ? (
-            <Button component={Link} to={`/register?academy=${encodeURIComponent(academy)}`}>
-              Create an account to register
-            </Button>
-          ) : (
-            <Text size="sm" c="dimmed">
-              Registering needs an account, and this academy is not taking new
-              registrations at the moment.
-            </Text>
-          )}
+          {offersGuestPlace(data) ? <GuestRegistrationForm academy={academy} slug={data.slug} /> : null}
+
+          {data.is_paid ? (
+            academyQuery.data?.registration_open === true ? (
+              <Button component={Link} to={`/register?academy=${encodeURIComponent(academy)}`}>
+                Create an account to buy a place
+              </Button>
+            ) : (
+              <Text size="sm" c="dimmed">
+                Buying a place needs an account, and this academy is not taking new
+                registrations at the moment.
+              </Text>
+            )
+          ) : null}
 
           <Button
             component={Link}

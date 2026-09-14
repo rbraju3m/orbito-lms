@@ -5,13 +5,13 @@ an account leaves an email address. The academy's staff see it at
 `/admin/leads`, export it, or receive it in their CRM through the
 `lead.captured` webhook.
 
-It is the **first and only anonymous WRITE** in the product. Everything else
+It was the **first anonymous WRITE** in the product. Everything else
 on `/api/v1/public/{academy}` reads published data (`API.md` § The public
 site), and the argument that makes that surface safe — "a stranger seeing
 every field is the intended outcome" — says nothing about a stranger *putting
 rows in a database*. So this feature carries its own abuse story, below, and a
-second anonymous write (guest webinar registration is next) needs one of its
-own rather than borrowing this one.
+second anonymous write — a guest's webinar place, `GUEST_REGISTRATION.md` —
+has one of its own rather than borrowing this one.
 
 Code: `app/Domain/Content` (the first thing in the `Content` context),
 `PublicSite\LeadController`, `Content\LeadController`,
@@ -43,7 +43,7 @@ independent layers, each cheap, none sufficient alone:
 |---|---|---|
 | **One row per address** | A script resubmitting one address a thousand times moves a counter, not the row count, and fires `LeadCaptured` once — so the academy's CRM is not flooded either | unique index on `leads.email`; `CaptureLead` uses `createOrFirst` (insert, catch the violation) |
 | **The same answer whatever happened** | A new lead, an address already on the list, a filled honeypot and a form posted too fast all get `202 {"data":{"received":true}}`. "Already subscribed" would tell a stranger whose address is on an academy's list; "rejected" would tell a script which check to work around | `PublicSite\LeadController` |
-| **Encrypted form token** | Posting requires fetching the form first and waiting. A token is refused by any academy but the one that issued it, expires after 24 h, and a form posted within 3 s of being served is discarded silently. Encrypted rather than signed, so the minimum wait cannot be read out of the token | `LeadFormToken`, `orbito.leads.*` |
+| **Encrypted form token** | Posting requires fetching the form first and waiting. A token is refused by any academy but the one that issued it, expires after 24 h, and a form posted within 3 s of being served is discarded silently. Encrypted rather than signed, so the minimum wait cannot be read out of the token | `PublicFormToken`, `orbito.public_forms.*` |
 | **Honeypot** | An off-screen `website` input, hidden from assistive technology and out of the tab order. Anything in it was put there by something filling every input it found — discarded silently | `SubmitLeadRequest::isTrap()` |
 | **Three rate limits** | 5/min and 50/day per IP, and 3/hour per address per academy | the `leads` limiter, `orbito.rate_limits.leads_*` |
 | **Nothing is ever sent to the address** | The form cannot be used to make an academy email a victim — the classic abuse of a signup form. There is no confirmation mail, deliberately | — (see §6, double opt-in) |

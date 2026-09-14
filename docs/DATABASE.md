@@ -768,6 +768,11 @@ webinar_registrations(id, webinar_id, user_id NULL, order_id NULL,        -- ord
 -- `webinar_registrations.order_id` is which order BOUGHT the place, so a
 -- refund revokes exactly that one and never a place the academy gave away.
 -- Same column, same reason, as `download_grants.order_id`.
+--
+-- `user_id` NULL is a GUEST (P16): a place held by an address that confirmed
+-- from its inbox, with no account (GUEST_REGISTRATION.md). No new column —
+-- the email key was declared for exactly this, and a member registering with
+-- that address later takes the row over by setting `user_id`.
 
 enrollments.cohort_id NULL          -- which RUN they joined; null is self-paced
 

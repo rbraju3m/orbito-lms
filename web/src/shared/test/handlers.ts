@@ -480,6 +480,10 @@ export const handlers = [
   http.get(apiUrl('/auth/me'), () => anonymousSession()),
 
   http.get(`${API_BASE_URL}/sanctum/csrf-cookie`, () => new HttpResponse(null, { status: 204 })),
+  // The guest registration form on a free event page asks for one.
+  http.get(`${API_BASE_URL}/api/v1/public/:academy/form-token`, () =>
+    HttpResponse.json({ data: { token: 'test-form-token' } }),
+  ),
   // Every public page with a lead form asks for one; a test about the form overrides this.
   http.get(`${API_BASE_URL}/api/v1/public/:academy/lead-form`, () =>
     HttpResponse.json({

@@ -10,10 +10,12 @@ use App\Domain\Live\Enums\WebinarStatus;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
 use App\Domain\Live\Models\WebinarRegistration;
+use App\Domain\Live\Notifications\GuestMail;
 use App\Domain\Notification\Models\Notification as InboxNotification;
 use App\Domain\Notification\Notifications\DomainNotification;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
 
 /*
@@ -282,4 +284,31 @@ it('will not admit somebody to an event that was called off', function (): void 
     $this->actingAs($this->learner)
         ->postJson("/api/v1/live-sessions/{$webinar->session?->uuid}/join")
         ->assertForbidden();
+});
+
+it('tells a guest by mail, because a guest has no bell', function (): void {
+    Notification::fake();
+
+    $webinar = Webinar::factory()->published()->withSession()->create(['title' => 'Open evening']);
+
+    foreach (['guest@example.test' => WebinarRegistration::STATUS_REGISTERED, 'left@example.test' => WebinarRegistration::STATUS_CANCELLED] as $email => $status) {
+        WebinarRegistration::create([
+            'webinar_id' => $webinar->id,
+            'user_id' => null,
+            'email' => $email,
+            'status' => $status,
+            'registered_at' => now(),
+        ]);
+    }
+
+    callOff($webinar, $this->admin);
+
+    Notification::assertSentOnDemand(
+        GuestMail::class,
+        fn (GuestMail $mail, array $channels, AnonymousNotifiable $to): bool => $to->routes['mail'] === 'guest@example.test'
+            && $mail->subject === 'Open evening has been called off',
+    );
+
+    // Somebody who already gave the place up is not told about losing it.
+    Notification::assertSentOnDemandTimes(GuestMail::class, 1);
 });

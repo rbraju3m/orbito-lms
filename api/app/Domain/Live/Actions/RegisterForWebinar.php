@@ -33,19 +33,35 @@ final class RegisterForWebinar
 {
     public function handle(User $user, Webinar $webinar, ?int $orderId = null): WebinarRegistration
     {
+        return $this->hold($webinar, $user->email, $user->name, $user->id, $orderId);
+    }
+
+    /**
+     * A GUEST's place: an address that has just proved it can read its own
+     * mail (`ConfirmGuestRegistration`), with no account, and never bought.
+     * The same transaction and the same lock as a member's, so a guest and a
+     * member racing for the last place cannot both have it.
+     */
+    public function forGuest(Webinar $webinar, string $email, ?string $name): WebinarRegistration
+    {
+        return $this->hold($webinar, $email, $name, null, null);
+    }
+
+    private function hold(Webinar $webinar, string $email, ?string $name, ?int $userId, ?int $orderId): WebinarRegistration
+    {
         $purchased = $orderId !== null;
 
         if (! $purchased) {
             $this->assertRegistrableForFree($webinar);
         }
 
-        return DB::transaction(function () use ($user, $webinar, $orderId, $purchased): WebinarRegistration {
+        return DB::transaction(function () use ($webinar, $email, $name, $userId, $orderId, $purchased): WebinarRegistration {
             /** @var Webinar $locked */
             $locked = Webinar::query()->lockForUpdate()->findOrFail($webinar->id);
 
             $existing = WebinarRegistration::query()
                 ->where('webinar_id', $locked->id)
-                ->where('email', $user->email)
+                ->where('email', $email)
                 ->first();
 
             if ($existing !== null) {
@@ -65,8 +81,19 @@ final class RegisterForWebinar
                         // A place bought again after a refund belongs to the
                         // NEW order, or a second refund would revoke nothing.
                         'order_id' => $orderId ?? $existing->order_id,
-                    ])->save();
+                    ]);
                 }
+
+                /*
+                 * A place held as a GUEST becomes the member's when somebody
+                 * signed in with that address registers: one person, one
+                 * place — now reachable through the bell as well as by mail.
+                 */
+                if ($existing->user_id === null && $userId !== null) {
+                    $existing->user_id = $userId;
+                }
+
+                $existing->save();
 
                 return $existing;
             }
@@ -78,21 +105,22 @@ final class RegisterForWebinar
             try {
                 return WebinarRegistration::create([
                     'webinar_id' => $locked->id,
-                    'user_id' => $user->id,
+                    // Null for a guest, who holds a place by address alone.
+                    'user_id' => $userId,
                     // Null for a place that was never bought, which is what
                     // keeps a refund from revoking one somebody was given.
                     'order_id' => $orderId,
-                    // Keyed on the email so the public path in P16 and this
-                    // one cannot produce two places for one person.
-                    'email' => $user->email,
-                    'name' => $user->name,
+                    // Keyed on the email, so a guest place and the account
+                    // that person later makes cannot become two places.
+                    'email' => $email,
+                    'name' => $name,
                     'status' => WebinarRegistration::STATUS_REGISTERED,
                     'registered_at' => now(),
                 ]);
             } catch (UniqueConstraintViolationException) {
                 return WebinarRegistration::query()
                     ->where('webinar_id', $locked->id)
-                    ->where('email', $user->email)
+                    ->where('email', $email)
                     ->firstOrFail();
             }
         });

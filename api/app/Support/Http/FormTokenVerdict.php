@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Content\Enums;
+namespace App\Support\Http;
 
 /**
- * What `LeadFormToken` makes of a submission's token. Only `Valid` stores
- * anything, and the other three are deliberately answered differently:
+ * What `PublicFormToken` makes of a submission's token. Only `Valid` goes on
+ * to do anything, and the other three are deliberately answered differently:
  *
  *  - `TooFast` is accepted SILENTLY and discarded. It is a script that fetched
  *    the form and posted it before a person could have read it, and telling

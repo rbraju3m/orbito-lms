@@ -20,10 +20,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * there was somewhere to read about one without an account, "open evening"
  * meant open to members.
  *
- * REGISTERING is not here yet, and the omission is deliberate: a place held
- * by an email with no account cannot be told anything when the event is
- * called off (delivery is to a central account), so the guest path needs a
- * mail-only delivery to go with it. Reading about one comes first.
+ * REGISTERING as a guest is `GuestRegistrationController`, beside this one
+ * rather than inside it: reading is a read, and holding a place is the
+ * product's second anonymous write, with an abuse story of its own
+ * (docs/GUEST_REGISTRATION.md).
  *
  * The resource is constructed with every viewer flag false — a stranger holds
  * no place, may manage nothing and may cancel nothing — rather than left to

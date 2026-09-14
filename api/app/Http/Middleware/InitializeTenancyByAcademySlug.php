@@ -42,10 +42,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * So a route may join this group only if an anonymous stranger seeing its
  * every field is the intended outcome. Anything else belongs behind `tenant`.
  *
- * ONE route in the group writes: the lead form (`POST leads`). It stores what
- * the stranger typed and answers nothing about anybody, and it carries its own
- * abuse story rather than borrowing this one — docs/LEADS.md. A second
- * anonymous write needs a story of its own too.
+ * TWO things in the group write, and each carries an abuse story of its own
+ * rather than borrowing this one: the lead form (`POST leads`, docs/LEADS.md)
+ * and a guest's webinar place (docs/GUEST_REGISTRATION.md), which writes
+ * nothing until somebody proves they can read the mailbox it names.
  */
 final class InitializeTenancyByAcademySlug
 {

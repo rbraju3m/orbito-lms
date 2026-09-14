@@ -8,11 +8,11 @@ use App\Domain\Content\Enums\LeadSource;
 use App\Domain\Content\Enums\LeadStatus;
 use App\Domain\Content\Events\LeadCaptured;
 use App\Domain\Content\Models\Lead;
-use App\Domain\Content\Support\LeadFormToken;
 use App\Domain\Platform\Models\Tenant;
 use App\Domain\Webhook\Enums\WebhookTopic;
 use App\Domain\Webhook\Models\WebhookEndpoint;
 use App\Domain\Webhook\Support\HostResolver;
+use App\Support\Http\PublicFormToken;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Event;
@@ -189,7 +189,7 @@ it('asks somebody who left the form open for days to reload it', function (): vo
 });
 
 it('refuses a form token another academy issued', function (): void {
-    $borrowed = app(LeadFormToken::class)->mint('another-academy', now()->subMinute());
+    $borrowed = app(PublicFormToken::class)->mint('another-academy', now()->subMinute());
 
     $response = submitLead([], $borrowed)->assertUnprocessable();
 

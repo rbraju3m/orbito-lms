@@ -6,10 +6,10 @@ namespace App\Http\Controllers\Api\V1\PublicSite;
 
 use App\Domain\Content\Actions\CaptureLead;
 use App\Domain\Content\Support\LeadConsent;
-use App\Domain\Content\Support\LeadFormToken;
 use App\Domain\Platform\Models\Tenant;
 use App\Http\Requests\Content\SubmitLeadRequest;
 use App\Support\Http\ApiResponse;
+use App\Support\Http\PublicFormToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,7 +29,7 @@ final class LeadController
      * The form's token and the consent wording. `no-store`, because a token
      * served from a cache is a token somebody else was issued.
      */
-    public function form(Request $request, LeadFormToken $tokens): JsonResponse
+    public function form(Request $request, PublicFormToken $tokens): JsonResponse
     {
         $academy = $this->academy($request);
 

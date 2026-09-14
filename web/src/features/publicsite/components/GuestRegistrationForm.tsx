@@ -1,49 +1,49 @@
-import { Alert, Button, Card, Checkbox, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Stack, Text, TextInput, Title } from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { useId, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
 import { ApiError } from '@/shared/api/errors';
 import { applyServerErrors } from '@/shared/lib/form';
 import { ErrorState, LoadingState } from '@/shared/ui';
 
-import { publicLeadFormQuery, useSubmitLead, type LeadSource } from '../api/leads';
-import { leadSchema, type LeadValues } from '../leadSchema';
+import { publicFormTokenQuery, useRequestGuestPlace } from '../api/guest';
 import { HoneypotField } from './HoneypotField';
 
-const FIELDS = ['email', 'name', 'consent'] as const;
+/** Mirrors `RequestGuestRegistrationRequest`; the server still decides. */
+const guestSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Enter your email address.')
+    .max(191, 'That address is too long.')
+    .email('That does not look like an email address.'),
+  name: z.string().trim().max(160, 'Keep it under 160 characters.'),
+  website: z.string(),
+});
 
-export interface LeadCaptureFormProps {
+type GuestValues = z.infer<typeof guestSchema>;
+
+const FIELDS = ['email', 'name'] as const;
+
+export interface GuestRegistrationFormProps {
   academy: string;
-  source: LeadSource;
-  /** The course or event slug, for every source but the front page. */
-  sourceSlug?: string;
-  title?: string;
-  description?: string;
+  slug: string;
 }
 
 /**
- * "Keep me posted", for somebody with no account (docs/LEADS.md).
+ * A place at a free event with no account (docs/GUEST_REGISTRATION.md).
  *
- * The consent wording is the SERVER's, because the server stores a copy of it
- * with the lead; a label written here would be a record of agreement to words
- * nobody on the server can vouch for.
- *
- * The success message promises nothing about what happened, because the
- * server does not say: a new address, one already on the list and a tripped
- * trap all get the same answer.
+ * The form books nothing. It asks the server to email a confirmation link,
+ * and the server answers the same way whether that address already holds a
+ * place, has asked too often, or tripped a trap — so the success message
+ * says only what is always true: look in your inbox.
  */
-export function LeadCaptureForm({
-  academy,
-  source,
-  sourceSlug,
-  title = 'Stay in touch',
-  description = 'Leave your email and we will tell you when something new is announced.',
-}: LeadCaptureFormProps) {
-  const headingId = useId();
-  const form = useQuery(publicLeadFormQuery(academy));
-  const submitLead = useSubmitLead(academy);
+export function GuestRegistrationForm({ academy, slug }: GuestRegistrationFormProps) {
+  const form = useQuery(publicFormTokenQuery(academy));
+  const request = useRequestGuestPlace(academy, slug);
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
@@ -52,9 +52,9 @@ export function LeadCaptureForm({
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<LeadValues>({
-    resolver: zodResolver(leadSchema),
-    defaultValues: { email: '', name: '', consent: false, website: '' },
+  } = useForm<GuestValues>({
+    resolver: zodResolver(guestSchema),
+    defaultValues: { email: '', name: '', website: '' },
   });
 
   const submit = handleSubmit(async (values) => {
@@ -63,19 +63,14 @@ export function LeadCaptureForm({
     setFormError(null);
 
     try {
-      await submitLead.mutateAsync({
+      await request.mutateAsync({
         email: values.email,
         name: values.name === '' ? null : values.name,
-        consent: values.consent,
-        source,
-        ...(sourceSlug === undefined ? {} : { source_slug: sourceSlug }),
         form_token: form.data.token,
         website: values.website,
       });
       setSent(true);
     } catch (error) {
-      // The one rejection a person can fix without retyping anything: the
-      // form sat open past its token's lifetime. Fetch a fresh one.
       if (error instanceof ApiError && error.isValidation && 'form_token' in error.fieldErrors()) {
         void form.refetch();
         setFormError(
@@ -91,7 +86,12 @@ export function LeadCaptureForm({
   let body: ReactNode;
 
   if (sent) {
-    body = <Text role="status">Thank you — we will be in touch.</Text>;
+    body = (
+      <Text role="status">
+        Check your inbox. If a place can be held for that address, we have sent a link to confirm it
+        — nothing is booked until you follow it.
+      </Text>
+    );
   } else if (form.isPending) {
     body = <LoadingState label="Loading form" rows={2} />;
   } else if (form.isError) {
@@ -107,7 +107,8 @@ export function LeadCaptureForm({
       <form onSubmit={submit} noValidate>
         <Stack gap="sm">
           <Text size="sm" c="dimmed">
-            {description}
+            No account needed. We will email you a link to confirm your place, and the same email
+            lets you join or give the place up.
           </Text>
 
           <TextInput
@@ -128,12 +129,6 @@ export function LeadCaptureForm({
 
           <HoneypotField {...register('website')} />
 
-          <Checkbox
-            label={form.data.consent_text}
-            error={errors.consent?.message}
-            {...register('consent')}
-          />
-
           {formError !== null ? (
             <Alert color="red" role="alert">
               {formError}
@@ -141,7 +136,7 @@ export function LeadCaptureForm({
           ) : null}
 
           <Button type="submit" loading={isSubmitting} style={{ alignSelf: 'flex-start' }}>
-            Keep me posted
+            Email me a link
           </Button>
         </Stack>
       </form>
@@ -149,13 +144,11 @@ export function LeadCaptureForm({
   }
 
   return (
-    <Card withBorder padding="lg" component="section" aria-labelledby={headingId}>
-      <Stack gap="sm">
-        <Title order={2} size="h4" id={headingId}>
-          {title}
-        </Title>
-        {body}
-      </Stack>
-    </Card>
+    <Stack gap="sm">
+      <Title order={2} size="h4">
+        Hold a place
+      </Title>
+      {body}
+    </Stack>
   );
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\PublicSite\AcademyController;
 use App\Http\Controllers\Api\V1\PublicSite\CourseController;
+use App\Http\Controllers\Api\V1\PublicSite\FormTokenController;
+use App\Http\Controllers\Api\V1\PublicSite\GuestRegistrationController;
 use App\Http\Controllers\Api\V1\PublicSite\LeadController;
 use App\Http\Controllers\Api\V1\PublicSite\WebinarController;
 use Illuminate\Support\Facades\Route;
@@ -19,10 +21,10 @@ use Illuminate\Support\Facades\Route;
 | NO `auth:sanctum` and NO `tenant`. A route added here is a decision that a
 | stranger seeing every field it emits is the intended outcome — the middleware
 | docblock states the argument in full. Anything viewer-scoped, anything
-| unpublished, and anything that WRITES belongs elsewhere — with ONE exception,
-| the lead form, which writes a single row under the abuse story in
-| docs/LEADS.md (an encrypted form token, a honeypot, three limits and one row
-| per address). A second anonymous write needs its own story, not this one.
+| unpublished, and anything that WRITES belongs elsewhere — with TWO
+| exceptions, each under an abuse story of its own: the lead form
+| (docs/LEADS.md) and a guest's webinar place (docs/GUEST_REGISTRATION.md).
+| A third anonymous write needs its own story too, not a borrowed one.
 |
 | Throttled per IP rather than per academy: a bucket shared by everybody
 | reading one academy's site would let a script take that site down.
@@ -48,4 +50,27 @@ Route::prefix('public/{academy}')
         Route::post('leads', [LeadController::class, 'store'])
             ->middleware('throttle:leads')
             ->name('leads.store');
+
+        /*
+         * Guest webinar registration — the second anonymous write
+         * (docs/GUEST_REGISTRATION.md). ASKING writes nothing: it mails a
+         * confirmation link, and only that link, POSTed back, holds a place.
+         * Every token travels in a request BODY, never in a URL.
+         */
+        Route::get('form-token', FormTokenController::class)->name('form-token');
+        Route::post('webinars/{slug}/guest-registrations', [GuestRegistrationController::class, 'store'])
+            ->middleware('throttle:guest-registrations')
+            ->name('guest-registrations.store');
+        Route::post('guest-registrations/confirm', [GuestRegistrationController::class, 'confirm'])
+            ->middleware('throttle:20,1')
+            ->name('guest-registrations.confirm');
+        Route::post('guest-places/show', [GuestRegistrationController::class, 'show'])
+            ->middleware('throttle:60,1')
+            ->name('guest-places.show');
+        Route::post('guest-places/cancel', [GuestRegistrationController::class, 'cancel'])
+            ->middleware('throttle:20,1')
+            ->name('guest-places.cancel');
+        Route::post('guest-places/join', [GuestRegistrationController::class, 'join'])
+            ->middleware('throttle:20,1')
+            ->name('guest-places.join');
     });

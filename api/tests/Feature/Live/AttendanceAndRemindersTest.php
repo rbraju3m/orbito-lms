@@ -14,9 +14,14 @@ use App\Domain\Live\Enums\AttendanceSource;
 use App\Domain\Live\Models\Cohort;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\SessionAttendance;
+use App\Domain\Live\Models\Webinar;
+use App\Domain\Live\Models\WebinarRegistration;
+use App\Domain\Live\Notifications\GuestMail;
 use App\Domain\Notification\Models\Notification;
 use App\Domain\Progress\Enums\ItemProgressStatus;
 use App\Domain\Progress\Models\ItemProgress;
+use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Facades\Notification as Notifications;
 
 beforeEach(function (): void {
     seedRegistry();
@@ -240,4 +245,33 @@ it('puts the right things in a learner calendar', function (): void {
 
     expect($response->json('data.sessions'))->toHaveCount(1)
         ->and($response->json('data.sessions.0.id'))->toBe($mine->uuid);
+});
+
+it('reminds a guest by mail, with the link that lets them join', function (): void {
+    Notifications::fake();
+
+    $session = LiveSession::factory()->startingAt(now()->addMinutes(20))->create([
+        'course_id' => null,
+        'cohort_id' => null,
+        'host_id' => $this->instructor->id,
+    ]);
+    $webinar = Webinar::factory()->published()->create(['slug' => 'open-evening', 'live_session_id' => $session->id]);
+    WebinarRegistration::create([
+        'webinar_id' => $webinar->id,
+        'user_id' => null,
+        'email' => 'guest@example.test',
+        'status' => WebinarRegistration::STATUS_REGISTERED,
+        'registered_at' => now(),
+    ]);
+
+    $this->artisan('live:remind')->assertSuccessful();
+    $this->artisan('live:remind')->assertSuccessful();
+
+    Notifications::assertSentOnDemandTimes(GuestMail::class, 1);
+    Notifications::assertSentOnDemand(
+        GuestMail::class,
+        fn (GuestMail $mail, array $channels, AnonymousNotifiable $to): bool => $to->routes['mail'] === 'guest@example.test'
+            && str_ends_with($mail->subject, 'starts soon')
+            && str_contains((string) $mail->actionUrl, '/a/test-academy/webinars/open-evening/place?token='),
+    );
 });

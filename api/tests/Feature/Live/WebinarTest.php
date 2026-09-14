@@ -283,3 +283,24 @@ it('tells a learner nothing about what an author may do', function (): void {
         'available_actions', 'is_publishable', 'publish_blockers', 'is_deletable',
     ]);
 });
+
+it('gives a member the place they already held as a guest, rather than a second one', function (): void {
+    $webinar = Webinar::factory()->published()->withCapacity(1)->create();
+
+    WebinarRegistration::create([
+        'webinar_id' => $webinar->id,
+        'user_id' => null,
+        'email' => $this->student->email,
+        'name' => 'Guest',
+        'status' => WebinarRegistration::STATUS_REGISTERED,
+        'registered_at' => now(),
+    ]);
+
+    // Capacity 1 and the place already taken — by this person, as a guest.
+    $this->actingAs($this->student)
+        ->postJson("/api/v1/webinars/{$webinar->uuid}/register")
+        ->assertCreated()
+        ->assertJsonPath('data.is_registered', true);
+
+    expect(WebinarRegistration::query()->sole()->user_id)->toBe($this->student->id);
+});

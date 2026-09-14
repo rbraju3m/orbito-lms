@@ -1659,9 +1659,31 @@ a `lead.captured` webhook. `Content` stops being an empty directory.
   verbatim, so a title starting `=` ran as a formula in whoever opened the
   file. `CsvDownload` now streams every export and defuses those cells.
 
-Still open in this phase: the blog and page builder (this is their
-foundation), guest registration, subscriptions and memberships,
-coaching, multilingual, RTL.
+**Guest webinar registration — the second anonymous write.** A free event
+takes an email address and nothing else, and the guest is told about the
+event the way they can be reached: by mail, with a link to manage the place.
+
+- **The mailbox is the write** (`GUEST_REGISTRATION.md` §2). Unlike a lead,
+  this form has to mail the address a stranger typed, so asking writes
+  NOTHING: it sends an encrypted confirmation link, and only following it
+  holds a place. Nobody can be booked in somebody else's name.
+- **One answer, and a silent cap.** Every request gets the same 202; mail to
+  one address is capped per academy without saying so, because a 429 would
+  confirm the address had been asked for.
+- **Confirming is registering.** `RegisterForWebinar::forGuest()` shares the
+  member's transaction and lock, and a member who registers with an address
+  that already holds a guest place takes that place over rather than a
+  second one.
+- **Reminders and the cancellation notice reach guests** through
+  `SessionAudience::guestsForSession()`, beside the member answer and under
+  the same rules. That closes what the cancellation-notice slice left open:
+  a guest can now be told an event was called off.
+- **The public form token moved** from the lead form to
+  `App\Support\Http\PublicFormToken`, now that two forms carry it.
+
+Still open in this phase: the blog and page builder (the public site is
+their foundation), subscriptions and memberships, coaching, multilingual,
+RTL.
 
 ### Phase 17 — AI
 Provider abstraction · outline / lesson / quiz / description / summary generation ·

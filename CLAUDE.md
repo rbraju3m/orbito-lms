@@ -915,6 +915,27 @@ Gate::authorize('publish', $course);                   // in a controller
   `refetchOnWindowFocus` would make a person returning to the tab look like a
   script. `publicLeadFormQuery` fetches on mount, and again only when the
   server says the token expired.
+- **When an anonymous form must MAIL the address, let the mailbox be the
+  write.** Asking for a guest place writes nothing: it mails an encrypted
+  confirmation link, and only following it holds a place. Nobody can book in
+  somebody else's name or fill a table — and the answers that would be
+  oracles on the form (full, closed, already held) become safe to give,
+  because only the mailbox's owner can ask.
+- **A cap that would be an oracle is enforced silently.** The mail cap per
+  address answers the same `202`. A 429 would confirm the address had been
+  asked for, and let a stranger lock its owner out by asking first.
+- **A credential never rides in a GET the API accepts.** A mail link carries
+  its token to the SPA's query string, and the SPA POSTs it. Proxies and
+  access logs record URLs.
+- **A token names its PURPOSE and its academy inside the encryption.** A
+  confirmation cannot be replayed as a manage link, and neither works on
+  another academy's site (`GuestToken`).
+- **Reach people the way they can be reached, from ONE audience answer.**
+  `SessionAudience::guestsForSession()` sits beside `forSession()` under the
+  same rules — a cancelled event expects nobody — so the reminder and the
+  cancellation notice mail guests without a second definition of who is
+  coming. A guest is not a `DomainNotification`: its `via()` asks
+  preferences keyed on a user id a guest does not have.
 
 ---
 
@@ -944,11 +965,14 @@ after `auth:sanctum`). Consequences you cannot design around:
   rather than a relaxation: `/api/v1/public/{academy}/…` behind
   `tenant.public`, which resolves the academy from its SLUG in the path
   because no user can supply it. Everything it exposes is published and
-  public by design, it 404s an unknown and a closed academy identically, and
-  it WRITES nothing. A route joining that group is a decision that a stranger
-  seeing its every field is the intended outcome — the middleware docblock
-  carries the argument in full, and it is the one to re-read before adding
-  lead capture or a guest registration, which do write.
+  public by design, and it 404s an unknown and a closed academy identically.
+  It WRITES exactly two things, each under an abuse story of its own: a lead
+  (`docs/LEADS.md`) and a guest's webinar place
+  (`docs/GUEST_REGISTRATION.md`), which writes nothing until the mailbox
+  answers. A route joining that group is a decision that a stranger seeing
+  its every field is the intended outcome — the middleware docblock carries
+  the argument in full — and a third WRITE needs its own story, not a
+  borrowed one.
 - A route with no user cannot resolve an academy from the request. Three
   answers exist and they are not interchangeable: the signed payload
   (`tenant.signed`, media downloads), the path plus the route's OWN
@@ -1015,9 +1039,9 @@ permissions, upload volume limits, outbound webhooks, coupons, refunds,
 provider refund webhooks, Stripe Checkout, refund reports, the studio's
 live-session scheduling, connecting a meeting provider, webinar authoring,
 paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
-— the first anonymous surface — and LEAD CAPTURE, its first anonymous write**
-(§ Patterns established in Phase 16).
-1,470 backend tests / 5,464 assertions · 373 frontend tests.
+— the first anonymous surface — LEAD CAPTURE, its first anonymous write, and
+GUEST WEBINAR REGISTRATION, its second** (§ Patterns established in Phase 16).
+1,488 backend tests / 5,596 assertions · 382 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1064,16 +1088,14 @@ stranger has to be able to read.
 every course page, `/admin/leads`, a formula-safe CSV export and a
 `lead.captured` webhook, under an abuse story of its own (`docs/LEADS.md`).
 
+**Guest webinar registration** is its second: a free event takes an email,
+the form writes nothing and mails a confirmation link, and only following
+that link holds a place. Reminders and the cancellation notice reach a guest
+by mail, each with a manage link to join or give the place up
+(`docs/GUEST_REGISTRATION.md`).
+
 The obvious next pieces, in the order they unblock each other:
 
-- **Guest webinar registration** — blocked on a mail-only delivery for
-  `NotifyOnWebinarCancelled`, because nothing can currently tell an email
-  with no account that an event was called off. Registration is already keyed
-  on EMAIL so a guest place and a later account cannot become two places.
-  It is the second anonymous write, so it needs an abuse story in the shape
-  of `docs/LEADS.md` §2 — and unlike a lead it must MAIL the address, which
-  is exactly the abuse that document refuses, so it needs a confirmation step
-  with limits of its own.
 - **The blog (O1) and the page builder (O2)** — the `Content` context is
   still an empty placeholder, and the public site is now the surface they
   render on. Both want SEO, which the SPA cannot currently give them: these
@@ -1199,6 +1221,11 @@ Every one of these has already cost time at least once.
   account a lead later becomes.** Each is in `docs/LEADS.md` §6 with what it
   would take. `source: webinar` is accepted by the API and not yet placed on
   the event page.
+- **Guests: no attendance, no adoption on sign-up, no paid places.**
+  `session_attendance` is keyed on a central user, so a guest who joins is
+  not on the roster; a guest place becomes an account's only when that member
+  registers for the same event; and buying a place still needs an account.
+  `docs/GUEST_REGISTRATION.md` §6.
 - **Invitations are declared and not built.** `RegistrationMode::Invite` exists
   so an academy that wants a controlled roster is not silently given open
   signup; the API refuses it as a value and the UI greys it out. Building it

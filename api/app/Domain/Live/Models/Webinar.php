@@ -18,14 +18,13 @@ use Illuminate\Support\Str;
 /**
  * A standalone live event, not part of any course.
  *
- * READING about one is now PUBLIC and REGISTERING is still members-only, and
- * the split is the honest one rather than a half-finished migration: a
- * stranger can read a published webinar's page on the academy's public site
- * (`tenant.public`), and holding a place needs an account because a place is
- * a thing somebody has to be TOLD about when the event moves or is called off
- * — and delivery is to a central account, not to an email (§ Multi-tenancy).
- * A guest place is therefore a bigger feature than a form: it needs a
- * mail-only delivery for `NotifyOnWebinarCancelled` first.
+ * READING about one is PUBLIC, and so is holding a place at a FREE one: a
+ * stranger registers from the academy's public site as a GUEST
+ * (docs/GUEST_REGISTRATION.md). A guest's place is keyed on the email like
+ * any other, and exists only once somebody who can read that mailbox has
+ * confirmed it — the form writes nothing — because a place is a thing
+ * somebody must be TOLD about when the event is called off, and a guest is
+ * told by mail. A PAID place still needs an account: checkout does.
  *
  * @property int $id
  * @property string $uuid

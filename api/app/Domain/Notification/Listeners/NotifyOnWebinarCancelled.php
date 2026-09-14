@@ -7,11 +7,13 @@ namespace App\Domain\Notification\Listeners;
 use App\Domain\Live\Enums\WebinarStatus;
 use App\Domain\Live\Events\WebinarStatusChanged;
 use App\Domain\Live\Models\WebinarRegistration;
+use App\Domain\Live\Notifications\GuestMail;
 use App\Domain\Notification\Actions\NotifyUsers;
 use App\Domain\Notification\Data\NotificationPayload;
 use App\Domain\Notification\Enums\NotificationType;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * The event you were coming to is off.
@@ -38,11 +40,9 @@ use Illuminate\Database\Eloquent\Collection;
  * established in Phase 9: `meta` carries what the caller can DO, and here
  * there is nothing to do but read it).
  *
- * Registrations with no `user_id` hear nothing, and cannot: delivery is to a
- * central account and a guest registration has only an email. Registration is
- * members-only today (§ Multi-tenancy — there is no anonymous surface), so
- * the case does not arise yet; the public path that creates it in P16 needs a
- * mail-only delivery, which is its own slice.
+ * A GUEST — a place held by an address with no account — has no bell, so is
+ * told by mail (`GuestMail`, sent on demand). A guest's place is never a
+ * bought one, because buying needs an account, so theirs is the free message.
  */
 final class NotifyOnWebinarCancelled implements ShouldQueue
 {
@@ -63,8 +63,7 @@ final class NotifyOnWebinarCancelled implements ShouldQueue
         $registrations = WebinarRegistration::query()
             ->where('webinar_id', $webinar->id)
             ->live()
-            ->whereNotNull('user_id')
-            ->get(['user_id', 'order_id']);
+            ->get(['user_id', 'order_id', 'email']);
 
         if ($registrations->isEmpty()) {
             return;
@@ -98,8 +97,9 @@ final class NotifyOnWebinarCancelled implements ShouldQueue
          * before the event was ever priced, owes nobody a refund. The same
          * question `RevokeOrderAccess` asks of `order_id`.
          */
-        $purchased = $registrations->whereNotNull('order_id')->pluck('user_id')->all();
-        $free = $registrations->whereNull('order_id')->pluck('user_id')->all();
+        $members = $registrations->whereNotNull('user_id');
+        $purchased = $members->whereNotNull('order_id')->pluck('user_id')->all();
+        $free = $members->whereNull('order_id')->pluck('user_id')->all();
 
         if ($free !== []) {
             $this->notify->handle($free, $this->payload($webinar->title, $when, $meta, false), $event->actorId);
@@ -107,6 +107,13 @@ final class NotifyOnWebinarCancelled implements ShouldQueue
 
         if ($purchased !== []) {
             $this->notify->handle($purchased, $this->payload($webinar->title, $when, $meta, true), $event->actorId);
+        }
+
+        foreach ($registrations->whereNull('user_id') as $guest) {
+            Notification::route('mail', $guest->email)->notify(new GuestMail(
+                subject: $webinar->title.' has been called off',
+                lines: ['You no longer hold a place at '.$webinar->title.'.'.$when],
+            ));
         }
     }
 

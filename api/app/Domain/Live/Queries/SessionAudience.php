@@ -9,6 +9,7 @@ use App\Domain\Live\Enums\WebinarStatus;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
 use App\Domain\Live\Models\WebinarRegistration;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -71,6 +72,36 @@ final class SessionAudience
             ->where('status', WebinarRegistration::STATUS_REGISTERED)
             ->whereNotNull('user_id')
             ->pluck('user_id'));
+    }
+
+    /**
+     * The GUESTS expected at a webinar's session — places held by an address
+     * with no account (docs/GUEST_REGISTRATION.md). A separate answer from
+     * `forSession()` because they are reached differently: by mail, with a
+     * manage link, never through a bell. The same rules otherwise, asked in the
+     * same place: nobody at a course session is a guest, and nobody is expected
+     * at an event that was called off.
+     *
+     * @return EloquentCollection<int, WebinarRegistration> each with its webinar set
+     */
+    public function guestsForSession(LiveSession $session): EloquentCollection
+    {
+        if ($session->cohort_id !== null || $session->course_id !== null) {
+            return new EloquentCollection;
+        }
+
+        $webinar = Webinar::query()->where('live_session_id', $session->id)->first();
+
+        if ($webinar === null || $webinar->status === WebinarStatus::Cancelled) {
+            return new EloquentCollection;
+        }
+
+        return WebinarRegistration::query()
+            ->where('webinar_id', $webinar->id)
+            ->live()
+            ->whereNull('user_id')
+            ->get()
+            ->each(fn (WebinarRegistration $guest) => $guest->setRelation('webinar', $webinar));
     }
 
     public function includes(LiveSession $session, int $userId): bool

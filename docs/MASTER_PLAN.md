@@ -173,9 +173,10 @@ happens, never the day of the sale. See `COUPONS.md` and `REFUNDS.md`.
 **The public site and lead capture have shipped.** An academy's front page,
 course pages and event pages are readable with no account, and a visitor not
 ready to sign up can leave an email — the product's first anonymous write,
-with its own abuse story. See `LEADS.md`.
+with its own abuse story — or hold a place at a free event, confirmed from
+their inbox. See `LEADS.md` and `GUEST_REGISTRATION.md`.
 
-Still ahead in the phase: guest webinar registration, subscriptions and
+Still ahead in the phase: subscriptions and
 memberships, coaching, the blog and page builder, multilingual and RTL. It is
 markedly larger than the phases before it.
 

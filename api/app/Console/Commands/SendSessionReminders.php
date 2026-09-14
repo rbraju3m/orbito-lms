@@ -5,12 +5,18 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Live\Models\LiveSession;
+use App\Domain\Live\Models\WebinarRegistration;
+use App\Domain\Live\Notifications\GuestMail;
 use App\Domain\Live\Queries\SessionAudience;
+use App\Domain\Live\Support\GuestLinks;
+use App\Domain\Live\Support\GuestToken;
 use App\Domain\Notification\Actions\NotifyUsers;
 use App\Domain\Notification\Data\NotificationPayload;
 use App\Domain\Notification\Enums\NotificationType;
 use App\Support\Console\RunsForEveryTenant;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Tells people about a class that is about to start.
@@ -34,12 +40,12 @@ final class SendSessionReminders extends Command
 
     protected $description = 'Send reminders for live sessions starting soon, in every academy';
 
-    public function handle(SessionAudience $audience, NotifyUsers $notify): int
+    public function handle(SessionAudience $audience, NotifyUsers $notify, GuestToken $tokens): int
     {
         $minutes = max(1, (int) $this->option('minutes'));
         $sent = 0;
 
-        $failed = $this->forEachTenant(function () use ($audience, $notify, $minutes, &$sent): void {
+        $failed = $this->forEachTenant(function () use ($audience, $notify, $tokens, $minutes, &$sent): void {
             $sessions = LiveSession::query()
                 ->upcoming()
                 ->whereNull('reminder_sent_at')
@@ -58,8 +64,9 @@ final class SendSessionReminders extends Command
                  * reschedules must clear what the old schedule triggered).
                  */
                 $recipients = $audience->forSession($session);
+                $guests = $audience->guestsForSession($session);
 
-                if ($recipients === []) {
+                if ($recipients === [] && $guests->isEmpty()) {
                     continue;
                 }
 
@@ -80,6 +87,8 @@ final class SendSessionReminders extends Command
                     ],
                 ));
 
+                $this->remindGuests($session, $guests, $tokens);
+
                 $sent++;
             }
         });
@@ -87,5 +96,32 @@ final class SendSessionReminders extends Command
         $this->info("Reminded about {$sent} session(s).");
 
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    /**
+     * A guest has no bell, so the reminder is a mail carrying their manage
+     * link — which is also how they join, fifteen minutes early, and how they
+     * give the place up (docs/GUEST_REGISTRATION.md).
+     *
+     * @param  Collection<int, WebinarRegistration>  $guests
+     */
+    private function remindGuests(LiveSession $session, Collection $guests, GuestToken $tokens): void
+    {
+        $academy = (string) tenancy()->tenant?->getAttribute('slug');
+
+        foreach ($guests as $guest) {
+            $webinar = $guest->webinar;
+
+            if ($webinar === null) {
+                continue;
+            }
+
+            Notification::route('mail', $guest->email)->notify(new GuestMail(
+                subject: $session->title.' starts soon',
+                lines: [$webinar->title.' starts '.$session->starts_at->diffForHumans().GuestLinks::when($session).'.'],
+                actionLabel: 'Join or manage my place',
+                actionUrl: GuestLinks::place($academy, $webinar->slug, $tokens->place($academy, $guest, $session, now())),
+            ));
+        }
     }
 }

@@ -6,10 +6,10 @@ namespace App\Http\Requests\Content;
 
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Content\Data\LeadSubmission;
-use App\Domain\Content\Enums\FormTokenVerdict;
 use App\Domain\Content\Enums\LeadSource;
-use App\Domain\Content\Support\LeadFormToken;
 use App\Domain\Live\Models\Webinar;
+use App\Support\Http\FormTokenVerdict;
+use App\Support\Http\PublicFormToken;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -67,7 +67,7 @@ final class SubmitLeadRequest extends FormRequest
                 return;
             }
 
-            $this->verdict = app(LeadFormToken::class)->check(
+            $this->verdict = app(PublicFormToken::class)->check(
                 (string) $this->input('form_token'),
                 (string) $this->route('academy'),
                 now(),

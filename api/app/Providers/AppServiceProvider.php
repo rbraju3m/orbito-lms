@@ -132,6 +132,17 @@ final class AppServiceProvider extends ServiceProvider
             ),
         ]);
 
+        /*
+         * A guest asking for a webinar place, per IP — a burst and a day. The
+         * cap on MAIL to one address is not here: it is silent, inside
+         * `RequestGuestRegistration`, because a 429 on an address would say it
+         * had been asked for (docs/GUEST_REGISTRATION.md §2).
+         */
+        RateLimiter::for('guest-registrations', fn (Request $request) => [
+            Limit::perMinute((int) config('orbito.rate_limits.guest_registrations_per_minute'))->by('ip-minute:'.$request->ip()),
+            Limit::perDay((int) config('orbito.rate_limits.guest_registrations_per_day'))->by('ip-day:'.$request->ip()),
+        ]);
+
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(
             (int) config('orbito.rate_limits.webhook')
         )->by('ip:'.$request->ip()));

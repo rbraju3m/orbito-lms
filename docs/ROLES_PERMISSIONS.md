@@ -324,6 +324,13 @@ standing between that endpoint and the internet. An endpoint that needs to
 ask *who is calling* does not belong on this surface — it belongs behind
 `tenant`, where there is a user and a policy to ask.
 
+**The one exception is a guest's webinar place** (`GUEST_REGISTRATION.md`).
+Its endpoints do ask who is calling, and the answer is not an account but a
+TOKEN from the guest's own inbox — encrypted, bound to one academy and one
+purpose, and expiring. Holding it is the whole authorization: it proves the
+caller can read the mailbox the place is keyed on. It travels in a request
+body, never a URL, and nothing on this surface accepts it as anything else.
+
 ## 7. Seeding & lifecycle
 
 - Roles and permissions are seeded from a single `config/permissions.php` registry.

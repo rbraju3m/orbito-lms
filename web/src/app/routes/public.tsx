@@ -36,6 +36,20 @@ export const publicSiteRoutes: RouteObject[] = [
             .PublicCourseRoute,
         }),
       },
+      // A guest's links from their email (docs/GUEST_REGISTRATION.md).
+      {
+        path: 'webinars/:slug/confirm',
+        lazy: async () => ({
+          Component: (await import('@/features/publicsite/routes/GuestConfirmRoute'))
+            .GuestConfirmRoute,
+        }),
+      },
+      {
+        path: 'webinars/:slug/place',
+        lazy: async () => ({
+          Component: (await import('@/features/publicsite/routes/GuestPlaceRoute')).GuestPlaceRoute,
+        }),
+      },
       {
         path: 'webinars/:slug',
         lazy: async () => ({

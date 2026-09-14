@@ -116,6 +116,30 @@ final class LiveSessionRejected extends DomainException
         );
     }
 
+    /**
+     * A guest's link that expired, was forged, belongs to another academy or
+     * is the wrong kind. One code for all of them: whoever holds it can do the
+     * same thing about each — ask again from the event page.
+     */
+    public static function guestLinkInvalid(): self
+    {
+        return new self(
+            'This link has expired or is not valid. Ask for a new one from the event page.',
+            'guest_link_invalid',
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+        );
+    }
+
+    /** A paid place is bought, and buying needs an account. On the public page already, so said plainly. */
+    public static function webinarGuestNotAllowed(): self
+    {
+        return new self(
+            'A place at this event has to be bought, which needs an account.',
+            'webinar_guest_not_allowed',
+            Response::HTTP_CONFLICT,
+        );
+    }
+
     public static function webinarFull(): self
     {
         return new self('This webinar has no places left.', 'webinar_full', Response::HTTP_CONFLICT);

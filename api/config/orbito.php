@@ -83,19 +83,41 @@ return [
         'leads_per_minute' => (int) env('RATE_LIMIT_LEADS_PER_MINUTE', 5),
         'leads_per_day' => (int) env('RATE_LIMIT_LEADS_PER_DAY', 50),
         'leads_per_address' => (int) env('RATE_LIMIT_LEADS_PER_ADDRESS', 3),
+        // A guest asking for a webinar place (docs/GUEST_REGISTRATION.md §2), per
+        // IP. The cap on MAIL per address is separate and silent — see below.
+        'guest_registrations_per_minute' => (int) env('RATE_LIMIT_GUEST_REGISTRATIONS_PER_MINUTE', 5),
+        'guest_registrations_per_day' => (int) env('RATE_LIMIT_GUEST_REGISTRATIONS_PER_DAY', 30),
     ],
 
     /*
-    | Lead capture (docs/LEADS.md). A form posted less than `min_seconds`
-    | after it was served was not filled in by a person; one older than
-    | `token_ttl_hours` was abandoned. `consent` is what the form asks people to
+    | Every public form's token (`PublicFormToken`). A form posted less than
+    | `min_seconds` after it was served was not filled in by a person; one
+    | older than `token_ttl_hours` was abandoned.
+    */
+    'public_forms' => [
+        'min_seconds' => (int) env('ORBITO_PUBLIC_FORMS_MIN_SECONDS', 3),
+        'token_ttl_hours' => (int) env('ORBITO_PUBLIC_FORMS_TOKEN_TTL_HOURS', 24),
+    ],
+
+    /*
+    | Lead capture (docs/LEADS.md). `consent` is what the form asks people to
     | agree to, and each lead stores a copy of the words it was shown.
     */
     'leads' => [
-        'min_seconds' => (int) env('ORBITO_LEADS_MIN_SECONDS', 3),
-        'token_ttl_hours' => (int) env('ORBITO_LEADS_TOKEN_TTL_HOURS', 24),
         'consent' => 'I agree to :academy contacting me by email about its courses and events. '
             .'I can ask for my details to be deleted at any time.',
+    ],
+
+    /*
+    | Guest webinar registration (docs/GUEST_REGISTRATION.md). A confirmation
+    | link lives `confirm_ttl_hours`. No more than `mails_per_address` mails go
+    | to one address per academy in `mail_window_minutes` — silently, so the
+    | form's answer never says whether one did.
+    */
+    'guest_registration' => [
+        'confirm_ttl_hours' => (int) env('ORBITO_GUEST_CONFIRM_TTL_HOURS', 24),
+        'mails_per_address' => (int) env('ORBITO_GUEST_MAILS_PER_ADDRESS', 3),
+        'mail_window_minutes' => (int) env('ORBITO_GUEST_MAIL_WINDOW_MINUTES', 60),
     ],
 
     /*

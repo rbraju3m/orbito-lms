@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
@@ -65,10 +66,8 @@ describe('PublicWebinarRoute', () => {
     // The zone is shown beside the time: an event happens at a moment
     // somebody has to be awake for.
     expect(screen.getByText('(Asia/Dhaka)')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /create an account to register/i })).toHaveAttribute(
-      'href',
-      '/register?academy=dhaka-art-school',
-    );
+    // A free event takes a guest: no account, a link by email instead.
+    expect(await screen.findByRole('button', { name: 'Email me a link' })).toBeInTheDocument();
   });
 
   it('says how many places are left, and says when there are none', async () => {
@@ -96,5 +95,33 @@ describe('PublicWebinarRoute', () => {
 
     expect(await screen.findByText('Ticketed')).toBeInTheDocument();
     expect(screen.getByText(/1,500/)).toBeInTheDocument();
+    // Buying needs an account, so a paid event offers no guest form.
+    expect(screen.getByRole('link', { name: /create an account to buy a place/i })).toHaveAttribute(
+      'href',
+      '/register?academy=dhaka-art-school',
+    );
+    expect(screen.queryByRole('button', { name: 'Email me a link' })).toBeNull();
+  });
+
+  it('asks a guest to check their inbox, and says nothing more', async () => {
+    serve();
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(apiUrl(`${ACADEMY}/webinars/open-evening/guest-registrations`), async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ data: { received: true } }, { status: 202 });
+      }),
+    );
+    const user = userEvent.setup();
+
+    renderWithRouter(<PublicWebinarRoute />, { path: PATH, route: ROUTE });
+
+    await user.type(await screen.findByRole('textbox', { name: /email/i }), 'ada@example.test');
+    await user.click(screen.getByRole('button', { name: 'Email me a link' }));
+
+    expect(await screen.findByText(/Check your inbox/)).toBeInTheDocument();
+    expect(bodies).toEqual([
+      { email: 'ada@example.test', name: null, form_token: 'test-form-token', website: '' },
+    ]);
   });
 });
