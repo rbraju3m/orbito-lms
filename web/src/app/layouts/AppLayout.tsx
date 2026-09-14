@@ -12,6 +12,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
+  IconAddressBook,
   IconAward,
   IconBell,
   IconBroadcast,
@@ -134,6 +135,8 @@ const NAV: NavItem[] = [
     anyOf: ['live.provider.manage'],
   },
   { to: '/admin/coupons', label: 'Coupons', icon: IconTicket, anyOf: ['coupon.manage'] },
+  // Strangers who asked to hear from the academy on its public site (docs/LEADS.md).
+  { to: '/admin/leads', label: 'Leads', icon: IconAddressBook, anyOf: ['lead.view'] },
   // Refunds the provider reported that the books could not take in (REFUNDS.md §6).
   {
     to: '/admin/refund-reports',

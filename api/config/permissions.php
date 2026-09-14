@@ -177,6 +177,14 @@ $permissions = [
         'live.provider.manage' => 'Connect a meeting provider',
     ],
 
+    // Leads a stranger left on the public site. Export is separate: every
+    // address in one file is a different amount of personal data to hand out.
+    'content' => [
+        'lead.view' => 'View leads captured on the public site',
+        'lead.manage' => 'Change or delete captured leads',
+        'lead.export' => 'Export captured leads',
+    ],
+
     'analytics' => [
         'analytics.view.own' => 'View analytics in scope',
         'analytics.view.platform' => 'View platform-wide analytics',

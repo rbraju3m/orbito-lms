@@ -157,6 +157,7 @@ not recognise.
 | `certificate.issued` | `CertificateIssued` | `certificate {id, number, issued_at, expires_at}`, `learner`, `course` |
 | `download.granted` | `DownloadGranted` | `download {id, slug, title}`, `learner`, `source`, `granted_at` |
 | `review.published` | `ReviewPublished` | `review {id, rating, title, body, published_at}`, `learner`, `course` |
+| `lead.captured` | `LeadCaptured` | `lead {id, email, name, source, source_title, consent_text, consented_at, captured_at}` — a NEW address only; a repeat submission sends nothing (`LEADS.md` §5) |
 
 `enrollment` is `{id, status, source, enrolled_at, expires_at, completed_at}`.
 

@@ -109,8 +109,9 @@ Bounded contexts: `Identity`, `Catalog`, `Curriculum`, `Assessment`, `Enrollment
 usage counters, which every other context increments) and `Webhook` (outbound
 integrations, ADR-12 — listeners only, on the event catalogue).
 
-Every context is filled in except `Content` and `AI`, which stay empty
-placeholders so the shape of the system is visible before they are built.
+Every context is filled in except `AI`, which stays an empty placeholder so
+the shape of the system is visible before it is built. `Content` holds leads
+and nothing else yet — the blog and the page builder are the rest of it.
 
 ### Rules
 - A controller method is at most ~20 lines: authorize → validate → call Action → return Resource.
@@ -882,6 +883,38 @@ Gate::authorize('publish', $course);                   // in a controller
   is a different fact from a diary entry and one frozen payload cannot say it
   to half a room. The paid one says the place is refundable and who issues it —
   never that a refund is on its way, which cancelling does not start.
+- **An anonymous WRITE needs its own abuse story, in LAYERS.** A per-IP limit
+  is nothing to a botnet, so it is one layer of five. The lead form stacks an
+  encrypted form token (fetch first, wait, one academy's token only), a
+  honeypot, three limits, one row per address (`createOrFirst` on a unique
+  index) and one answer. None suffices alone; each is cheap. Guest
+  registration borrows the SHAPE of `docs/LEADS.md` §2, not its conclusions.
+- **Answer every outcome of an anonymous write identically.** A new lead, an
+  address already on the list, a filled honeypot and a form posted too fast
+  all get one `202`. "Already subscribed" tells a stranger whose address is
+  on the list; "rejected" tells a script which check to beat. The public
+  site's single 404, applied to a write.
+- **A stranger's repeat may move a counter, never a record.** The second
+  submission of an address can be anybody typing it: it fills a blank name
+  and nothing else — not the consent, the source or the status — and fires no
+  event, so a script can neither rewrite a person nor flood a CRM.
+- **Never send mail to an address a stranger typed.** It is the abuse a
+  signup form exists to be used for. That is why a lead has no double opt-in,
+  and why guest registration — which must mail the address — is harder.
+- **Every string in a CSV was typed by somebody.** A cell starting `=`, `+`,
+  `-`, `@`, tab or CR runs in the admin's spreadsheet. `CsvDownload::cell()`
+  defuses it for EVERY export — analytics too, because instructors type
+  course titles — and touches only strings, so a negative figure stays a
+  number.
+- **Erasure is not a write the subscription may block.** "Delete my details"
+  is owed whether or not the academy has paid us: the lead DELETE sits beside
+  the reads and exports, outside `subscription`, and it is a HARD delete —
+  a soft-deleted row is a copy of what somebody asked to be rid of.
+- **Never refetch a form token behind the reader's back.** The server
+  discards a form posted too soon after its token was issued, so
+  `refetchOnWindowFocus` would make a person returning to the tab look like a
+  script. `publicLeadFormQuery` fetches on mount, and again only when the
+  server says the token expired.
 
 ---
 
@@ -981,9 +1014,10 @@ plan limits, bundles, course pricing, digital downloads, upload
 permissions, upload volume limits, outbound webhooks, coupons, refunds,
 provider refund webhooks, Stripe Checkout, refund reports, the studio's
 live-session scheduling, connecting a meeting provider, webinar authoring,
-paid webinars, the webinar cancellation notice and the academy's PUBLIC SITE
-— the first anonymous surface** (§ Patterns established in Phase 16).
-1,432 backend tests / 5,324 assertions · 365 frontend tests.
+paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
+— the first anonymous surface — and LEAD CAPTURE, its first anonymous write**
+(§ Patterns established in Phase 16).
+1,470 backend tests / 5,464 assertions · 373 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1026,15 +1060,20 @@ first and only anonymous surface. It is the thing the rest of this phase was
 waiting on, because a blog, a page builder and a lead form are all pages a
 stranger has to be able to read.
 
+**Lead capture** is that surface's first WRITE: a form on the front page and
+every course page, `/admin/leads`, a formula-safe CSV export and a
+`lead.captured` webhook, under an abuse story of its own (`docs/LEADS.md`).
+
 The obvious next pieces, in the order they unblock each other:
 
-- **Lead capture (O4)** — the first anonymous WRITE, so it needs its own
-  abuse story before it joins that route group: a rate limit per IP is not a
-  spam defence on its own.
 - **Guest webinar registration** — blocked on a mail-only delivery for
   `NotifyOnWebinarCancelled`, because nothing can currently tell an email
   with no account that an event was called off. Registration is already keyed
   on EMAIL so a guest place and a later account cannot become two places.
+  It is the second anonymous write, so it needs an abuse story in the shape
+  of `docs/LEADS.md` §2 — and unlike a lead it must MAIL the address, which
+  is exactly the abuse that document refuses, so it needs a confirmation step
+  with limits of its own.
 - **The blog (O1) and the page builder (O2)** — the `Content` context is
   still an empty placeholder, and the public site is now the surface they
   render on. Both want SEO, which the SPA cannot currently give them: these
@@ -1156,6 +1195,10 @@ Every one of these has already cost time at least once.
   no paginated `/a/:academy/courses`), any SEO or meta tags, and a sitemap —
   the SPA renders these pages client-side, so a crawler sees an empty
   document, which is worth knowing before calling this a marketing surface.
+- **Leads: no CAPTCHA, no double opt-in, no staff digest, and no link to the
+  account a lead later becomes.** Each is in `docs/LEADS.md` §6 with what it
+  would take. `source: webinar` is accepted by the API and not yet placed on
+  the event page.
 - **Invitations are declared and not built.** `RegistrationMode::Invite` exists
   so an academy that wants a controlled roster is not silently given open
   signup; the API refuses it as a value and the UI greys it out. Building it

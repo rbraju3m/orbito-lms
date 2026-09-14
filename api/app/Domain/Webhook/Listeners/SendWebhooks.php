@@ -16,6 +16,7 @@ use App\Domain\Certification\Events\CertificateIssued;
 use App\Domain\Commerce\Events\PaymentCaptured;
 use App\Domain\Commerce\Events\RefundIssued;
 use App\Domain\Commerce\Models\OrderItem;
+use App\Domain\Content\Events\LeadCaptured;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Engagement\Events\ReviewPublished;
 use App\Domain\Enrollment\Events\CourseEnrolled;
@@ -292,6 +293,29 @@ final class SendWebhooks
             'course' => $this->course($submission->course_id),
             'item' => $item !== null ? $this->item($item) : null,
         ];
+    }
+
+    /**
+     * A NEW lead only — a repeat of an address already on the list fires
+     * nothing (`CaptureLead`). The address and the consent wording travel
+     * together, so a receiving system holds the record of what was agreed to.
+     */
+    public function leadCaptured(LeadCaptured $event): void
+    {
+        $lead = $event->lead;
+
+        $this->queue->handle(WebhookTopic::LeadCaptured, fn (): array => [
+            'lead' => [
+                'id' => $lead->uuid,
+                'email' => $lead->email,
+                'name' => $lead->name,
+                'source' => $lead->source->value,
+                'source_title' => $lead->source_title,
+                'consent_text' => $lead->consent_text,
+                'consented_at' => $lead->consented_at->toIso8601String(),
+                'captured_at' => $lead->created_at->toIso8601String(),
+            ],
+        ]);
     }
 
     /**

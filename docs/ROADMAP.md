@@ -1634,8 +1634,33 @@ foundation the blog, the page builder and lead capture all sit on.
   all test long, so a public route tested without it has its `initialize()`
   short-circuited and passes while resolving nothing.
 
+**Lead capture — the public site's first WRITE.** A form on the front page and
+every course sales page, `/admin/leads` to work what arrives, a CSV export and
+a `lead.captured` webhook. `Content` stops being an empty directory.
+
+- **The abuse story is layers, not a limiter** (`LEADS.md` §2). A per-IP limit
+  is nothing to a botnet, so it is one of five: an encrypted form token (fetch
+  the form first, wait, and only the academy that issued it accepts it), an
+  off-screen honeypot, three limits, one row per address, and one answer.
+- **One answer for every outcome.** A new lead, an address already on the
+  list, a filled honeypot and a form posted too fast all get the same `202`.
+  "Already subscribed" would tell a stranger whose address is on an
+  academy's list — the public site's single 404, applied to a write.
+- **One row per address, and a repeat moves a counter.** A unique index and
+  `createOrFirst`, so a race makes one row. A repeat may be anybody typing
+  somebody else's address: it fills a blank name and nothing else, and fires
+  no event, so a script can neither rewrite a person nor flood a CRM.
+- **Nothing is ever mailed to the address.** That is what a signup form gets
+  abused for, which is why there is no double opt-in — named in LEADS.md §6.
+- **The consent is the server's words, stored as shown.** And erasure is a
+  HARD delete outside the subscription gate: "delete my details" is owed
+  whether or not the academy has paid.
+- **Found on the way:** the analytics CSV exports wrote course titles
+  verbatim, so a title starting `=` ran as a formula in whoever opened the
+  file. `CsvDownload` now streams every export and defuses those cells.
+
 Still open in this phase: the blog and page builder (this is their
-foundation), lead capture, guest registration, subscriptions and memberships,
+foundation), guest registration, subscriptions and memberships,
 coaching, multilingual, RTL.
 
 ### Phase 17 — AI

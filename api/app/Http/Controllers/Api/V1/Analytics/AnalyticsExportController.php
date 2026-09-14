@@ -10,21 +10,16 @@ use App\Domain\Analytics\Queries\CourseSeries;
 use App\Domain\Analytics\Queries\FunnelQuery;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Identity\Models\User;
+use App\Support\Http\CsvDownload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use stdClass;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * CSV export.
- *
- * STREAMED, not built in memory: a year of daily rows per course is the sort
- * of thing somebody asks for once and it must not be the request that takes
- * the process down.
- *
- * These are the only endpoints in the API that do not answer in the `{data:…}`
- * envelope, and that is the point — the response is a file, and a spreadsheet
- * cannot unwrap JSON.
+ * CSV export, streamed through `CsvDownload` — which also defuses any cell a
+ * spreadsheet would run as a formula, because every course title in these
+ * files was typed by an instructor.
  */
 final class AnalyticsExportController
 {
@@ -40,7 +35,7 @@ final class AnalyticsExportController
             ->orderBy('date')
             ->cursor();
 
-        return $this->stream(
+        return CsvDownload::stream(
             "orbito-platform-{$range->from->toDateString()}-to-{$range->to->toDateString()}.csv",
             ['date', 'new_users', 'new_enrollments', 'completions', 'revenue_minor', 'currency', 'active_learners'],
             (function () use ($rows): iterable {
@@ -75,7 +70,7 @@ final class AnalyticsExportController
          */
         $rows = $courses->leaderboard($range, $this->visibleCourseIds($request->user()), limit: 1000);
 
-        return $this->stream(
+        return CsvDownload::stream(
             "orbito-courses-{$range->from->toDateString()}-to-{$range->to->toDateString()}.csv",
             ['course', 'slug', 'views', 'enrollments', 'completions', 'revenue_minor'],
             $rows->map(fn (stdClass $row): array => [
@@ -94,7 +89,7 @@ final class AnalyticsExportController
         Gate::authorize('export-analytics');
         Gate::authorize('view-course-analytics', $course);
 
-        return $this->stream(
+        return CsvDownload::stream(
             'orbito-funnel-'.$course->slug.'.csv',
             ['position', 'section', 'item', 'type', 'started', 'completed', 'drop_off_rate', 'avg_seconds'],
             $funnel->forCourse($course)->map(fn (stdClass $row): array => [
@@ -131,41 +126,6 @@ final class AnalyticsExportController
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
             ->all();
-    }
-
-    /**
-     * @param  list<string>  $headers
-     * @param  iterable<int, list<mixed>>  $rows
-     */
-    private function stream(string $filename, array $headers, iterable $rows): StreamedResponse
-    {
-        return response()->streamDownload(function () use ($headers, $rows): void {
-            $handle = fopen('php://output', 'wb');
-
-            if ($handle === false) {
-                return;
-            }
-
-            /*
-             * A UTF-8 BOM. Excel on Windows reads a BOM-less UTF-8 file as
-             * the local codepage, which turns every non-ASCII course title
-             * into mojibake — and this product's first academy is Bengali.
-             */
-            fwrite($handle, "\xEF\xBB\xBF");
-
-            fputcsv($handle, $headers);
-
-            foreach ($rows as $row) {
-                fputcsv($handle, $row);
-            }
-
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            // A CSV is opened by a spreadsheet, and a spreadsheet that renders
-            // it as a page is a support ticket.
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-        ]);
     }
 
     private function range(Request $request): DateRange

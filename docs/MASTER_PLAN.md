@@ -170,11 +170,14 @@ recorded when made elsewhere, whole or partial — takes away what its order
 granted only when it empties the order, and comes off revenue on the day it
 happens, never the day of the sale. See `COUPONS.md` and `REFUNDS.md`.
 
-Still ahead in the phase: subscriptions and memberships,
-coaching, the blog and page builder, multilingual and RTL. It is markedly
-larger than the phases before it, and it is where the
-public marketing surface finally arrives — which is what webinar registration
-and lead capture have both been waiting for.
+**The public site and lead capture have shipped.** An academy's front page,
+course pages and event pages are readable with no account, and a visitor not
+ready to sign up can leave an email — the product's first anonymous write,
+with its own abuse story. See `LEADS.md`.
+
+Still ahead in the phase: guest webinar registration, subscriptions and
+memberships, coaching, the blog and page builder, multilingual and RTL. It is
+markedly larger than the phases before it.
 
 ## 8. Decisions taken
 

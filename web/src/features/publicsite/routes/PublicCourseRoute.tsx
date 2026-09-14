@@ -6,6 +6,7 @@ import { ErrorState, LoadingState } from '@/shared/ui';
 import { formatMinor } from '@/shared/lib/money';
 
 import { publicAcademyQuery, publicCourseQuery } from '../api/queries';
+import { LeadCaptureForm } from '../components/LeadCaptureForm';
 
 /**
  * A course's sales page, readable with no account.
@@ -39,9 +40,7 @@ export function PublicCourseRoute() {
   return (
     <Stack gap="lg" p="md" maw={900} mx="auto">
       <Group gap="xs">
-        {data.category ? (
-          <Badge variant="light">{data.category.name}</Badge>
-        ) : null}
+        {data.category ? <Badge variant="light">{data.category.name}</Badge> : null}
         <Badge variant="outline" color="gray">
           {data.level_label}
         </Badge>
@@ -49,10 +48,16 @@ export function PublicCourseRoute() {
 
       <Stack gap="xs">
         <Title order={1}>{data.title}</Title>
-        {data.subtitle ? <Text size="lg" c="dimmed">{data.subtitle}</Text> : null}
+        {data.subtitle ? (
+          <Text size="lg" c="dimmed">
+            {data.subtitle}
+          </Text>
+        ) : null}
       </Stack>
 
-      {data.thumbnail ? <Image src={data.thumbnail} alt="" radius="md" mah={360} fit="cover" /> : null}
+      {data.thumbnail ? (
+        <Image src={data.thumbnail} alt="" radius="md" mah={360} fit="cover" />
+      ) : null}
 
       {data.description ? <Text>{data.description}</Text> : null}
 
@@ -60,9 +65,7 @@ export function PublicCourseRoute() {
         <Stack gap="sm">
           <Group justify="space-between" align="baseline">
             <Text fw={600} size="lg">
-              {price == null
-                ? 'Free'
-                : formatMinor(price.amount_minor, price.currency)}
+              {price == null ? 'Free' : formatMinor(price.amount_minor, price.currency)}
             </Text>
             {price?.is_on_sale === true && price.list_amount_minor !== null ? (
               <Text size="sm" c="dimmed" td="line-through">
@@ -90,6 +93,15 @@ export function PublicCourseRoute() {
           </Button>
         </Stack>
       </Card>
+
+      {/* For the visitor who is interested and not ready to make an account. */}
+      <LeadCaptureForm
+        academy={academy}
+        source="course"
+        sourceSlug={data.slug}
+        title="Not ready to enrol?"
+        description="Leave your email and we will keep you posted about this course and what else is coming."
+      />
     </Stack>
   );
 }

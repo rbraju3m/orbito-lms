@@ -32,6 +32,7 @@ use App\Domain\Certification\Listeners\RenderPdfOnIssue;
 use App\Domain\Commerce\Events\PaymentCaptured;
 use App\Domain\Commerce\Events\RefundIssued;
 use App\Domain\Commerce\Listeners\SyncProductForPurchasable;
+use App\Domain\Content\Events\LeadCaptured;
 use App\Domain\Curriculum\Events\CurriculumChanged;
 use App\Domain\Curriculum\Listeners\RefreshCourseCurriculumCounters;
 use App\Domain\Engagement\Events\AnnouncementPublished;
@@ -377,6 +378,7 @@ final class EventServiceProvider extends ServiceProvider
         CertificateIssued::class => 'certificateIssued',
         DownloadGranted::class => 'downloadGranted',
         ReviewPublished::class => 'reviewPublished',
+        LeadCaptured::class => 'leadCaptured',
     ];
 
     public function boot(): void

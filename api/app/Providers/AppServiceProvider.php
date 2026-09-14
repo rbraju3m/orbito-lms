@@ -118,6 +118,20 @@ final class AppServiceProvider extends ServiceProvider
             (int) config('orbito.rate_limits.public')
         )->by('ip:'.$request->ip()));
 
+        /*
+         * The lead form — the first anonymous WRITE. A burst and a day per IP,
+         * and a cap per address per academy, so neither one host nor one inbox
+         * can be hammered. Distinct key prefixes: limits sharing a key share a
+         * counter. One layer of docs/LEADS.md §2, not the defence.
+         */
+        RateLimiter::for('leads', fn (Request $request) => [
+            Limit::perMinute((int) config('orbito.rate_limits.leads_per_minute'))->by('ip-minute:'.$request->ip()),
+            Limit::perDay((int) config('orbito.rate_limits.leads_per_day'))->by('ip-day:'.$request->ip()),
+            Limit::perHour((int) config('orbito.rate_limits.leads_per_address'))->by(
+                'address:'.$request->route('academy').':'.strtolower(trim((string) $request->input('email', '')))
+            ),
+        ]);
+
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(
             (int) config('orbito.rate_limits.webhook')
         )->by('ip:'.$request->ip()));

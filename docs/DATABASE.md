@@ -6,8 +6,8 @@ All tables get `id BIGINT UNSIGNED AUTO_INCREMENT`, `created_at`, `updated_at`.
 Public-facing identifiers use a separate `uuid CHAR(36)` or `ulid` where an id must not
 be guessable (certificates, orders, media).
 
-> **Status: mostly built.** Phases 2–15 are migrated; §12's Content half and
-> §14 onward remain a proposal. Column lists are indicative of shape and
+> **Status: mostly built.** Phases 2–15 are migrated; §12's Content half
+> (except `leads`, built in P16) and §14 onward remain a proposal. Column lists are indicative of shape and
 > intent, not exhaustive — **the migrations are authoritative**.
 >
 > Where the built schema DIFFERS from the sketch below, the section says so and
@@ -823,8 +823,19 @@ post_categories / post_tags / post_category / post_tag
 
 pages(id, slug UNIQUE, title, status, seo JSON)
 page_blocks(id, page_id, type, position, props JSON)      -- the page-builder seam
-leads(id, email, name, phone, source, page_id NULL, course_id NULL, meta JSON)
+leads(id, uuid, email UNIQUE, name NULL, status, source ENUM(site,course,webinar),
+      source_id NULL, source_title NULL, consent_text, consented_at,
+      submissions_count, last_submitted_at)          -- BUILT (P16), see below
 ```
+
+**`leads` is built, and differs from the sketch.** No `phone` and no `meta`
+JSON: a stranger's form collects what an academy needs to write back, and a
+free-form column is where personal data goes to be forgotten. No
+`page_id`/`course_id` pair — `source` + `source_id` + a `source_title`
+snapshot, with no foreign key, because deleting a course must not delete the
+person who asked about it. `email` is UNIQUE because one row per address is
+the anti-abuse constraint, the consent wording is stored as the words shown,
+and there is no IP column, on purpose. See `LEADS.md` §2.
 
 **A live session stores an instant AND a zone**, which is the opposite of
 every other dated thing here. Analytics days, streaks and leaderboards are UTC

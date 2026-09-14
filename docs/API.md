@@ -973,6 +973,8 @@ GET /public/{academy}/courses             published + PUBLIC courses, paginated,
 GET /public/{academy}/courses/{slug}      the sales page — published, public or unlisted
 GET /public/{academy}/webinars            published webinars
 GET /public/{academy}/webinars/{slug}     one event's page
+GET /public/{academy}/lead-form          a lead form's token and consent wording (no-store)
+POST /public/{academy}/leads             the ONE anonymous write — LEADS.md
 ```
 
 The **only anonymous surface** in the API, and the reason it is its own
@@ -992,12 +994,27 @@ namespace rather than a relaxation of `/courses`:
 - **An unknown academy and a closed one return the SAME 404.** Anything more
   specific is an oracle for which academies exist and which were suspended,
   and both are reachable by anybody on the internet.
-- **It writes nothing.** Lead capture and guest registration will write, and
-  each needs its own abuse story before it joins this group — a guest place at
-  a webinar also needs a mail-only notification, because nothing can currently
-  tell an email with no account that an event was called off.
+- **It writes ONE thing: a lead.** `POST leads` stores what a stranger typed
+  under an abuse story of its own (`LEADS.md` §2) — an encrypted form token, a
+  honeypot, three limits, one row per address, and the same `202` whatever
+  happened, so the answer never says whose address is already on the list.
+  Guest webinar registration will be the second write and needs its own story,
+  plus a mail-only notification, because nothing can currently tell an email
+  with no account that an event was called off.
 - **Throttled per IP, not per academy** (`public`, 90/min): a bucket shared by
   everybody reading one academy's site would let a script take that site down.
+
+### Leads — live (P16)
+```
+GET    /admin/leads?status=&q=      lead.view   — newest activity first; meta.can_manage, meta.can_export
+GET    /admin/leads/export          lead.export — CSV, the same filters, formula-safe cells
+PATCH  /admin/leads/{uuid}          lead.manage — {status: new | contacted | archived}
+DELETE /admin/leads/{uuid}          lead.manage — a HARD delete, outside the subscription gate
+```
+
+What a stranger posts, the lead's shape, and why every submission gets the
+same answer: `LEADS.md`. Erasure is not gated on the subscription because
+"delete my details" has to be honoured whether or not the academy has paid.
 
 ### Settings — planned
 ```
@@ -1019,6 +1036,7 @@ GET    /admin/settings · PATCH /admin/settings
 | Authenticated default | 120/min per user |
 | Unauthenticated default | 60/min per IP |
 | `/public/{academy}/*` | 90/min per IP — the marketing surface, and deliberately not bucketed per academy |
+| `POST /public/{academy}/leads` | 5/min and 50/day per IP, and 3/hour per address per academy, on top of `public` — one layer of `LEADS.md` §2, not the defence |
 
 `429` returns `Retry-After` and `X-RateLimit-*`.
 

@@ -480,6 +480,12 @@ export const handlers = [
   http.get(apiUrl('/auth/me'), () => anonymousSession()),
 
   http.get(`${API_BASE_URL}/sanctum/csrf-cookie`, () => new HttpResponse(null, { status: 204 })),
+  // Every public page with a lead form asks for one; a test about the form overrides this.
+  http.get(`${API_BASE_URL}/api/v1/public/:academy/lead-form`, () =>
+    HttpResponse.json({
+      data: { token: 'test-lead-token', consent_text: 'I agree to be contacted by email.' },
+    }),
+  ),
 
   http.get(apiUrl('/health'), () =>
     HttpResponse.json({

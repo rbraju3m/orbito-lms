@@ -60,9 +60,8 @@ export const adminRoutes: RouteObject[] = [
           {
             path: 'admin/certificate-templates',
             lazy: async () => ({
-              Component: (
-                await import('@/features/certification/routes/CertificateTemplatesRoute')
-              ).CertificateTemplatesRoute,
+              Component: (await import('@/features/certification/routes/CertificateTemplatesRoute'))
+                .CertificateTemplatesRoute,
             }),
           },
         ],
@@ -139,6 +138,18 @@ export const adminRoutes: RouteObject[] = [
             path: 'admin/coupons',
             lazy: async () => ({
               Component: (await import('@/features/commerce/routes/CouponsRoute')).CouponsRoute,
+            }),
+          },
+        ],
+      },
+      // Strangers who asked to hear from the academy on its public site (docs/LEADS.md).
+      {
+        element: <RequirePermission anyOf={['lead.view']} />,
+        children: [
+          {
+            path: 'admin/leads',
+            lazy: async () => ({
+              Component: (await import('@/features/content/routes/LeadsRoute')).LeadsRoute,
             }),
           },
         ],

@@ -6,6 +6,7 @@ import { CourseCard } from '@/features/catalog/components/CourseCard';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
 
 import { publicAcademyQuery, publicCoursesQuery, publicWebinarsQuery } from '../api/queries';
+import { LeadCaptureForm } from '../components/LeadCaptureForm';
 
 /**
  * An academy's front page, to a stranger.
@@ -119,6 +120,12 @@ export function AcademyHomeRoute() {
           </SimpleGrid>
         </Stack>
       ) : null}
+
+      <LeadCaptureForm
+        academy={academy}
+        source="site"
+        description="Leave your email and we will tell you when new courses and events are announced."
+      />
     </Stack>
   );
 }

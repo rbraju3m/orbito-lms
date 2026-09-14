@@ -354,7 +354,7 @@ still agree to the minor unit. `CouponRevenueTest` asserts it.
 | O1 | Blog (posts, categories, tags, authors, SEO) | — (WP native) | Yes | P16 | |
 | O2 | Page builder (block-based) | Via WP builders | Yes | P16 | Architecture only in P1 |
 | O3 | Landing / course sales page templates | Themes | Yes | **P16 · partial** | The academy's public site at `/a/:academy` — its own header, a course grid, a course sales page and an event page, readable with no account (`/api/v1/public/{academy}`, the first anonymous surface). Not yet templated or authorable: the layout is fixed and the copy is the academy's name plus its catalogue |
-| O4 | Lead capture forms | — | Yes | P16 | |
+| O4 | Lead capture forms | — | Yes | **P16** | A form on the public front page and every course sales page; `/admin/leads` to work them, a formula-safe CSV export and a `lead.captured` webhook. The first anonymous WRITE, so it ships with its own abuse story (`LEADS.md` §2): encrypted form token, honeypot, three limits, one row per address, one answer for every outcome. No CAPTCHA, no double opt-in, no staff digest yet |
 | O5 | Multilingual UI | Core (i18n) | Upcoming | **P4 · M** (foundation) | i18n from day one |
 | O6 | Multilingual content (course translations) | Requires plugin | Upcoming | P16 | Model designed in P1 |
 | O7 | Light / dark / system theme | Core | — | **P2 · M** | |

@@ -77,6 +77,25 @@ return [
         // handful of calls and a crawler makes many; this is generous enough
         // for a real visitor and finite for a script.
         'public' => (int) env('RATE_LIMIT_PUBLIC', 90),
+        // The lead form, the first anonymous WRITE (docs/LEADS.md §2): a burst
+        // and a day per IP, and a cap per address per academy. One layer of
+        // the defence, not the defence.
+        'leads_per_minute' => (int) env('RATE_LIMIT_LEADS_PER_MINUTE', 5),
+        'leads_per_day' => (int) env('RATE_LIMIT_LEADS_PER_DAY', 50),
+        'leads_per_address' => (int) env('RATE_LIMIT_LEADS_PER_ADDRESS', 3),
+    ],
+
+    /*
+    | Lead capture (docs/LEADS.md). A form posted less than `min_seconds`
+    | after it was served was not filled in by a person; one older than
+    | `token_ttl_hours` was abandoned. `consent` is what the form asks people to
+    | agree to, and each lead stores a copy of the words it was shown.
+    */
+    'leads' => [
+        'min_seconds' => (int) env('ORBITO_LEADS_MIN_SECONDS', 3),
+        'token_ttl_hours' => (int) env('ORBITO_LEADS_TOKEN_TTL_HOURS', 24),
+        'consent' => 'I agree to :academy contacting me by email about its courses and events. '
+            .'I can ask for my details to be deleted at any time.',
     ],
 
     /*

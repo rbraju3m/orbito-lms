@@ -74,6 +74,7 @@ is worth less than one that says "this came out differently, and here is why".
 | `WEBHOOKS.md` | **built** — the integrator's reference: the envelope, verifying the signature, retries, every topic's payload, and where requests may never go |
 | `COUPONS.md` | **built** — one set of rules for the basket and the checkout, the discount split across lines, and when a use counts |
 | `REFUNDS.md` | **built** — claim, move, complete; what a refund does to access, to coupons and to the revenue reports |
+| `LEADS.md` | **built** — the public lead form, the first anonymous write: its abuse story in layers, why every submission gets one answer, consent, erasure and the admin side |
 | `RUNNING.md` | current — run it locally and sign in, on one page |
 | `TESTING.md` | current, including the Playwright gap and why the suite has its own tenant prefix |
 | `ROLES_PERMISSIONS.md` | current — the policy table, the two unrelated "super admins", and §7 on the permanent owner |
@@ -104,7 +105,8 @@ is worth less than one that says "this came out differently, and here is why".
 14. [`TESTING.md`](TESTING.md) — test strategy, tooling, CI
 15. One per Phase 16 slice, written with the code: [`BUNDLES.md`](BUNDLES.md) ·
     [`DOWNLOADS.md`](DOWNLOADS.md) · [`WEBHOOKS.md`](WEBHOOKS.md) ·
-    [`COUPONS.md`](COUPONS.md) · [`REFUNDS.md`](REFUNDS.md)
+    [`COUPONS.md`](COUPONS.md) · [`REFUNDS.md`](REFUNDS.md) ·
+    [`LEADS.md`](LEADS.md)
 
 **Before writing any code** → [`../CLAUDE.md`](../CLAUDE.md)
 

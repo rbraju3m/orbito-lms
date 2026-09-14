@@ -33,4 +33,5 @@ Route::prefix('v1')->group(function (): void {
     require __DIR__.'/api/live.php';
     require __DIR__.'/api/platform.php';
     require __DIR__.'/api/webhook.php';
+    require __DIR__.'/api/content.php';
 });

@@ -17,4 +17,5 @@ export const publicKeys = {
   webinars: (academy: string) => [...publicKeys.academy(academy), 'webinars'] as const,
   webinar: (academy: string, slug: string) =>
     [...publicKeys.academy(academy), 'webinar', slug] as const,
+  leadForm: (academy: string) => [...publicKeys.academy(academy), 'lead-form'] as const,
 };
