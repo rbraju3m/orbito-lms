@@ -1069,7 +1069,7 @@ live-session scheduling, connecting a meeting provider, webinar authoring,
 paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
 GUEST WEBINAR REGISTRATION, its second, the BLOG and the PAGE BUILDER**.
-1,520 backend tests / 5,770 assertions · 411 frontend tests.
+1,520 backend tests / 5,770 assertions · 413 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
