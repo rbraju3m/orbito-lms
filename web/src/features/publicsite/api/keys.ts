@@ -24,4 +24,7 @@ export const publicKeys = {
   post: (academy: string, slug: string) => [...publicKeys.academy(academy), 'post', slug] as const,
   guestPlace: (academy: string, token: string) =>
     [...publicKeys.academy(academy), 'guest-place', token] as const,
+  page: (academy: string, slug: string) => [...publicKeys.academy(academy), 'page', slug] as const,
+  home: (academy: string) => [...publicKeys.academy(academy), 'home'] as const,
+  navigation: (academy: string) => [...publicKeys.academy(academy), 'navigation'] as const,
 };

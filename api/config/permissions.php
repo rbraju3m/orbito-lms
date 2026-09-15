@@ -185,6 +185,8 @@ $permissions = [
         'lead.export' => 'Export captured leads',
         // The academy's blog, which speaks for the academy on its public site.
         'post.manage' => 'Write, publish and delete blog posts',
+        // Pages built from blocks, including the site's front page.
+        'page.manage' => 'Build, publish and delete site pages',
     ],
 
     'analytics' => [

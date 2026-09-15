@@ -17,8 +17,8 @@ is still members-only. `CLAUDE.md` § Multi-tenancy carries the three ways a
 route with no user can resolve an academy, and why they are not
 interchangeable.
 
-1,432 backend tests / 5,324 assertions · 365 frontend tests · Pint, PHPStan
-level 6, oxlint, tsc and build all clean · first-paint JS 249.68 KB of a
+1,520 backend tests / 5,770 assertions · 411 frontend tests · Pint, PHPStan
+level 6, oxlint, tsc and build all clean · first-paint JS 250.01 KB of a
 255 KB budget.
 
 Audit, architecture, foundation, identity, course management, the curriculum
@@ -77,7 +77,7 @@ is worth less than one that says "this came out differently, and here is why".
 | `LEADS.md` | **built** — the public lead form, the first anonymous write: its abuse story in layers, why every submission gets one answer, consent, erasure and the admin side |
 | `GUEST_REGISTRATION.md` | **built** — a webinar place with no account: why the mailbox is the write, the silent mail cap, the purpose-bound tokens, and how a guest is reminded and told |
 | `BLOG.md` | **built** — the academy's blog: drafts, scheduling by the clock, the locked address, sanitised HTML, and why the public site stays client-rendered |
-| `PAGES.md` | **written, not yet committed** — the page builder: a closed set of blocks saved as one list, resolved with the public scopes, one front page as a constraint |
+| `PAGES.md` | the page builder: a closed set of blocks saved as one list, resolved with the public scopes, one front page as a constraint |
 | `RUNNING.md` | current — run it locally and sign in, on one page |
 | `TESTING.md` | current, including the Playwright gap and why the suite has its own tenant prefix |
 | `ROLES_PERMISSIONS.md` | current — the policy table, the two unrelated "super admins", and §7 on the permanent owner |

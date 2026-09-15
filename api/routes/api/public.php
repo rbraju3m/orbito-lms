@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\PublicSite\CourseController;
 use App\Http\Controllers\Api\V1\PublicSite\FormTokenController;
 use App\Http\Controllers\Api\V1\PublicSite\GuestRegistrationController;
 use App\Http\Controllers\Api\V1\PublicSite\LeadController;
+use App\Http\Controllers\Api\V1\PublicSite\PageController;
 use App\Http\Controllers\Api\V1\PublicSite\PostController;
 use App\Http\Controllers\Api\V1\PublicSite\WebinarController;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,11 @@ Route::prefix('public/{academy}')
         // The blog: published posts whose time has come (docs/BLOG.md).
         Route::get('posts', [PostController::class, 'index'])->name('posts.index');
         Route::get('posts/{slug}', [PostController::class, 'show'])->name('posts.show');
+
+        // Built pages, the chosen front page and the header's links (docs/PAGES.md).
+        Route::get('home', [PageController::class, 'home'])->name('home');
+        Route::get('navigation', [PageController::class, 'navigation'])->name('navigation');
+        Route::get('pages/{slug}', [PageController::class, 'show'])->name('pages.show');
 
         /*
          * Lead capture — the one anonymous WRITE (docs/LEADS.md). The form is

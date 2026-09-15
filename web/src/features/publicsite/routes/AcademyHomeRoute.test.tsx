@@ -23,10 +23,14 @@ function academy(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function serve(options: { courses?: unknown[]; webinars?: unknown[]; site?: Record<string, unknown> } = {}) {
+function serve(
+  options: { courses?: unknown[]; webinars?: unknown[]; site?: Record<string, unknown> } = {},
+) {
   server.use(
     http.get(apiUrl(ACADEMY), () => HttpResponse.json({ data: academy(options.site) })),
-    http.get(apiUrl(`${ACADEMY}/courses`), () => HttpResponse.json(paginated(options.courses ?? []))),
+    http.get(apiUrl(`${ACADEMY}/courses`), () =>
+      HttpResponse.json(paginated(options.courses ?? [])),
+    ),
     http.get(apiUrl(`${ACADEMY}/webinars`), () =>
       HttpResponse.json(paginated(options.webinars ?? [])),
     ),
@@ -67,7 +71,14 @@ describe('AcademyHomeRoute', () => {
     server.use(
       http.get(apiUrl(ACADEMY), () =>
         HttpResponse.json(
-          { error: { code: 'not_found', message: 'Resource not found.', details: [], request_id: 'X' } },
+          {
+            error: {
+              code: 'not_found',
+              message: 'Resource not found.',
+              details: [],
+              request_id: 'X',
+            },
+          },
           { status: 404 },
         ),
       ),
@@ -84,9 +95,7 @@ describe('AcademyHomeRoute', () => {
     server.use(
       http.get(apiUrl(ACADEMY), () => HttpResponse.json({ data: academy() })),
       http.get(apiUrl(`${ACADEMY}/courses`), () =>
-        HttpResponse.json(
-          paginated([courseFixture({ status: 'published', title: 'Still here' })]),
-        ),
+        HttpResponse.json(paginated([courseFixture({ status: 'published', title: 'Still here' })])),
       ),
       http.get(apiUrl(`${ACADEMY}/webinars`), () =>
         HttpResponse.json(
@@ -101,5 +110,29 @@ describe('AcademyHomeRoute', () => {
     // A marketing page that blanks itself because one panel failed is worse
     // than one that shows most of itself.
     expect(await screen.findByText('Still here')).toBeInTheDocument();
+  });
+
+  it('shows the front page the academy built instead of the standard one', async () => {
+    serve();
+    server.use(
+      http.get(apiUrl(`${ACADEMY}/home`), () =>
+        HttpResponse.json({
+          data: {
+            id: 'pg',
+            slug: 'welcome',
+            title: 'Welcome',
+            seo_title: null,
+            seo_description: null,
+            blocks: [{ id: 'b', type: 'heading', props: { text: 'Paint with us', level: 2 } }],
+          },
+        }),
+      ),
+    );
+
+    renderWithRouter(<AcademyHomeRoute />, { path: PATH, route: ROUTE });
+
+    expect(await screen.findByRole('heading', { name: 'Paint with us' })).toBeInTheDocument();
+    // The standard page's course list is not drawn behind it.
+    expect(screen.queryByRole('heading', { name: 'Courses' })).toBeNull();
   });
 });

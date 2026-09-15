@@ -3,9 +3,9 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
-**Where it stands during Phase 16:** 1,432 backend tests / 5,324 assertions
-(1 skipped) · 365 frontend tests across 67 files · PHPStan level 6 clean ·
-Pint, oxlint, `tsc` and `vite build` clean · first-paint JS 249.68 KB against
+**Where it stands during Phase 16:** 1,520 backend tests / 5,770 assertions
+(1 skipped) · 411 frontend tests across 82 files · PHPStan level 6 clean ·
+Pint, oxlint, `tsc` and `vite build` clean · first-paint JS 250.01 KB against
 a 255 KB budget (`npm run size`, which is the only comparable measurement).
 
 **Playwright specs exist for phases 2 and 3 only** — two files, `auth.spec.ts`

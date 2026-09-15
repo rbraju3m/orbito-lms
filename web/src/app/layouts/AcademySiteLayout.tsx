@@ -2,6 +2,7 @@ import { AppShell, Button, Group, Image, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Outlet, useParams } from 'react-router';
 
+import { publicNavigationQuery } from '@/features/publicsite/api/pages';
 import { publicAcademyQuery } from '@/features/publicsite/api/queries';
 import { ThemeToggle } from '@/shared/ui';
 
@@ -20,6 +21,8 @@ import { ThemeToggle } from '@/shared/ui';
 export function AcademySiteLayout() {
   const { academy = '' } = useParams();
   const { data } = useQuery(publicAcademyQuery(academy));
+  // The pages the academy linked from its header (docs/PAGES.md).
+  const navigation = useQuery(publicNavigationQuery(academy));
 
   return (
     <AppShell header={{ height: 56 }} padding="md">
@@ -40,6 +43,17 @@ export function AcademySiteLayout() {
           </Link>
 
           <Group gap="sm">
+            {(navigation.data ?? []).map((link) => (
+              <Button
+                key={link.slug}
+                component={Link}
+                to={`/a/${academy}/p/${link.slug}`}
+                variant="subtle"
+                size="sm"
+              >
+                {link.title}
+              </Button>
+            ))}
             <Button component={Link} to={`/a/${academy}/blog`} variant="subtle" size="sm">
               Blog
             </Button>

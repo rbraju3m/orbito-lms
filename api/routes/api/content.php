@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Content\LeadController;
+use App\Http\Controllers\Api\V1\Content\PageController;
+use App\Http\Controllers\Api\V1\Content\PageStatusController;
 use App\Http\Controllers\Api\V1\Content\PostController;
 use App\Http\Controllers\Api\V1\Content\PostStatusController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +35,10 @@ Route::middleware(['auth:sanctum', 'tenant'])
         // The blog, read by its authors — drafts and scheduled posts included.
         Route::get('posts', [PostController::class, 'index'])->name('posts.index');
         Route::get('posts/{post}', [PostController::class, 'show'])->name('posts.show');
+
+        // Built pages, read by their builders (docs/PAGES.md).
+        Route::get('pages', [PageController::class, 'index'])->name('pages.index');
+        Route::get('pages/{page}', [PageController::class, 'show'])->name('pages.show');
     });
 
 Route::middleware(['auth:sanctum', 'tenant', 'subscription'])
@@ -49,4 +55,17 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])
         Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
         Route::post('posts/{post}/publish', [PostStatusController::class, 'publish'])->name('posts.publish');
         Route::post('posts/{post}/unpublish', [PostStatusController::class, 'unpublish'])->name('posts.unpublish');
+
+        /*
+         * Building pages (docs/PAGES.md). The block list is PUT whole — there
+         * is no endpoint that moves one block (§ Patterns established in Phase 5).
+         */
+        Route::post('pages', [PageController::class, 'store'])->name('pages.store');
+        Route::patch('pages/{page}', [PageController::class, 'update'])->name('pages.update');
+        Route::put('pages/{page}/blocks', [PageController::class, 'blocks'])->name('pages.blocks');
+        Route::delete('pages/{page}', [PageController::class, 'destroy'])->name('pages.destroy');
+        Route::post('pages/{page}/publish', [PageStatusController::class, 'publish'])->name('pages.publish');
+        Route::post('pages/{page}/unpublish', [PageStatusController::class, 'unpublish'])->name('pages.unpublish');
+        Route::post('pages/{page}/home', [PageStatusController::class, 'makeHome'])->name('pages.home');
+        Route::delete('pages/{page}/home', [PageStatusController::class, 'clearHome'])->name('pages.home.clear');
     });

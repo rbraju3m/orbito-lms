@@ -110,8 +110,8 @@ usage counters, which every other context increments) and `Webhook` (outbound
 integrations, ADR-12 — listeners only, on the event catalogue).
 
 Every context is filled in except `AI`, which stays an empty placeholder so
-the shape of the system is visible before it is built. `Content` holds leads
-and the blog; the page builder is written and NOT yet committed (§ Current phase).
+the shape of the system is visible before it is built. `Content` holds leads,
+the blog and the page builder.
 
 ### Rules
 - A controller method is at most ~20 lines: authorize → validate → call Action → return Resource.
@@ -1068,10 +1068,8 @@ provider refund webhooks, Stripe Checkout, refund reports, the studio's
 live-session scheduling, connecting a meeting provider, webinar authoring,
 paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
-GUEST WEBINAR REGISTRATION, its second, and the BLOG**. The PAGE BUILDER is
-written and NOT committed — see the stop point below (§ Patterns established in
-Phase 16).
-1,503 backend tests / 5,695 assertions · 396 frontend tests.
+GUEST WEBINAR REGISTRATION, its second, the BLOG and the PAGE BUILDER**.
+1,520 backend tests / 5,770 assertions · 411 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1079,33 +1077,9 @@ touching anything.
 
 ### What to do next
 
-**0. STOP POINT — the page builder (O2) is in the working tree, uncommitted.**
-Work was halted on purpose mid-verification on 2026-09-15. Everything for O2 is
-written — backend, frontend, tests, `docs/PAGES.md` and the doc updates — and
-the last COMMITTED slice is the blog (`4e61c6f`, pushed). The test counts in
-this section are the blog's. What was verified, and what is left, in order:
-
-- **Verified:** targeted backend tests pass — `tests/Feature/Content`,
-  `tests/Feature/PublicSite`, `tests/Feature/Media`, 132 tests — and Pint is
-  clean. Frontend Vitest passes, 75/75 across `features/content`,
-  `features/publicsite` and `app`; oxlint is clean.
-- **Fix — PHPStan, 1 error:** `app/Domain/Content/Queries/PageRenderer.php:163`.
-  `whereHas('session', fn (Builder $session) => $session->upcoming())` is typed
-  `Builder<Model>`, which has no `upcoming()`. Annotate the closure parameter as
-  `Builder<LiveSession>`, or inline the scope's two conditions.
-- **Fix — frontend typecheck, 4 errors, all in tests:**
-  `features/content/routes/PageBuilderRoute.test.tsx` lines 64, 65 and 94 — a
-  `let sent: T | null = null` assigned inside an MSW handler narrows to `never`;
-  collect into an array instead (`const bodies: T[] = []`), as
-  `LeadCaptureForm.test.tsx` does. `features/publicsite/components/PageBlocks.test.tsx`
-  line 42 — `courseFixture()` lacks `ref` and `price` for `CourseListItem`; pass
-  them in the fixture call.
-- **Then:** `composer check` (the full suite, ~20 min), `npm run check` and
-  `npm run size`; update the test counts above; commit the O2 slice on `main`.
-  The page-builder retro in `docs/ROADMAP.md` is the commit body.
-- **Never checked in a browser:** lead capture, guest registration, the blog
-  and the page builder — light and dark, 360px, keyboard. Worth one pass before
-  calling Phase 16's public site finished.
+**0. Check the public site in a browser.** Lead capture, guest registration,
+the blog and the page builder have never been opened in one — light and dark,
+360px, keyboard. Worth one pass before calling Phase 16's public site finished.
 
 **1. One Stripe sandbox payment.** Every MVP phase has shipped, but the MVP is
 not signed off: its own definition (`docs/ROADMAP.md` §3) says a student "buys
@@ -1158,8 +1132,9 @@ by mail, each with a manage link to join or give the place up
 (`docs/BLOG.md` §5) — pages set their own title and description tags, and a
 crawler that runs no JavaScript sees an empty document.
 
-**The page builder** (`docs/PAGES.md`) is WRITTEN BUT NOT COMMITTED — see the
-stop point at the top of "What to do next".
+**The page builder** (`docs/PAGES.md`) makes that surface authorable: pages of
+blocks at `/admin/pages`, read at `/a/:academy/p/:slug`, one of which can be
+the site's front page.
 
 The obvious next pieces, in the order they unblock each other:
 
@@ -1328,7 +1303,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 249.68. It had crept to 250.91 — nav icons
+  purpose**, and first paint is 250.01. It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

@@ -27,6 +27,7 @@ import {
   IconFileDownload,
   IconFiles,
   IconLayoutDashboard,
+  IconLayoutGrid,
   IconLogout,
   IconCertificate,
   IconCertificate2,
@@ -137,6 +138,7 @@ const NAV: NavItem[] = [
   },
   { to: '/admin/coupons', label: 'Coupons', icon: IconTicket, anyOf: ['coupon.manage'] },
   // Strangers who asked to hear from the academy on its public site (docs/LEADS.md).
+  { to: '/admin/pages', label: 'Pages', icon: IconLayoutGrid, anyOf: ['page.manage'] },
   { to: '/admin/posts', label: 'Blog', icon: IconArticle, anyOf: ['post.manage'] },
   { to: '/admin/leads', label: 'Leads', icon: IconAddressBook, anyOf: ['lead.view'] },
   // Refunds the provider reported that the books could not take in (REFUNDS.md §6).

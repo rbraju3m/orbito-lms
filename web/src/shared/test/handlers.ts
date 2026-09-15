@@ -480,6 +480,16 @@ export const handlers = [
   http.get(apiUrl('/auth/me'), () => anonymousSession()),
 
   http.get(`${API_BASE_URL}/sanctum/csrf-cookie`, () => new HttpResponse(null, { status: 204 })),
+  // No built front page and no header links, unless a test serves some (docs/PAGES.md).
+  http.get(`${API_BASE_URL}/api/v1/public/:academy/home`, () =>
+    HttpResponse.json(
+      { error: { code: 'not_found', message: 'Not found.', details: [], request_id: 'test' } },
+      { status: 404 },
+    ),
+  ),
+  http.get(`${API_BASE_URL}/api/v1/public/:academy/navigation`, () =>
+    HttpResponse.json({ data: [] }),
+  ),
   // The guest registration form on a free event page asks for one.
   http.get(`${API_BASE_URL}/api/v1/public/:academy/form-token`, () =>
     HttpResponse.json({ data: { token: 'test-form-token' } }),

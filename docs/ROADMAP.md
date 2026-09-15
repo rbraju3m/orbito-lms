@@ -20,7 +20,7 @@ both need credentials rather than code:
 |---|---|
 | Backend | 1,432 Pest tests / 5,324 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
 | Frontend | 365 Vitest tests across 67 files · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS **249.68 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
+| Budget | first-paint JS **250.01 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~20 minutes on a quiet machine (18–26 across Phase 16's later runs), up from ~2 — provisioning tests build real schemas |
 
@@ -1699,9 +1699,7 @@ Posts written at `/admin/posts` and read by anybody at `/a/:academy/blog`.
 - **Reading time counts Unicode words**, because `str_word_count` would read a
   Bengali post as nearly empty.
 
-**The page builder (O2) — the public site becomes authorable.** *(WRITTEN, NOT
-YET COMMITTED — `CLAUDE.md` § Current phase has the stop point and the two
-fixes left.)* Pages of
+**The page builder (O2) — the public site becomes authorable.** Pages of
 blocks at `/a/:academy/p/:slug`, one of which can be the site's front page.
 
 - **A closed set of block types.** No custom HTML and no embeds: every type is

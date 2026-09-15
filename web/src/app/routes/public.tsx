@@ -36,6 +36,13 @@ export const publicSiteRoutes: RouteObject[] = [
             .PublicCourseRoute,
         }),
       },
+      // Built pages (docs/PAGES.md). `p/` keeps a page slug from ever meeting a section's name.
+      {
+        path: 'p/:slug',
+        lazy: async () => ({
+          Component: (await import('@/features/publicsite/routes/PublicPageRoute')).PublicPageRoute,
+        }),
+      },
       // The academy's blog (docs/BLOG.md).
       {
         path: 'blog',

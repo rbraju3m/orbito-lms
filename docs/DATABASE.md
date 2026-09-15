@@ -7,7 +7,7 @@ Public-facing identifiers use a separate `uuid CHAR(36)` or `ulid` where an id m
 be guessable (certificates, orders, media).
 
 > **Status: mostly built.** Phases 2–15 are migrated; §12's Content half
-> (except `leads` and `posts`, built in P16, and `pages`, written and not yet committed) and §14 onward remain a proposal. Column lists are indicative of shape and
+> (except `leads`, `posts` and `pages`, built in P16) and §14 onward remain a proposal. Column lists are indicative of shape and
 > intent, not exhaustive — **the migrations are authoritative**.
 >
 > Where the built schema DIFFERS from the sketch below, the section says so and
@@ -832,7 +832,7 @@ post_categories / post_tags / post_category / post_tag      -- not built
 
 pages(id, uuid, slug UNIQUE, author_id, title, blocks JSON, status ENUM(draft,published),
       published_at NULL, show_in_nav, home_key NULL UNIQUE, seo_title NULL,
-      seo_description NULL)                                 -- WRITTEN (P16), NOT YET COMMITTED
+      seo_description NULL)                                 -- BUILT (P16)
 -- DIFFERS FROM THE SKETCH: no `page_blocks` table. The blocks are a JSON LIST
 -- on the page — saved whole every time, never queried into, and a `position`
 -- column would be a second ordering to keep consistent. `home_key` is 'home'

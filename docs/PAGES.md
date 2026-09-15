@@ -1,10 +1,5 @@
 # PAGES.md — The page builder (O2)
 
-> **Status: written, NOT yet committed.** Verification was halted on purpose;
-> `CLAUDE.md` § Current phase lists what passed, the two small fixes left (one
-> PHPStan error, four test typings) and the steps to commit. This document
-> describes the design as written.
-
 An academy builds pages for its public site out of blocks — a heading, some
 text, an image, a button, a grid of chosen courses, the next few events, the
 latest posts, a stay-in-touch form — and publishes them at

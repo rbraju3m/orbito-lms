@@ -1012,7 +1012,7 @@ namespace rather than a relaxation of `/courses`:
 - **Throttled per IP, not per academy** (`public`, 90/min): a bucket shared by
   everybody reading one academy's site would let a script take that site down.
 
-### Pages — in progress (P16, written and not yet committed)
+### Pages — live (P16)
 ```
 GET    /admin/pages                   no blocks in the list
 GET    /admin/pages/{uuid}            rendered blocks + authoring keys

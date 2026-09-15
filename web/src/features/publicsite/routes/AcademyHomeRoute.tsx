@@ -5,7 +5,9 @@ import { Link, useParams } from 'react-router';
 import { CourseCard } from '@/features/catalog/components/CourseCard';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
 
+import { publicHomePageQuery } from '../api/pages';
 import { publicAcademyQuery, publicCoursesQuery, publicWebinarsQuery } from '../api/queries';
+import { PageBlocks } from '../components/PageBlocks';
 import { LeadCaptureForm } from '../components/LeadCaptureForm';
 
 /**
@@ -24,9 +26,36 @@ import { LeadCaptureForm } from '../components/LeadCaptureForm';
 export function AcademyHomeRoute() {
   const { academy = '' } = useParams();
 
+  /*
+   * The front page the academy BUILT, when it chose and published one
+   * (docs/PAGES.md §4). A failure to load it is not a reason to show nothing:
+   * the standard front page below is always there to fall back to, and its
+   * own queries run only when it is the page being shown.
+   */
+  const home = useQuery(publicHomePageQuery(academy));
+  const standard = home.isError || (home.isSuccess && home.data === null);
+
   const academyQuery = useQuery(publicAcademyQuery(academy));
-  const courses = useQuery(publicCoursesQuery(academy));
-  const webinars = useQuery(publicWebinarsQuery(academy));
+  const courses = useQuery({ ...publicCoursesQuery(academy), enabled: standard });
+  const webinars = useQuery({ ...publicWebinarsQuery(academy), enabled: standard });
+
+  if (home.isPending) {
+    return <LoadingState label="Loading" />;
+  }
+
+  if (home.data) {
+    const headline = home.data.seo_title ?? home.data.title;
+
+    return (
+      <Stack gap="lg" p="md" maw={960} mx="auto">
+        <title>{academyQuery.data ? `${headline} — ${academyQuery.data.name}` : headline}</title>
+        {home.data.seo_description ? (
+          <meta name="description" content={home.data.seo_description} />
+        ) : null}
+        <PageBlocks academy={academy} blocks={home.data.blocks} />
+      </Stack>
+    );
+  }
 
   if (academyQuery.isPending) {
     return <LoadingState label="Loading" />;

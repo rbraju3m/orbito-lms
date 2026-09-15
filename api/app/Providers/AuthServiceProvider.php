@@ -27,8 +27,10 @@ use App\Domain\Commerce\Policies\CouponPolicy;
 use App\Domain\Commerce\Policies\OrderPolicy;
 use App\Domain\Commerce\Policies\PaymentEventPolicy;
 use App\Domain\Content\Models\Lead;
+use App\Domain\Content\Models\Page;
 use App\Domain\Content\Models\Post;
 use App\Domain\Content\Policies\LeadPolicy;
+use App\Domain\Content\Policies\PagePolicy;
 use App\Domain\Content\Policies\PostPolicy;
 use App\Domain\Curriculum\Models\CourseItem;
 use App\Domain\Curriculum\Models\CourseSection;
@@ -87,6 +89,7 @@ final class AuthServiceProvider extends ServiceProvider
         Coupon::class => CouponPolicy::class,
         Lead::class => LeadPolicy::class,
         Post::class => PostPolicy::class,
+        Page::class => PagePolicy::class,
         // Refund reports the webhook left for a person (REFUNDS.md §6).
         PaymentEvent::class => PaymentEventPolicy::class,
     ];
