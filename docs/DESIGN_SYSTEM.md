@@ -44,6 +44,10 @@ Domain accents (used for item-type icons and status dots, and nowhere else):
 `lesson` blue · `quiz` violet · `assignment` orange · `resource` teal · `live` red.
 
 **Contrast:** body text ≥ 4.5:1, large text and UI borders ≥ 3:1, in both schemes.
+Mantine's own `dimmed`, dark-scheme anchor, light `success` text and gray
+outline all fall short of that; `cssVariablesResolver` in `app/theme.ts`
+overrides them, with the ratio beside each. Measure with axe, not by eye —
+the shortfall was found that way, on every public page, in both schemes.
 Colour never carries meaning alone — always pair with an icon or a label.
 
 ### Typography

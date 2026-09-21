@@ -6,7 +6,7 @@ import { useState, type ReactNode } from 'react';
 
 import { createQueryClient } from '@/shared/api/queryClient';
 
-import { theme } from './theme';
+import { cssVariablesResolver, theme } from './theme';
 
 export function AppProviders({ children }: { children: ReactNode }) {
   // Created once per app instance, not per render — a new QueryClient would
@@ -15,7 +15,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme} defaultColorScheme="auto">
+      <MantineProvider
+        theme={theme}
+        cssVariablesResolver={cssVariablesResolver}
+        defaultColorScheme="auto"
+      >
         <Notifications position="top-right" limit={3} />
         <ModalsProvider>{children}</ModalsProvider>
       </MantineProvider>

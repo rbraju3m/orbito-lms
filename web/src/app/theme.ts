@@ -1,4 +1,11 @@
-import { Button, Card, createTheme, Modal, type MantineColorsTuple } from '@mantine/core';
+import {
+  Button,
+  Card,
+  createTheme,
+  Modal,
+  type CSSVariablesResolver,
+  type MantineColorsTuple,
+} from '@mantine/core';
 
 /**
  * Orbito design tokens, expressed as a Mantine theme.
@@ -97,5 +104,32 @@ export const theme = createTheme({
     transitionFast: 120,
     transitionBase: 200,
     transitionSlow: 320,
+  },
+});
+
+/**
+ * Mantine's defaults for four text colours fall short of the 4.5:1 that
+ * docs/DESIGN_SYSTEM.md requires of body text, in both schemes. Each value
+ * below is the ratio against the surface it sits on:
+ *
+ * - dimmed: gray.6 is 3.3:1 on white; dark.2 is 3.5:1 on a dark card.
+ *   Now 5.0:1 on white and 5.4:1 on a card. Nothing between gray.6 and
+ *   gray.7 exists in the scale, and gray.7 (8.2:1) no longer reads as dimmed.
+ * - anchor, dark: orbito.4 is 4.0:1 on a card; orbito.3 is 5.5:1.
+ * - success TEXT, light: success.6 is 2.4:1 on white; success.9 is 5.0:1.
+ *   Text only — filled buttons and badges keep their own shade.
+ * - gray OUTLINE, light: the "All levels" badge's text is gray.6, 3.3:1.
+ *   gray.7 is 8.2:1, and the border it also draws is only firmer for it.
+ */
+export const cssVariablesResolver: CSSVariablesResolver = () => ({
+  variables: {},
+  light: {
+    '--mantine-color-dimmed': '#687078',
+    '--mantine-color-success-text': 'var(--mantine-color-success-9)',
+    '--mantine-color-gray-outline': 'var(--mantine-color-gray-7)',
+  },
+  dark: {
+    '--mantine-color-dimmed': '#a3a3a3',
+    '--mantine-color-anchor': 'var(--mantine-color-orbito-3)',
   },
 });
