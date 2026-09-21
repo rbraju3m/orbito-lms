@@ -47,7 +47,10 @@ describe('AcademySiteLayout', () => {
       expect(link).toHaveAttribute('href', '/a/dhaka-art-school/p/about');
     }
 
-    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    const burger = screen.getByRole('button', { name: 'Menu' });
+    expect(burger).toHaveAttribute('aria-expanded', 'false');
+    await user.click(burger);
+    expect(burger).toHaveAttribute('aria-expanded', 'true');
 
     const menu = screen.getByRole('navigation');
     expect(within(menu).getByRole('link', { name: 'Blog' })).toHaveAttribute(

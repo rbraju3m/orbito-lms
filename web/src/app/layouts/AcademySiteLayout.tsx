@@ -61,7 +61,15 @@ export function AcademySiteLayout() {
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap" miw={0}>
-            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
+            {/* Mantine's Burger draws the state and does not announce it. */}
+            <Burger
+              opened={opened}
+              onClick={toggle}
+              hiddenFrom="sm"
+              size="sm"
+              aria-label="Menu"
+              aria-expanded={opened}
+            />
             {/* The anchor is the outer element and carries nothing clickable
                 inside it — a button within a link is not a button (§ Patterns
                 established in Phase 12). */}
