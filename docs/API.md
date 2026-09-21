@@ -970,8 +970,8 @@ to survive a daylight-saving change somewhere else.
 GET /public/{academy}                     the site's header: name, logo, is signup open?
 GET /public/{academy}/courses             published + PUBLIC courses, paginated, same filters as /courses
 GET /public/{academy}/courses/{slug}      the sales page — published, public or unlisted
-GET /public/{academy}/webinars            published webinars
-GET /public/{academy}/webinars/{slug}     one event's page
+GET /public/{academy}/webinars            published webinars still to come (not ended, not called off), soonest first
+GET /public/{academy}/webinars/{slug}     one event's page — an ended one too; a printed link outlives the event
 GET /public/{academy}/posts              live blog posts, newest first, no bodies
 GET /public/{academy}/posts/{slug}       one live post — a draft or scheduled one is the same 404
 GET /public/{academy}/home               the front page the academy built, or 404 — then the standard one

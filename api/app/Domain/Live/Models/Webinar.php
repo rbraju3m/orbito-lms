@@ -177,4 +177,18 @@ final class Webinar extends Model
     {
         $query->where('status', WebinarStatus::Published);
     }
+
+    /**
+     * Whose session has not ended and was not called off — the public list's
+     * and the page builder's one answer to "is this still coming?", so the
+     * standard front page and a built one cannot disagree about an event.
+     * A session under way counts: its join window is open.
+     *
+     * @param  Builder<Webinar>  $query
+     */
+    public function scopeUpcoming(Builder $query): void
+    {
+        // Both tables are in the academy's schema, so a subquery is safe here.
+        $query->whereIn('live_session_id', LiveSession::query()->upcoming()->select('id'));
+    }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Catalog\Enums\CourseVisibility;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Live\Enums\SessionStatus;
 use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
 use App\Domain\Platform\Enums\RegistrationMode;
@@ -187,6 +188,36 @@ it('lists published webinars and hides the rest', function (): void {
     $this->getJson('/api/v1/public/test-academy/webinars/open-evening')
         ->assertOk()
         ->assertJsonPath('data.title', 'Open evening');
+});
+
+it('lists only events still to come, soonest first, and keeps the page of one that is over', function (): void {
+    $event = fn (string $slug, LiveSession $session) => Webinar::factory()->published()->create([
+        'title' => $slug,
+        'slug' => $slug,
+        'live_session_id' => $session->id,
+    ]);
+    $session = fn () => LiveSession::factory()->state(['course_id' => null, 'cohort_id' => null]);
+
+    // Created in the opposite order to the one they should be listed in.
+    $event('next-month', $session()->startingAt(now()->addMonth())->create());
+    $event('tomorrow', $session()->startingAt(now()->addDay())->create());
+    // Under way: its join window is open, so it is still worth listing.
+    $event('under-way', $session()->startingAt(now()->subMinutes(30))->create());
+    $event('last-week', $session()->startingAt(now()->subWeek())->create());
+    $event('called-off', $session()->startingAt(now()->addWeek())->create([
+        'status' => SessionStatus::Cancelled,
+    ]));
+
+    asStranger();
+
+    $this->getJson('/api/v1/public/test-academy/webinars')
+        ->assertOk()
+        ->assertJsonPath('data.*.slug', ['under-way', 'tomorrow', 'next-month']);
+
+    // Somebody printed the link: the page stays, and says it is over.
+    $this->getJson('/api/v1/public/test-academy/webinars/last-week')
+        ->assertOk()
+        ->assertJsonPath('data.session.status', 'ended');
 });
 
 it('never puts a host link on a public webinar page', function (): void {

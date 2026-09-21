@@ -7,7 +7,6 @@ namespace App\Domain\Content\Queries;
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Content\Enums\BlockType;
 use App\Domain\Content\Models\Post;
-use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
 use App\Domain\Live\Models\WebinarRegistration;
 use App\Domain\Media\Enums\MediaCollection;
@@ -161,8 +160,7 @@ final class PageRenderer
 
         return Webinar::query()
             ->published()
-            // Both tables are in the academy's schema, so a subquery is safe here.
-            ->whereIn('live_session_id', LiveSession::query()->upcoming()->select('id'))
+            ->upcoming()
             ->with(['session', 'product.prices'])
             ->withCount([
                 'registrations as registered_count' => fn (Builder $query) => $query

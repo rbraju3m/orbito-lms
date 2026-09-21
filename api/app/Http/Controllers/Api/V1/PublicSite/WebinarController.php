@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\PublicSite;
 
+use App\Domain\Live\Models\LiveSession;
 use App\Domain\Live\Models\Webinar;
 use App\Domain\Live\Models\WebinarRegistration;
 use App\Http\Resources\Live\WebinarResource;
@@ -35,12 +36,21 @@ final class WebinarController
     {
         $webinars = Webinar::query()
             ->published()
+            // A list of what a stranger could still attend. An event that has
+            // ended keeps its page — somebody printed the link — and leaves
+            // the list.
+            ->upcoming()
             ->with(['session', 'product.prices'])
             ->withCount([
                 'registrations as registered_count' => fn ($query) => $query
                     ->where('status', WebinarRegistration::STATUS_REGISTERED),
             ])
-            ->orderBy('created_at', 'desc')
+            // Soonest first, in SQL because the list is paginated; the id
+            // breaks a tie so no event lands on two pages or on none.
+            ->orderBy(LiveSession::query()
+                ->select('starts_at')
+                ->whereColumn('live_sessions.id', 'webinars.live_session_id'))
+            ->orderBy('id')
             ->paginate(min(
                 (int) $request->integer('per_page', (int) config('orbito.pagination.default_per_page')),
                 (int) config('orbito.pagination.max_per_page'),
