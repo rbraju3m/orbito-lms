@@ -18,6 +18,16 @@ body {
   outline-offset: 2px;
 }
 
+/* Mantine's inputs drop the outline for a 1px border colour change — faint
+   enough to lose track of on a long form. The same ring as every other
+   control, in the border's own colour, so a field in error rings red.
+   `:focus-within` is the box around a password field's inner input. */
+.mantine-Input-input:focus,
+.mantine-Input-input:focus-within {
+  outline: 2px solid var(--input-bd);
+  outline-offset: 2px;
+}
+
 /* Read aloud, never drawn. PriceTag used this name for months before it was
    defined, and printed "Usual price" beside every sale. */
 .sr-only {

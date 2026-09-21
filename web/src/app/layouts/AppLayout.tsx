@@ -10,7 +10,6 @@ import {
   Text,
   UnstyledButton,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import {
   IconAddressBook,
   IconArticle,
@@ -54,6 +53,8 @@ import { SubscriptionBanner } from '@/features/platform/SubscriptionBanner';
 import { useLogout } from '@/features/auth/api/queries';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { ThemeToggle } from '@/shared/ui';
+
+import { useNavMenu } from './useNavMenu';
 
 interface NavItem {
   to: string;
@@ -164,7 +165,7 @@ const NAV: NavItem[] = [
  * authorization, never a substitute for it.
  */
 export function AppLayout() {
-  const [opened, { toggle, close }] = useDisclosure(false);
+  const { opened, close, navbarInert, burgerProps } = useNavMenu({ onDesktop: 'navbar' });
   const { session, canAny } = useSession();
   const { mutateAsync: signOut } = useLogout();
   const navigate = useNavigate();
@@ -201,7 +202,7 @@ export function AppLayout() {
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
           <Group gap="sm">
-            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
+            <Burger {...burgerProps} hiddenFrom="sm" size="sm" />
             <Text fw={700} size="lg">
               Orbito
             </Text>
@@ -260,7 +261,7 @@ export function AppLayout() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="sm">
+      <AppShell.Navbar p="sm" inert={navbarInert}>
         <ScrollArea>
           <Stack gap={2}>
             {items.map(({ to, label, icon: Icon, end }) => (

@@ -1,8 +1,9 @@
 import { AppShell, Burger, Group, Text } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { NavLink, Outlet } from 'react-router';
 
 import { ThemeToggle } from '@/shared/ui';
+
+import { useNavMenu } from './useNavMenu';
 
 const NAV = [
   { to: '/', label: 'Home', end: true },
@@ -16,7 +17,7 @@ const NAV = [
  * player's is full-bleed by design and is deliberately not this one.
  */
 export function PublicLayout() {
-  const [opened, { toggle, close }] = useDisclosure(false);
+  const { opened, close, navbarInert, burgerProps } = useNavMenu({ onDesktop: 'header' });
 
   return (
     <AppShell
@@ -27,7 +28,7 @@ export function PublicLayout() {
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
           <Group gap="sm">
-            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
+            <Burger {...burgerProps} hiddenFrom="sm" size="sm" />
             <Text fw={700} size="lg">
               Orbito
             </Text>
@@ -52,7 +53,7 @@ export function PublicLayout() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md">
+      <AppShell.Navbar p="md" inert={navbarInert}>
         {NAV.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end} onClick={close}>
             {({ isActive }) => (

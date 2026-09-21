@@ -1,11 +1,12 @@
 import { AppShell, Burger, Button, Group, Image, Stack, Text } from '@mantine/core';
-import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Outlet, useParams } from 'react-router';
 
 import { publicNavigationQuery } from '@/features/publicsite/api/pages';
 import { publicAcademyQuery } from '@/features/publicsite/api/queries';
 import { ThemeToggle } from '@/shared/ui';
+
+import { useNavMenu } from './useNavMenu';
 
 /**
  * The shell for ONE academy's public site — the only anonymous surface.
@@ -28,12 +29,7 @@ export function AcademySiteLayout() {
   const { data } = useQuery(publicAcademyQuery(academy));
   // The pages the academy linked from its header (docs/PAGES.md).
   const navigation = useQuery(publicNavigationQuery(academy));
-  const [opened, { toggle, close }] = useDisclosure(false);
-  // `sm` is 48em. AppShell hides a collapsed navbar by sliding it off-screen,
-  // which a keyboard does not respect: closed — and ALWAYS at desktop width —
-  // its links were a second, invisible copy of the header's in the tab order.
-  const narrow = useMediaQuery('(max-width: 47.99em)');
-  const menuShown = opened && narrow === true;
+  const { opened, close, navbarInert, burgerProps } = useNavMenu({ onDesktop: 'header' });
 
   const links = [
     ...(navigation.data ?? []).map((link) => ({
@@ -66,15 +62,7 @@ export function AcademySiteLayout() {
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap" miw={0}>
-            {/* Mantine's Burger draws the state and does not announce it. */}
-            <Burger
-              opened={opened}
-              onClick={toggle}
-              hiddenFrom="sm"
-              size="sm"
-              aria-label="Menu"
-              aria-expanded={opened}
-            />
+            <Burger {...burgerProps} hiddenFrom="sm" size="sm" />
             {/* The anchor is the outer element and carries nothing clickable
                 inside it — a button within a link is not a button (§ Patterns
                 established in Phase 12). */}
@@ -117,7 +105,7 @@ export function AcademySiteLayout() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md" inert={!menuShown}>
+      <AppShell.Navbar p="md" inert={navbarInert}>
         <Stack gap="xs">
           {links.map((link) => (
             <Button

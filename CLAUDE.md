@@ -1077,18 +1077,17 @@ touching anything.
 
 ### What to do next
 
-**0. The public site's browser pass — DONE, with three things left.** Every
+**0. The public site's browser pass — DONE.** Every
 public page was walked headless (system Chrome through Playwright) at 360 and
 1280px, light and dark, with axe and a keyboard. It found: theme text below
 4.5:1 everywhere, an invisible duplicate of the header links in the tab order
 at desktop width, no h1 on a built page, an unnamed home link, an `sr-only`
 class used and never defined, and a past event still offering a place — all
 fixed — and the public webinar list now holds only events still to come,
-through `Webinar::upcoming()`, which the page builder's block shares. Left:
-Escape does not close
-the narrow-screen menu, and Mantine's 1px input focus border is faint
-everywhere. The same off-screen navbar trap likely exists in the other four
-shells below `sm` — check with the skip-link pass (Known debt).
+through `Webinar::upcoming()`, which the page builder's block shares. The
+three AppShell layouts share `useNavMenu` — inert off-screen navbar, an
+announced burger, Escape back to it — and text inputs ring on focus like
+every other control. Nothing left from the pass.
 
 **1. One Stripe sandbox payment.** Every MVP phase has shipped, but the MVP is
 not signed off: its own definition (`docs/ROADMAP.md` §3) says a student "buys
