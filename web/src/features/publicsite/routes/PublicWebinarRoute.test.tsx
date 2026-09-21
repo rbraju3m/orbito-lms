@@ -70,6 +70,22 @@ describe('PublicWebinarRoute', () => {
     expect(await screen.findByRole('button', { name: 'Email me a link' })).toBeInTheDocument();
   });
 
+  it('says an event is over instead of offering a place in it', async () => {
+    // Paid, so the buy button is the one that must not survive: the server
+    // would refuse the purchase after an account had been made for it.
+    serve({
+      is_paid: true,
+      price: { amount_minor: 50000, currency: 'BDT' },
+      session: { ...webinar().session, status: 'ended' },
+    });
+
+    renderWithRouter(<PublicWebinarRoute />, { path: PATH, route: ROUTE });
+
+    expect(await screen.findByText('This event has ended.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /buy a place/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Email me a link' })).not.toBeInTheDocument();
+  });
+
   it('says how many places are left, and says when there are none', async () => {
     serve({ capacity: 20, places_remaining: 3 });
 
@@ -107,10 +123,13 @@ describe('PublicWebinarRoute', () => {
     serve();
     const bodies: unknown[] = [];
     server.use(
-      http.post(apiUrl(`${ACADEMY}/webinars/open-evening/guest-registrations`), async ({ request }) => {
-        bodies.push(await request.json());
-        return HttpResponse.json({ data: { received: true } }, { status: 202 });
-      }),
+      http.post(
+        apiUrl(`${ACADEMY}/webinars/open-evening/guest-registrations`),
+        async ({ request }) => {
+          bodies.push(await request.json());
+          return HttpResponse.json({ data: { received: true } }, { status: 202 });
+        },
+      ),
     );
     const user = userEvent.setup();
 

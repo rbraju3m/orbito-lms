@@ -8,9 +8,14 @@ export interface CourseCardProps {
   course: CourseListItem;
   /** Studio cards link into the editor, catalogue cards to the public page. */
   to?: string;
+  /**
+   * The title's level in the page outline — one below the heading above the
+   * grid. It is drawn at h4 size whatever it is.
+   */
+  headingOrder?: 2 | 3;
 }
 
-export function CourseCard({ course, to }: CourseCardProps) {
+export function CourseCard({ course, to, headingOrder = 2 }: CourseCardProps) {
   return (
     <Card component={Link} to={to ?? `/courses/${course.slug}`} padding="0" withBorder>
       <Card.Section>
@@ -45,7 +50,7 @@ export function CourseCard({ course, to }: CourseCardProps) {
           </Badge>
         </Group>
 
-        <Title order={4} lineClamp={2}>
+        <Title order={headingOrder} size="h4" lineClamp={2}>
           {course.title}
         </Title>
 

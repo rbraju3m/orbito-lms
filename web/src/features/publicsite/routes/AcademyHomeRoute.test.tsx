@@ -48,7 +48,10 @@ describe('AcademyHomeRoute', () => {
     renderWithRouter(<AcademyHomeRoute />, { path: PATH, route: ROUTE });
 
     expect(await screen.findByRole('heading', { name: 'Dhaka Art School' })).toBeInTheDocument();
-    expect(await screen.findByText('Watercolour')).toBeInTheDocument();
+    // One level below the "Courses" h2 — an h4 here skipped a level.
+    expect(
+      await screen.findByRole('heading', { level: 3, name: 'Watercolour' }),
+    ).toBeInTheDocument();
   });
 
   it('says so when nothing is published, rather than showing an empty grid', async () => {
@@ -132,6 +135,8 @@ describe('AcademyHomeRoute', () => {
     renderWithRouter(<AcademyHomeRoute />, { path: PATH, route: ROUTE });
 
     expect(await screen.findByRole('heading', { name: 'Paint with us' })).toBeInTheDocument();
+    // The built page's blocks start at h2; the academy is the h1.
+    expect(screen.getByRole('heading', { level: 1, name: 'Dhaka Art School' })).toBeInTheDocument();
     // The standard page's course list is not drawn behind it.
     expect(screen.queryByRole('heading', { name: 'Courses' })).toBeNull();
   });

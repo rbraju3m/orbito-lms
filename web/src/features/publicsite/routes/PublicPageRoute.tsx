@@ -1,4 +1,4 @@
-import { Stack } from '@mantine/core';
+import { Stack, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router';
 
@@ -39,6 +39,12 @@ export function PublicPageRoute() {
       {data.seo_description ? <meta name="description" content={data.seo_description} /> : null}
       <meta property="og:title" content={headline} />
 
+      {/* A heading block is level 2 or 3, so the page's own title is its
+          h1: announced, not drawn, because the author's first block usually
+          says the same words. */}
+      <Title order={1} className="sr-only">
+        {data.title}
+      </Title>
       <PageBlocks academy={academy} blocks={data.blocks} />
     </Stack>
   );

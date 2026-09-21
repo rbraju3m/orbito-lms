@@ -84,6 +84,7 @@ function BlockView({ academy, block }: { academy: string; block: PageBlock }) {
                 key={course.id}
                 course={course}
                 to={`/a/${academy}/courses/${course.slug}`}
+                headingOrder={3}
               />
             ))}
           </SimpleGrid>

@@ -1,5 +1,5 @@
 import { AppShell, Burger, Button, Group, Image, Stack, Text } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Outlet, useParams } from 'react-router';
 
@@ -29,6 +29,11 @@ export function AcademySiteLayout() {
   // The pages the academy linked from its header (docs/PAGES.md).
   const navigation = useQuery(publicNavigationQuery(academy));
   const [opened, { toggle, close }] = useDisclosure(false);
+  // `sm` is 48em. AppShell hides a collapsed navbar by sliding it off-screen,
+  // which a keyboard does not respect: closed — and ALWAYS at desktop width —
+  // its links were a second, invisible copy of the header's in the tab order.
+  const narrow = useMediaQuery('(max-width: 47.99em)');
+  const menuShown = opened && narrow === true;
 
   const links = [
     ...(navigation.data ?? []).map((link) => ({
@@ -73,9 +78,12 @@ export function AcademySiteLayout() {
             {/* The anchor is the outer element and carries nothing clickable
                 inside it — a button within a link is not a button (§ Patterns
                 established in Phase 12). */}
+            {/* Until the name arrives — or when there is no such academy — the
+                link holds only a space, so it is named for what it does. */}
             <Link
               to={`/a/${academy}`}
               onClick={close}
+              aria-label={data?.name ? undefined : 'Home'}
               style={{ textDecoration: 'none', minWidth: 0 }}
             >
               <Group gap="sm" wrap="nowrap">
@@ -109,7 +117,7 @@ export function AcademySiteLayout() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md">
+      <AppShell.Navbar p="md" inert={!menuShown}>
         <Stack gap="xs">
           {links.map((link) => (
             <Button

@@ -52,6 +52,9 @@ export function AcademyHomeRoute() {
         {home.data.seo_description ? (
           <meta name="description" content={home.data.seo_description} />
         ) : null}
+        <Title order={1} className="sr-only">
+          {academyQuery.data?.name ?? home.data.title}
+        </Title>
         <PageBlocks academy={academy} blocks={home.data.blocks} />
       </Stack>
     );
@@ -114,6 +117,7 @@ export function AcademyHomeRoute() {
                 // Inside the academy's site, never the members-only page a
                 // stranger would be bounced off.
                 to={`/a/${academy}/courses/${course.slug}`}
+                headingOrder={3}
               />
             ))}
           </SimpleGrid>

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { apiUrl } from '@/shared/test/handlers';
 import { renderWithRouter } from '@/shared/test/renderRoute';
 import { server } from '@/shared/test/server';
+import { setTestViewportWidth } from '@/shared/test/setup';
 
 import { AcademySiteLayout } from './AcademySiteLayout';
 
@@ -64,6 +65,50 @@ describe('AcademySiteLayout', () => {
     expect(await within(menu).findByRole('link', { name: 'Sign up' })).toHaveAttribute(
       'href',
       '/register?academy=dhaka-art-school',
+    );
+  });
+
+  // The testing library does not honour `inert`, so these assert the
+  // attribute: it is what keeps a browser's Tab key out of the menu.
+  it('keeps the collapsed menu out of the tab order at desktop width', async () => {
+    serve();
+
+    renderWithRouter(<AcademySiteLayout />, { path: PATH, route: ROUTE });
+
+    await screen.findByRole('link', { name: 'Dhaka Art School' });
+    expect(document.querySelector('nav')).toHaveAttribute('inert');
+  });
+
+  it('lets a keyboard into the menu only while it is open on a narrow screen', async () => {
+    setTestViewportWidth(360);
+    serve();
+    const user = userEvent.setup();
+
+    renderWithRouter(<AcademySiteLayout />, { path: PATH, route: ROUTE });
+
+    await screen.findByRole('link', { name: 'Dhaka Art School' });
+    expect(document.querySelector('nav')).toHaveAttribute('inert');
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    expect(document.querySelector('nav')).not.toHaveAttribute('inert');
+  });
+
+  it('names the home link even when there is no academy name to show', async () => {
+    server.use(
+      http.get(apiUrl(ACADEMY), () =>
+        HttpResponse.json(
+          { error: { code: 'not_found', message: 'Not found.', details: [], request_id: 'r' } },
+          { status: 404 },
+        ),
+      ),
+      http.get(apiUrl(`${ACADEMY}/navigation`), () => HttpResponse.json({ data: [] })),
+    );
+
+    renderWithRouter(<AcademySiteLayout />, { path: PATH, route: ROUTE });
+
+    expect(await screen.findByRole('link', { name: 'Home' })).toHaveAttribute(
+      'href',
+      '/a/dhaka-art-school',
     );
   });
 

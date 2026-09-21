@@ -50,7 +50,13 @@ export function PublicWebinarRoute() {
         ) : null}
 
         <Group gap="xs">
-          {data.is_paid ? <Badge variant="light">Ticketed</Badge> : <Badge variant="light" color="gray">Free</Badge>}
+          {data.is_paid ? (
+            <Badge variant="light">Ticketed</Badge>
+          ) : (
+            <Badge variant="light" color="gray">
+              Free
+            </Badge>
+          )}
           {/* A number, not "full": somebody deciding whether to sign up now
               wants to know it is nearly gone. */}
           {data.places_remaining !== null ? (
@@ -63,38 +69,47 @@ export function PublicWebinarRoute() {
 
       {data.description ? <Text>{data.description}</Text> : null}
 
-      <Card withBorder padding="lg">
-        <Stack gap="sm">
-          {data.is_paid && price != null ? (
-            <Text fw={600} size="lg">
-              {formatMinor(price.amount_minor, price.currency)}
-            </Text>
-          ) : null}
-
-          {offersGuestPlace(data) ? <GuestRegistrationForm academy={academy} slug={data.slug} /> : null}
-
-          {data.is_paid ? (
-            academyQuery.data?.registration_open === true ? (
-              <Button component={Link} to={`/register?academy=${encodeURIComponent(academy)}`}>
-                Create an account to buy a place
-              </Button>
-            ) : (
-              <Text size="sm" c="dimmed">
-                Buying a place needs an account, and this academy is not taking new
-                registrations at the moment.
+      {/* The server's word, derived from the clock: a printed link outlives
+          the event, and a stranger following it should learn it is over
+          rather than meet a form — or a button to buy a place — that is gone. */}
+      {session?.status === 'ended' ? (
+        <Text c="dimmed">This event has ended.</Text>
+      ) : (
+        <Card withBorder padding="lg">
+          <Stack gap="sm">
+            {data.is_paid && price != null ? (
+              <Text fw={600} size="lg">
+                {formatMinor(price.amount_minor, price.currency)}
               </Text>
-            )
-          ) : null}
+            ) : null}
 
-          <Button
-            component={Link}
-            to={`/login?academy=${encodeURIComponent(academy)}`}
-            variant="subtle"
-          >
-            Already a member? Sign in
-          </Button>
-        </Stack>
-      </Card>
+            {offersGuestPlace(data) ? (
+              <GuestRegistrationForm academy={academy} slug={data.slug} />
+            ) : null}
+
+            {data.is_paid ? (
+              academyQuery.data?.registration_open === true ? (
+                <Button component={Link} to={`/register?academy=${encodeURIComponent(academy)}`}>
+                  Create an account to buy a place
+                </Button>
+              ) : (
+                <Text size="sm" c="dimmed">
+                  Buying a place needs an account, and this academy is not taking new registrations
+                  at the moment.
+                </Text>
+              )
+            ) : null}
+
+            <Button
+              component={Link}
+              to={`/login?academy=${encodeURIComponent(academy)}`}
+              variant="subtle"
+            >
+              Already a member? Sign in
+            </Button>
+          </Stack>
+        </Card>
+      )}
     </Stack>
   );
 }

@@ -53,6 +53,8 @@ describe('PublicPageRoute', () => {
 
     expect(await screen.findByRole('heading', { name: 'Who we are' })).toBeInTheDocument();
     await waitFor(() => expect(document.title).toBe('About us — Dhaka Art School'));
+    // A heading block is level 2 or 3, so the page title is the one h1.
+    expect(screen.getByRole('heading', { level: 1, name: 'About us' })).toBeInTheDocument();
   });
 
   it('says a page is not available rather than showing nothing', async () => {

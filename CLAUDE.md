@@ -1077,9 +1077,17 @@ touching anything.
 
 ### What to do next
 
-**0. Check the public site in a browser.** Lead capture, guest registration,
-the blog and the page builder have never been opened in one — light and dark,
-360px, keyboard. Worth one pass before calling Phase 16's public site finished.
+**0. The public site's browser pass — DONE, with three things left.** Every
+public page was walked headless (system Chrome through Playwright) at 360 and
+1280px, light and dark, with axe and a keyboard. It found: theme text below
+4.5:1 everywhere, an invisible duplicate of the header links in the tab order
+at desktop width, no h1 on a built page, an unnamed home link, an `sr-only`
+class used and never defined, and a past event still offering a place — all
+fixed. Left: the public webinar list includes events that have ENDED (a
+server decision — upcoming only, or a past section?), Escape does not close
+the narrow-screen menu, and Mantine's 1px input focus border is faint
+everywhere. The same off-screen navbar trap likely exists in the other four
+shells below `sm` — check with the skip-link pass (Known debt).
 
 **1. One Stripe sandbox payment.** Every MVP phase has shipped, but the MVP is
 not signed off: its own definition (`docs/ROADMAP.md` §3) says a student "buys
