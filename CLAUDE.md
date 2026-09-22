@@ -1071,8 +1071,9 @@ provider refund webhooks, Stripe Checkout, refund reports, the studio's
 live-session scheduling, connecting a meeting provider, webinar authoring,
 paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
-GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER and the
-public COURSE INDEX**, plus a skip link on every shell.
+GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER, the
+public COURSE INDEX, the members catalogue's PAGER, SCHEDULED-POST
+ANNOUNCEMENTS and the ACADEMY LOGO**, plus a skip link on every shell.
 1,562 backend tests · 454 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
@@ -1154,6 +1155,15 @@ The obvious next pieces, in the order they unblock each other:
   sandbox test, and that ordering is deliberate: recurring billing on a
   gateway that has never been called is building on sand.
 
+Code that needs no credentials, smallest first:
+
+- **The lead form on the public webinar page.** The API already accepts
+  `source: webinar` (`docs/LEADS.md`); the form is not placed there yet.
+- **Invitations.** `RegistrationMode::Invite` is declared and refused by the
+  API — an invitations table, an accept flow and an admin screen.
+- **Bundles that hold downloads.** `bundle_items` names `course_id`; see
+  Known debt for what teaching it about downloads involves.
+
 Also ahead: coaching, multilingual, RTL.
 
 ### The platform owner
@@ -1217,6 +1227,12 @@ Every one of these has already cost time at least once.
   Separate databases are not enough. Before that override, running the suite
   destroyed the developer's own academies, and the symptom appeared in a
   different terminal as `Unknown database` mid-migration.
+- **Never run two `php artisan test` processes at once.** They share one test
+  tenant schema, and each rebuilds it under the other: the symptoms are
+  `Unknown database '…_tenant_test'` and MySQL 1412 "Table definition has
+  changed" scattered across unrelated tests. A full run takes ~20 minutes, so
+  it is tempting to run one file beside it — wait, or the full run has to be
+  thrown away and repeated.
 - **A scheduled command runs centrally with NO academy open.** It must walk
   them (`RunsForEveryTenant`). The harness hides this; `ScheduledCommandTest`
   exists to defeat the harness, and every new scheduled command belongs in it.
