@@ -791,16 +791,22 @@ enrollments.cohort_id NULL          -- which RUN they joined; null is self-paced
 bundles(id, uuid, slug UNIQUE, title, subtitle, description,          -- BUILT P16
       thumbnail_media_id NULL, status ENUM(draft,published,archived), published_at NULL)
       INDEX (status, published_at)
-bundle_items(id, bundle_id, course_id, position)                      -- BUILT P16
-      UNIQUE (bundle_id, course_id), INDEX (bundle_id, position), INDEX (course_id)
-order_item_allocations(id, order_item_id, course_id, amount_minor)    -- BUILT P16
-      UNIQUE (order_item_id, course_id), INDEX (course_id)
+bundle_items(id, bundle_id, course_id NULL, download_id NULL, position)  -- BUILT P16
+      UNIQUE (bundle_id, course_id), UNIQUE (bundle_id, download_id),
+      INDEX (bundle_id, position), INDEX (course_id), INDEX (download_id)
+      CHECK exactly one of course_id / download_id
+order_item_allocations(id, order_item_id, course_id NULL, download_id NULL, amount_minor)  -- BUILT P16
+      UNIQUE (order_item_id, course_id), UNIQUE (order_item_id, download_id),
+      CHECK exactly one of course_id / download_id
+      (refund_line_allocations has the same shape, keyed on refund_line_id)
 
 -- DIFFERS FROM THE SKETCH: `bundle_items` names `course_id` rather than the
 -- morph originally drawn here. A morph would anticipate bundles of downloads,
 -- but a download has no enrolment to fan out to, so the grant branch would
 -- still switch on type — the morph buys no polymorphism, only a table whose
--- columns are half-meaningless. It goes in when downloads land and it is real.
+-- columns are half-meaningless. When downloads DID land (BUNDLES.md §9) the
+-- answer was still not a morph: two nullable foreign keys and a CHECK, which
+-- keep the constraints a morph would drop.
 --
 -- `order_item_allocations` was NOT in the sketch and is what keeps per-course
 -- revenue honest: a bundle sells for less than its parts, so its money is

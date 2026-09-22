@@ -21,10 +21,10 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Str;
 
 /**
- * Several courses, sold as one thing.
+ * Several courses and downloads, sold as one thing.
  *
  * A bundle owns NO content and appears in no access check. Buying one fans
- * out into an enrolment per course, so `CourseAccess` (ADR-03) still answers
+ * out into an enrolment per course and a grant per download, so `CourseAccess` (ADR-03) still answers
  * "may they consume this?" from an enrolment and needs to know nothing about
  * bundles. What you bought, you keep — removing a course from a bundle later
  * takes nothing away from anyone. See docs/BUNDLES.md §1.
@@ -39,11 +39,25 @@ use Illuminate\Support\Str;
  * @property BundleStatus $status
  * @property CarbonInterface|null $published_at
  * @property-read Collection<int, Course> $courses
+ * @property-read Collection<int, Download> $downloads
  */
 final class Bundle extends Model
 {
     /** @use HasFactory<BundleFactory> */
     use HasFactory, LivesInTenantSchema;
+
+    /**
+     * What every full view of a bundle reads — the studio, the catalogue and
+     * the status change. One list, so a resource field added for one of them
+     * cannot become a lazy load (a 500 under strict mode) on another.
+     */
+    public const DETAIL_RELATIONS = [
+        'courses.product.prices',
+        'downloads.product.prices',
+        'downloads.file',
+        'thumbnail',
+        'product.prices',
+    ];
 
     protected $fillable = ['title', 'subtitle', 'description', 'thumbnail_media_id'];
 
@@ -97,6 +111,18 @@ final class Bundle extends Model
     public function courses(): BelongsToMany
     {
         return $this->belongsToMany(Course::class, 'bundle_items')
+            ->withPivot('position')
+            ->orderBy('bundle_items.position');
+    }
+
+    /**
+     * The downloads in it, in the author's order.
+     *
+     * @return BelongsToMany<Download, $this>
+     */
+    public function downloads(): BelongsToMany
+    {
+        return $this->belongsToMany(Download::class, 'bundle_items')
             ->withPivot('position')
             ->orderBy('bundle_items.position');
     }

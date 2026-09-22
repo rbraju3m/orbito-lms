@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Which lines a refund gives back from — and, for a bundle line, which of
- * its courses.
+ * its courses and downloads.
  *
  * Weighted by what each line has LEFT, not by what it cost: after one partial
  * refund the lines no longer hold money in their original proportions, and
@@ -29,7 +29,7 @@ final class RefundSplit
     public function __construct(private readonly RevenueAllocator $allocator) {}
 
     /**
-     * @return array<int, array{amount: int, allocations: array<int, int>}> order item id => share and, for a bundle, course id => share
+     * @return array<int, array{amount: int, allocations: array<string, int>}> order item id => share and, for a bundle, `AllocationTarget` key => share
      */
     public function split(Order $order, int $amountMinor): array
     {
@@ -64,7 +64,7 @@ final class RefundSplit
 
             $split[$itemId] = [
                 'amount' => $share,
-                'allocations' => $item instanceof OrderItem ? $this->acrossCourses($item, $share) : [],
+                'allocations' => $item instanceof OrderItem ? $this->acrossContents($item, $share) : [],
             ];
         }
 
@@ -72,13 +72,13 @@ final class RefundSplit
     }
 
     /**
-     * A bundle line's share, across the courses it was allocated to — by what
-     * each course has left of its allocation. Empty for any other line: the
-     * line IS the attribution.
+     * A bundle line's share, across the courses and downloads it was
+     * allocated to — by what each has left of its allocation. Empty for any
+     * other line: the line IS the attribution.
      *
-     * @return array<int, int>
+     * @return array<string, int> `AllocationTarget` key => minor units
      */
-    private function acrossCourses(OrderItem $item, int $share): array
+    private function acrossContents(OrderItem $item, int $share): array
     {
         if ($item->allocations->isEmpty()) {
             return [];
@@ -89,18 +89,25 @@ final class RefundSplit
             ->join('refunds', 'refunds.id', '=', 'refund_lines.refund_id')
             ->where('refund_lines.order_item_id', $item->id)
             ->whereIn('refunds.status', [RefundStatus::Pending, RefundStatus::Completed])
-            ->groupBy('refund_line_allocations.course_id')
-            ->selectRaw('refund_line_allocations.course_id, SUM(refund_line_allocations.amount_minor) as given')
+            ->groupBy('refund_line_allocations.course_id', 'refund_line_allocations.download_id')
+            ->selectRaw('refund_line_allocations.course_id, refund_line_allocations.download_id, SUM(refund_line_allocations.amount_minor) as given')
             ->toBase()
-            ->pluck('given', 'course_id');
+            ->get()
+            ->mapWithKeys(static fn (object $row): array => [
+                AllocationTarget::of(
+                    $row->course_id === null ? null : (int) $row->course_id,
+                    $row->download_id === null ? null : (int) $row->download_id,
+                ) => (int) $row->given,
+            ]);
 
         $left = [];
 
         foreach ($item->allocations as $allocation) {
-            $left[(int) $allocation->course_id] = max(0, (int) $allocation->amount_minor - (int) ($given[$allocation->course_id] ?? 0));
+            $target = AllocationTarget::of($allocation->course_id, $allocation->download_id);
+            $left[$target] = max(0, $allocation->amount_minor - (int) ($given[$target] ?? 0));
         }
 
-        return array_filter($this->allocator->allocate($share, $left), static fn (int $amount): bool => $amount > 0);
+        return array_filter($this->allocator->allocateTargets($share, $left), static fn (int $amount): bool => $amount > 0);
     }
 
     /** @param  Builder<Refund>  $refund */

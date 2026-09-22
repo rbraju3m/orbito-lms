@@ -1,4 +1,5 @@
 import type { CourseListItem, CoursePrice } from '@/features/catalog/api/types';
+import type { DownloadListItem } from '@/features/download/api/types';
 
 export type BundleStatus = 'draft' | 'published' | 'archived';
 
@@ -12,6 +13,7 @@ export interface BundleListItem {
   published_at: string | null;
   /** Present only where the query counted it. */
   course_count?: number;
+  download_count?: number;
   thumbnail_url?: string | null;
   /**
    * For DISPLAY. Null means "not buyable right now" — a draft bundle's
@@ -32,9 +34,11 @@ export interface BundleCheck {
 export interface Bundle extends BundleListItem {
   description: string | null;
   courses?: CourseListItem[];
+  downloads?: DownloadListItem[];
   /**
-   * What the same courses cost bought separately. Absent when the courses
-   * were not loaded — "we did not ask" is not "they are worth nothing".
+   * What the same courses and downloads cost bought separately. Absent when
+   * the contents were not loaded — "we did not ask" is not "they are worth
+   * nothing".
    */
   parts_total_minor?: number;
   /**
@@ -42,6 +46,7 @@ export interface Bundle extends BundleListItem {
    * sale, so the page owes them a plain statement of what is new.
    */
   owned_course_ids?: number[];
+  owned_download_ids?: number[];
 
   /** Studio only. */
   checklist?: BundleCheck[];

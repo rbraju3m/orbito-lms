@@ -981,6 +981,17 @@ Gate::authorize('publish', $course);                   // in a controller
   open instructor invitation counts against the plan when the NEXT one is
   sent, and acceptance does not check again. The invitee cannot do anything
   about the academy's plan; the academy decided when it invited.
+- **A row a refund REVOKES must be revivable by the next purchase.** One
+  row per person per thing plus "revoke, don't delete" means the second sale
+  collides with the first. Catching the unique violation and returning the
+  existing row is right for a double click and wrong for a revoked one —
+  `GrantDownload` did that for six slices, so a refunded buyer who bought
+  again paid and held nothing. Revive with a conditional UPDATE on
+  `revoked_at IS NOT NULL`, which a racing second delivery cannot also win.
+- **A nullable foreign key in a GROUP BY is a phantom row.** Allocations
+  grew a `download_id`, so every `groupBy('course_id')` over them gained a
+  NULL group that PHP casts to course 0. Say `whereNotNull` where the column
+  can be empty, and assert the phantom's absence.
 
 ---
 
@@ -1035,6 +1046,15 @@ running on?** They do not look alike:
   at needs `LivesInTenantSchema`.
 - `whereHas`, `has` and `orderBy(subquery)` compile to ONE statement. Across
   the boundary they cannot work. Resolve ids on one side, then `whereIn`.
+- **Route-model binding runs where the PRIORITY LIST says**, not where the
+  route lists it. `SubstituteBindings` resolves `{course}`, `{bundle}`,
+  `{download}`; Laravel's priority puts it straight after `Authenticate`, and
+  an alias it does not name — `tenant` — is left after it, so every bound
+  tenant model was looked up CENTRALLY and every studio detail page 500'd in
+  the running app. `bootstrap/app.php` now says where the four tenancy
+  middlewares belong: before `SubstituteBindings`, still after
+  `Authenticate`. The harness hid it for a whole phase;
+  `RouteBindingTenancyTest` ends tenancy to see it.
 - Validation rules name a table, not a connection: central tables must be
   written `unique:mysql.users,email`.
 - A central model that is not pinned (`protected $connection = 'mysql'`)
@@ -1088,8 +1108,8 @@ paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER, the
 public COURSE INDEX, the members catalogue's PAGER, SCHEDULED-POST
 ANNOUNCEMENTS, the ACADEMY LOGO, the lead form on the WEBINAR PAGE and
-INVITATIONS**, plus a skip link on every shell.
-1,585 backend tests · 467 frontend tests.
+INVITATIONS and BUNDLES THAT HOLD DOWNLOADS**, plus a skip link on every shell.
+1,608 backend tests · 473 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1182,8 +1202,10 @@ The obvious next pieces, in the order they unblock each other:
 
 Code that needs no credentials, smallest first:
 
-- **Bundles that hold downloads.** `bundle_items` names `course_id`; see
-  Known debt for what teaching it about downloads involves.
+- ~~Bundles that hold downloads~~ — DONE (`docs/BUNDLES.md` §9). A bundle
+  holds courses, downloads or both; a download's share of the price is
+  download revenue. It found a real bug on the way: buying a download again
+  after a refund took the money and left the grant revoked.
 - ~~Usage-counter drift in the local academies~~ — DONE. The 12 in
   demo-academy were fixture courses minted by factories for the public-site
   browser pass (2026-09-15), which fire no `CourseCreated`; reconciled. The
@@ -1274,6 +1296,15 @@ Every one of these has already cost time at least once.
   changed" scattered across unrelated tests. A full run takes ~20 minutes, so
   it is tempting to run one file beside it — wait, or the full run has to be
   thrown away and repeated.
+- **Adding a route middleware is not the same as placing it.** Anything that
+  must run before `SubstituteBindings` — every tenancy middleware does — has
+  to be added to the PRIORITY LIST, or Laravel silently runs the binding
+  first. Symptom: "Base table or view not found" naming a tenant table on the
+  CENTRAL database, on exactly the routes that open one record. See
+  § Multi-tenancy.
+- **A browser pass is not a formality.** The route-binding bug above was
+  invisible to 1,605 passing tests and broke every studio detail page in the
+  product. If a slice ships a screen, open it.
 - **A scheduled command runs centrally with NO academy open.** It must walk
   them (`RunsForEveryTenant`). The harness hides this; `ScheduledCommandTest`
   exists to defeat the harness, and every new scheduled command belongs in it.
@@ -1330,10 +1361,11 @@ Every one of these has already cost time at least once.
 - **A course added to a bundle after purchase does not reach existing
   buyers.** Deliberate: the fix is an explicit "grant to existing buyers"
   action with its own confirmation, not a side effect of saving a form.
-- **Bundles cannot hold downloads.** Downloads exist now, but `bundle_items`
-  still names `course_id`: teaching it about downloads means a morph there, a
-  grant that switches on type, and an allocation target that is not a course.
-  Its own slice.
+- **Bundles hold courses and downloads, not webinars**, and courses always
+  sit before downloads — the API takes two whole lists, not one interleaved
+  one. A webinar place in a bundle is its own slice: a place is capacity,
+  and a bundle would be the first thing to sell capacity it cannot check at
+  grant time (`WebinarPurchase`).
 - **Avatars are counted but never swept.** Nothing references an avatar yet —
   the header draws initials — so every avatar reads as unused, and a live one
   cannot be told from an abandoned one. Wiring avatars to a profile means

@@ -35,6 +35,7 @@ final class BundleListResource extends BaseResource
             'published_at' => $this->published_at?->toIso8601String(),
 
             'course_count' => $this->whenCounted('courses'),
+            'download_count' => $this->whenCounted('downloads'),
             'thumbnail_url' => $this->whenLoaded('thumbnail', fn () => $this->thumbnail?->publicUrl()),
 
             // Display only; the charge is re-read at checkout (ADR-05).

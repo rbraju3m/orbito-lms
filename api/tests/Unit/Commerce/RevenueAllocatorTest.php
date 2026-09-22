@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Commerce\Support\AllocationTarget;
 use App\Domain\Commerce\Support\RevenueAllocator;
 
 /*
@@ -85,4 +86,35 @@ it('always sums to the total', function (): void {
 
         expect(array_sum($this->allocator->allocate($total, $weights)))->toBe($total);
     }
+});
+
+/* ---------------------------------------------------- typed targets (§9) */
+
+it('splits typed targets exactly as it splits course ids, when they are all courses', function (): void {
+    $byId = $this->allocator->allocate(1000, [7 => 300, 3 => 300, 5 => 300]);
+    $typed = $this->allocator->allocateTargets(1000, [
+        AllocationTarget::course(5) => 300,
+        AllocationTarget::course(7) => 300,
+        AllocationTarget::course(3) => 300,
+    ]);
+
+    foreach ($byId as $id => $share) {
+        expect($typed[AllocationTarget::course($id)])->toBe($share);
+    }
+});
+
+/* A course and a download can share an id; they must not share a share. */
+it('keeps a course and a download with the same id apart, courses first on a tie', function (): void {
+    $shares = $this->allocator->allocateTargets(1001, [
+        AllocationTarget::download(4) => 500,
+        AllocationTarget::course(4) => 500,
+    ]);
+
+    expect($shares)->toBe([AllocationTarget::course(4) => 501, AllocationTarget::download(4) => 500]);
+});
+
+it('turns a target back into the columns an allocation row carries', function (): void {
+    expect(AllocationTarget::columns(AllocationTarget::download(9)))->toBe(['course_id' => null, 'download_id' => 9])
+        ->and(AllocationTarget::of(12, null))->toBe('course:12')
+        ->and(fn () => AllocationTarget::columns('webinar:1'))->toThrow(InvalidArgumentException::class);
 });

@@ -6,6 +6,7 @@ namespace App\Domain\Catalog\Support;
 
 use App\Domain\Catalog\Models\Bundle;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Catalog\Models\Download;
 
 /**
  * The single definition of "this bundle is ready to sell".
@@ -21,9 +22,10 @@ final class BundlePublishChecklist
      */
     public function evaluate(Bundle $bundle): array
     {
-        $bundle->loadMissing(['courses', 'product.prices']);
+        $bundle->loadMissing(['courses', 'downloads', 'product.prices']);
 
         $unpublished = $this->unpublishedCourses($bundle);
+        $unpublishedDownloads = $this->unpublishedDownloads($bundle);
 
         return [
             $this->check(
@@ -41,16 +43,18 @@ final class BundlePublishChecklist
                 passed: mb_strlen(trim(strip_tags((string) $bundle->description))) >= 50,
             ),
             /*
-             * Two, not one. A "bundle" of a single course is that course with
-             * a second price and a second place to keep it in step — every
-             * question about which one a buyer got has two answers.
+             * Two things, not one — and two THINGS, not two courses: a course
+             * and its workbook is a real bundle. A "bundle" of a single course
+             * is that course with a second price and a second place to keep it
+             * in step — every question about which one a buyer got has two
+             * answers.
              */
             $this->check(
-                'has_two_courses',
-                'courses',
-                'A bundle needs at least two courses. One course is just that course.',
+                'has_two_items',
+                'items',
+                'A bundle needs at least two things in it. One course is just that course.',
                 blocking: true,
-                passed: $bundle->courses->count() >= 2,
+                passed: $bundle->courses->count() + $bundle->downloads->count() >= 2,
             ),
             $this->check(
                 'courses_published',
@@ -58,6 +62,13 @@ final class BundlePublishChecklist
                 $this->unpublishedMessage($unpublished),
                 blocking: true,
                 passed: $unpublished === [],
+            ),
+            $this->check(
+                'downloads_published',
+                'downloads',
+                $this->unpublishedDownloadsMessage($unpublishedDownloads),
+                blocking: true,
+                passed: $unpublishedDownloads === [],
             ),
             $this->check(
                 'price_configured',
@@ -76,7 +87,7 @@ final class BundlePublishChecklist
             $this->check(
                 'cheaper_than_parts',
                 'price',
-                'A bundle priced at or above the sum of its courses gives nobody a reason to buy it.',
+                'A bundle priced at or above the sum of its parts gives nobody a reason to buy it.',
                 blocking: false,
                 passed: $this->isCheaperThanParts($bundle),
             ),
@@ -120,6 +131,32 @@ final class BundlePublishChecklist
             ->pluck('title')
             ->values()
             ->all();
+    }
+
+    /**
+     * Named, for the same reason — a draft download would be granted and
+     * then refused to its buyer at the fetch.
+     *
+     * @return list<string>
+     */
+    private function unpublishedDownloads(Bundle $bundle): array
+    {
+        return $bundle->downloads
+            ->reject(fn (Download $download): bool => $download->status->isLive())
+            ->pluck('title')
+            ->values()
+            ->all();
+    }
+
+    /** @param  list<string>  $titles */
+    private function unpublishedDownloadsMessage(array $titles): string
+    {
+        if ($titles === []) {
+            return 'Every download in the bundle is published.';
+        }
+
+        return 'These downloads are not published, so a buyer could not fetch them: "'
+            .implode('", "', $titles).'".';
     }
 
     /** @param  list<string>  $titles */
@@ -171,6 +208,11 @@ final class BundlePublishChecklist
         foreach ($bundle->courses as $course) {
             $course->loadMissing('product.prices');
             $total += $course->product?->priceIn($currency)?->effectiveMinor() ?? 0;
+        }
+
+        foreach ($bundle->downloads as $download) {
+            $download->loadMissing('product.prices');
+            $total += $download->product?->priceIn($currency)?->effectiveMinor() ?? 0;
         }
 
         return $total;

@@ -37,6 +37,28 @@ function course(ref: number, title: string, minor: number) {
   };
 }
 
+function download(ref: number, title: string, minor: number) {
+  return {
+    id: `download-${ref}`,
+    ref,
+    slug: `download-${ref}`,
+    title,
+    subtitle: null,
+    status: 'published',
+    status_label: 'Published',
+    published_at: '2026-09-01T00:00:00Z',
+    pricing_model: 'one_time',
+    is_free: false,
+    price: {
+      product_id: `pd-${ref}`,
+      currency: 'USD',
+      amount_minor: minor,
+      list_amount_minor: null,
+      is_on_sale: false,
+    },
+  } as const;
+}
+
 function bundle(overrides: Partial<Bundle> = {}): Bundle {
   return {
     id: 'b-1',
@@ -58,6 +80,8 @@ function bundle(overrides: Partial<Bundle> = {}): Bundle {
     courses: [course(1, 'First course', 2000), course(2, 'Second course', 4000)] as never,
     parts_total_minor: 6000,
     owned_course_ids: [],
+    downloads: [],
+    owned_download_ids: [],
     ...overrides,
   };
 }
@@ -88,16 +112,16 @@ describe('BundleDetailRoute', () => {
     serve(bundle({ owned_course_ids: [1] }));
     renderWithRouter(<BundleDetailRoute />, { path: '/bundles/:slug', route: '/bundles/complete-path' });
 
-    expect(await screen.findByText(/already have 1 of these 2 courses/i)).toBeInTheDocument();
+    expect(await screen.findByText(/already have 1 of the 2 things/i)).toBeInTheDocument();
     expect(screen.getByText('Owned')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add to basket/i })).toBeEnabled();
   });
 
-  it('cannot be bought when every course is already owned', async () => {
+  it('cannot be bought when everything in it is already owned', async () => {
     serve(bundle({ owned_course_ids: [1, 2] }));
     renderWithRouter(<BundleDetailRoute />, { path: '/bundles/:slug', route: '/bundles/complete-path' });
 
-    expect(await screen.findByText(/already own every course/i)).toBeInTheDocument();
+    expect(await screen.findByText(/already own everything/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add to basket/i })).toBeDisabled();
   });
 
@@ -116,5 +140,35 @@ describe('BundleDetailRoute', () => {
 
     expect(await screen.findByText('First course')).toBeInTheDocument();
     expect(screen.getByText('Second course')).toBeInTheDocument();
+  });
+
+  it('lists its downloads beside its courses', async () => {
+    serve(bundle({ downloads: [download(7, 'The workbook', 1500)] }));
+    renderWithRouter(<BundleDetailRoute />, { path: '/bundles/:slug', route: '/bundles/complete-path' });
+
+    expect(await screen.findByText('The workbook')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '2 courses and 1 download' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'The workbook' })).toHaveAttribute(
+      'href',
+      '/downloads/download-7',
+    );
+  });
+
+  /*
+   * Every course owned is not everything owned. Counting courses alone told
+   * this buyer there was nothing left while the workbook was still in it.
+   */
+  it('still sells a bundle whose courses are all owned but a download is not', async () => {
+    serve(
+      bundle({
+        owned_course_ids: [1, 2],
+        downloads: [download(7, 'The workbook', 1500)],
+        owned_download_ids: [],
+      }),
+    );
+    renderWithRouter(<BundleDetailRoute />, { path: '/bundles/:slug', route: '/bundles/complete-path' });
+
+    expect(await screen.findByText(/already have 2 of the 3 things/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add to basket/i })).toBeEnabled();
   });
 });

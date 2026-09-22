@@ -148,6 +148,8 @@ final class EventServiceProvider extends ServiceProvider
         ],
         DownloadStatusChanged::class => [
             [SyncProductForPurchasable::class, 'downloadStatusChanged'],
+            // A download leaving `published` takes its bundles back to draft.
+            [ReconcileBundleSellability::class, 'downloadStatusChanged'],
         ],
         DownloadPricingChanged::class => [
             [SyncProductForPurchasable::class, 'downloadPricingChanged'],

@@ -7,11 +7,14 @@ namespace App\Domain\Catalog\Listeners;
 use App\Domain\Catalog\Actions\ChangeBundleStatus;
 use App\Domain\Catalog\Enums\BundleStatus;
 use App\Domain\Catalog\Enums\CourseStatus;
+use App\Domain\Catalog\Enums\DownloadStatus;
 use App\Domain\Catalog\Events\CourseStatusChanged;
+use App\Domain\Catalog\Events\DownloadStatusChanged;
 use App\Domain\Catalog\Models\Bundle;
 
 /**
- * A course leaving `published` takes every bundle containing it back to draft.
+ * A course — or a download — leaving `published` takes every bundle containing
+ * it back to draft.
  *
  * Selling access to something nobody can open is worse than a lost sale, and
  * it would succeed — the grant creates an enrolment on an unpublished course
@@ -31,13 +34,27 @@ final class ReconcileBundleSellability
 
     public function handle(CourseStatusChanged $event): void
     {
-        if (! $event->left(CourseStatus::Published)) {
-            return;
+        if ($event->left(CourseStatus::Published)) {
+            $this->draftBundlesHolding('course_id', $event->course->id);
         }
+    }
 
+    /**
+     * The same rule for a download. Archiving takes a download off sale;
+     * a bundle still selling it would quietly put it back on.
+     */
+    public function downloadStatusChanged(DownloadStatusChanged $event): void
+    {
+        if ($event->left(DownloadStatus::Published)) {
+            $this->draftBundlesHolding('download_id', $event->download->id);
+        }
+    }
+
+    private function draftBundlesHolding(string $column, int $id): void
+    {
         $bundles = Bundle::query()
             ->published()
-            ->whereHas('items', fn ($query) => $query->where('course_id', $event->course->id))
+            ->whereHas('items', fn ($query) => $query->where($column, $id))
             ->get();
 
         foreach ($bundles as $bundle) {

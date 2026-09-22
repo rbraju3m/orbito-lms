@@ -11,6 +11,7 @@ use App\Domain\Commerce\Exceptions\RefundRejected;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Commerce\Models\Payment;
 use App\Domain\Commerce\Models\Refund;
+use App\Domain\Commerce\Support\AllocationTarget;
 use App\Domain\Commerce\Support\RefundSplit;
 use App\Domain\Identity\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -100,8 +101,8 @@ final class ClaimRefund
                     'amount_minor' => $share['amount'],
                 ]);
 
-                foreach ($share['allocations'] as $courseId => $amount) {
-                    $line->allocations()->create(['course_id' => $courseId, 'amount_minor' => $amount]);
+                foreach ($share['allocations'] as $target => $amount) {
+                    $line->allocations()->create([...AllocationTarget::columns($target), 'amount_minor' => $amount]);
                 }
             }
 

@@ -29,7 +29,7 @@ final class BundleController
         Gate::authorize('viewAny', Bundle::class);
 
         $bundles = Bundle::query()
-            ->withCount('courses')
+            ->withCount(['courses', 'downloads'])
             ->with(['thumbnail', 'product.prices'])
             ->when(
                 $request->filled('status'),
@@ -54,7 +54,7 @@ final class BundleController
     {
         Gate::authorize('view', $bundle);
 
-        $bundle->load(['courses.product.prices', 'thumbnail', 'product.prices']);
+        $bundle->load(Bundle::DETAIL_RELATIONS);
 
         return ApiResponse::ok([
             ...BundleResource::make($bundle)->resolve($request),

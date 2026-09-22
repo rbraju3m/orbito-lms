@@ -27,6 +27,9 @@ final class DownloadListResource extends BaseResource
 
         return [
             'id' => $this->uuid,
+            // Numeric, for endpoints that reference a download — a bundle's
+            // contents — the same convention as a course's `ref`.
+            'ref' => $this->id,
             'slug' => $this->slug,
             'title' => $this->title,
             'subtitle' => $this->subtitle,

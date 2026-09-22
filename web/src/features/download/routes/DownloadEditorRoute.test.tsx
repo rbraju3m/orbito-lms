@@ -12,6 +12,7 @@ import { DownloadEditorRoute } from './DownloadEditorRoute';
 function draft(overrides: Partial<Download> = {}): Download {
   return {
     id: 'd-1',
+    ref: 1,
     slug: 'untitled',
     title: 'Untitled download',
     subtitle: null,

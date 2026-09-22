@@ -9,6 +9,7 @@ import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
 import { bundleQuery } from '../api/queries';
 import type { Bundle } from '../api/types';
+import { bundleOwnership, describeContents } from '../lib/ownership';
 
 /**
  * A bundle as a buyer sees it.
@@ -30,9 +31,9 @@ export function BundleDetailRoute() {
 function BundleDetail({ bundle }: { bundle: Bundle }) {
   const addToCart = useAddToCart();
 
-  const owned = new Set(bundle.owned_course_ids ?? []);
   const courses = bundle.courses ?? [];
-  const newToThem = courses.filter((course) => !owned.has(course.ref));
+  const downloads = bundle.downloads ?? [];
+  const ownership = bundleOwnership(bundle);
 
   const price = bundle.price;
   const parts = bundle.parts_total_minor ?? 0;
@@ -50,16 +51,16 @@ function BundleDetail({ bundle }: { bundle: Bundle }) {
           plain statement of what is new BEFORE they pay — not a refusal, and
           not a surprise afterwards.
         */}
-        {owned.size > 0 && newToThem.length > 0 ? (
+        {ownership.owned > 0 && ownership.newToThem > 0 ? (
           <Alert color="warning" icon={<IconInfoCircle size={16} />} role="note">
-            You already have {owned.size} of these {courses.length} courses. Buying this bundle
-            adds the other {newToThem.length}.
+            You already have {ownership.owned} of the {ownership.total} things in this bundle.
+            Buying it adds the other {ownership.newToThem}.
           </Alert>
         ) : null}
 
-        {owned.size > 0 && newToThem.length === 0 ? (
+        {ownership.owned > 0 && ownership.newToThem === 0 ? (
           <Alert color="warning" icon={<IconInfoCircle size={16} />} role="note">
-            You already own every course in this bundle.
+            You already own everything in this bundle.
           </Alert>
         ) : null}
 
@@ -84,7 +85,7 @@ function BundleDetail({ bundle }: { bundle: Bundle }) {
             </Stack>
 
             <Button
-              disabled={!price || newToThem.length === 0}
+              disabled={!price || ownership.newToThem === 0}
               loading={addToCart.isPending}
               onClick={() => price && addToCart.mutate(price.product_id)}
             >
@@ -94,7 +95,9 @@ function BundleDetail({ bundle }: { bundle: Bundle }) {
         </Card>
 
         <Stack gap="xs">
-          <Title order={4}>{courses.length} courses</Title>
+          <Title order={2} size="h4">
+            {describeContents(courses.length, downloads.length)}
+          </Title>
 
           {courses.map((course) => (
             <Card key={course.id} withBorder padding="sm">
@@ -110,13 +113,38 @@ function BundleDetail({ bundle }: { bundle: Bundle }) {
                   ) : null}
                 </Stack>
 
-                {owned.has(course.ref) ? (
+                {ownership.ownsCourse(course.ref) ? (
                   <Badge color="success" variant="light" leftSection={<IconCheck size={12} />}>
                     Owned
                   </Badge>
                 ) : course.price ? (
                   <Text size="sm" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
                     {formatMinor(course.price.amount_minor, course.price.currency)}
+                  </Text>
+                ) : null}
+              </Group>
+            </Card>
+          ))}
+
+          {downloads.map((download) => (
+            <Card key={download.id} withBorder padding="sm">
+              <Group justify="space-between" gap="sm">
+                <Stack gap={2}>
+                  <Text component={Link} to={`/downloads/${download.slug}`} fw={600}>
+                    {download.title}
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    Download{download.subtitle ? ` · ${download.subtitle}` : ''}
+                  </Text>
+                </Stack>
+
+                {ownership.ownsDownload(download.ref) ? (
+                  <Badge color="success" variant="light" leftSection={<IconCheck size={12} />}>
+                    Owned
+                  </Badge>
+                ) : download.price ? (
+                  <Text size="sm" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                    {formatMinor(download.price.amount_minor, download.price.currency)}
                   </Text>
                 ) : null}
               </Group>

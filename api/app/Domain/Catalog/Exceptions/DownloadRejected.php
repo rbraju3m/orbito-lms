@@ -44,6 +44,19 @@ final class DownloadRejected extends DomainException
         );
     }
 
+    public static function inBundle(int $bundles): self
+    {
+        return self::make(
+            'download_in_bundle',
+            sprintf(
+                'This download is in %d %s. Take it out of %s before deleting it.',
+                $bundles,
+                $bundles === 1 ? 'bundle' : 'bundles',
+                $bundles === 1 ? 'that bundle' : 'them',
+            ),
+        );
+    }
+
     private static function make(string $code, string $message): self
     {
         $exception = new self($message);

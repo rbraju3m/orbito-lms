@@ -35,11 +35,11 @@ claims to: `media.download` streams on the signature alone, with no user, so
 the only countable event is a link being MINTED, not a file being fetched. A
 cap on mints spends a download every time a transfer fails halfway.
 
-### Bundles stay courses-only
+### Bundles stay courses-only — superseded
 
-`bundle_items` names `course_id`. Teaching bundles about downloads means a
-morph there, a grant path that switches on type, and an allocation target
-that is not a course. That is its own slice.
+Decided for this slice and reversed by the next: a bundle may now hold
+downloads, granted with `DownloadSource::Bundle` and allocated a share of the
+bundle's price as download revenue. See `BUNDLES.md` §9.
 
 ---
 

@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
 import { studioBundlesQuery, useCreateBundle } from '../api/queries';
 import type { BundleListItem, BundleStatus } from '../api/types';
+import { describeContents } from '../lib/ownership';
 
 const TONE: Record<BundleStatus, string> = {
   draft: 'gray',
@@ -33,7 +34,7 @@ export function StudioBundlesRoute() {
     <>
       <PageHeader
         title="Bundles"
-        description="Several courses, sold as one thing."
+        description="Several courses and downloads, sold as one thing."
         actions={
           <Button leftSection={<IconPlus size={16} />} loading={create.isPending} onClick={startOne}>
             New bundle
@@ -47,7 +48,7 @@ export function StudioBundlesRoute() {
       {data && data.data.length === 0 ? (
         <EmptyState
           title="No bundles yet"
-          description="A bundle groups two or more published courses and sells them for one price."
+          description="A bundle groups two or more published courses or downloads and sells them for one price."
           action={{ label: 'Create the first one', onClick: startOne }}
         />
       ) : null}
@@ -70,7 +71,7 @@ function BundleRow({ bundle }: { bundle: BundleListItem }) {
         <Stack gap={2}>
           <Text fw={600}>{bundle.title}</Text>
           <Text size="sm" c="dimmed">
-            {bundle.course_count ?? 0} {bundle.course_count === 1 ? 'course' : 'courses'}
+            {describeContents(bundle.course_count ?? 0, bundle.download_count ?? 0)}
           </Text>
         </Stack>
 

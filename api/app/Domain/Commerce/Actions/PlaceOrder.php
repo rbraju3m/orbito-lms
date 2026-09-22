@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Commerce\Actions;
 
 use App\Domain\Catalog\Models\Bundle;
-use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\DownloadGrant;
 use App\Domain\Commerce\Enums\OrderStatus;
 use App\Domain\Commerce\Exceptions\CheckoutRejected;
@@ -14,13 +13,13 @@ use App\Domain\Commerce\Models\Coupon;
 use App\Domain\Commerce\Models\CouponRedemption;
 use App\Domain\Commerce\Models\Order;
 use App\Domain\Commerce\Models\Product;
+use App\Domain\Commerce\Support\AllocationTarget;
 use App\Domain\Commerce\Support\CouponRules;
 use App\Domain\Commerce\Support\RevenueAllocator;
 use App\Domain\Commerce\Support\WebinarPurchase;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Models\User;
 use App\Domain\Live\Models\Webinar;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -144,16 +143,16 @@ final class PlaceOrder
 
             /*
              * Index-aligned with $lines, because createMany returns them in
-             * the order given. A bundle's money has to reach the courses it
-             * contains or it counts in the platform total and in no course
-             * figure at all — and it is the NET line total that is split, so
-             * a discounted bundle's courses earn their share of what was
-             * actually charged.
+             * the order given. A bundle's money has to reach the courses and
+             * downloads it contains or it counts in the platform total and in
+             * no course or download figure at all — and it is the NET line
+             * total that is split, so a discounted bundle's contents earn
+             * their share of what was actually charged.
              */
             foreach ($created as $index => $item) {
-                foreach ($this->allocationFor($products[$index], $item->total_minor, $currency) as $courseId => $amountMinor) {
+                foreach ($this->allocationFor($products[$index], $item->total_minor, $currency) as $target => $amountMinor) {
                     $item->allocations()->create([
-                        'course_id' => $courseId,
+                        ...AllocationTarget::columns($target),
                         'amount_minor' => $amountMinor,
                     ]);
                 }
@@ -238,7 +237,8 @@ final class PlaceOrder
 
     /**
      * A bundle is refused only when there is NOTHING left in it for this
-     * buyer.
+     * buyer — no course they are not enrolled in, and no download they do not
+     * hold.
      *
      * Partial overlap sells: refusing a five-course bundle because of one
      * purchase last year is hostile, and the buyer is shown what they already
@@ -246,9 +246,11 @@ final class PlaceOrder
      */
     private function assertBundleHasSomethingToDeliver(User $user, Product $product): void
     {
-        $courseIds = $this->bundleCourseIds($product);
+        $bundle = $this->bundle($product);
+        $courseIds = $bundle?->courses->modelKeys() ?? [];
+        $downloadIds = $bundle?->downloads->modelKeys() ?? [];
 
-        if ($courseIds === []) {
+        if ($courseIds === [] && $downloadIds === []) {
             // An empty bundle cannot be published, so this means one was
             // emptied after somebody put it in their basket.
             throw CheckoutRejected::unavailable($product->title);
@@ -260,20 +262,28 @@ final class PlaceOrder
             ->distinct()
             ->count('course_id');
 
-        if ($owned >= count($courseIds)) {
+        // A REVOKED grant does not count, as for a download bought alone.
+        $owned += DownloadGrant::query()
+            ->where('user_id', $user->id)
+            ->whereIn('download_id', $downloadIds)
+            ->active()
+            ->count();
+
+        if ($owned >= count($courseIds) + count($downloadIds)) {
             throw CheckoutRejected::bundleFullyOwned($product->title);
         }
     }
 
     /**
-     * How this line's money is attributed to courses.
+     * How this line's money is attributed.
      *
-     * A course line needs none — the line IS the attribution, and
-     * `courseRevenue()` reads it directly. A bundle's price is split across
-     * what it contains, weighted by each course's own list price, largest
-     * remainder so the parts sum to the line EXACTLY.
+     * A course or download line needs none — the line IS the attribution. A
+     * bundle's price is split across what it contains, weighted by each
+     * part's own list price, largest remainder so the parts sum to the line
+     * EXACTLY. Keyed by `AllocationTarget`, because a course and a download
+     * can share an id.
      *
-     * @return array<int, int> course id => minor units
+     * @return array<string, int> target key => minor units
      */
     private function allocationFor(Product $product, int $amountMinor, string $currency): array
     {
@@ -281,37 +291,31 @@ final class PlaceOrder
             return [];
         }
 
-        $weights = [];
-
-        foreach ($this->bundleCourses($product) as $course) {
-            // A free course in a bundle has no product, so weight 0 — it is
-            // worth none of the price. If they are ALL free the allocator
-            // splits evenly rather than dropping the money.
-            $weights[$course->id] = $course->product?->priceIn($currency)?->effectiveMinor() ?? 0;
-        }
-
-        return $this->allocator->allocate($amountMinor, $weights);
-    }
-
-    /** @return EloquentCollection<int, Course> */
-    private function bundleCourses(Product $product): EloquentCollection
-    {
-        $bundle = Bundle::with(['courses.product.prices'])->find($product->purchasable_id);
+        $bundle = $this->bundle($product);
 
         if ($bundle === null) {
-            /** @var EloquentCollection<int, Course> */
-            return new EloquentCollection;
+            return [];
         }
 
-        return $bundle->courses;
+        $weights = [];
+
+        // Anything free has no product, so weight 0 — it is worth none of the
+        // price. If EVERYTHING is free the allocator splits evenly rather
+        // than dropping the money.
+        foreach ($bundle->courses as $course) {
+            $weights[AllocationTarget::course($course->id)] = $course->product?->priceIn($currency)?->effectiveMinor() ?? 0;
+        }
+
+        foreach ($bundle->downloads as $download) {
+            $weights[AllocationTarget::download($download->id)] = $download->product?->priceIn($currency)?->effectiveMinor() ?? 0;
+        }
+
+        return $this->allocator->allocateTargets($amountMinor, $weights);
     }
 
-    /** @return list<int> */
-    private function bundleCourseIds(Product $product): array
+    private function bundle(Product $product): ?Bundle
     {
-        return $this->bundleCourses($product)->pluck('id')
-            ->map(static fn (mixed $id): int => (int) $id)
-            ->all();
+        return Bundle::with(['courses.product.prices', 'downloads.product.prices'])->find($product->purchasable_id);
     }
 
     /**

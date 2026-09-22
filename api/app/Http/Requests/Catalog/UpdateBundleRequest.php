@@ -29,6 +29,8 @@ final class UpdateBundleRequest extends FormRequest
             'thumbnail_media_id' => ['sometimes', 'nullable', 'integer'],
             'course_ids' => ['sometimes', 'array', 'max:50'],
             'course_ids.*' => ['integer', 'distinct', 'exists:courses,id'],
+            'download_ids' => ['sometimes', 'array', 'max:50'],
+            'download_ids.*' => ['integer', 'distinct', 'exists:downloads,id'],
         ];
     }
 

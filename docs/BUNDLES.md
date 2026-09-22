@@ -236,3 +236,86 @@ different decision from what it says.
   only. Re-publishing the course does not re-publish the bundle: the author
   may have removed a course or changed the price since, and a lifecycle change
   elsewhere must not put something back on sale.
+
+---
+
+## 9. Bundles that hold downloads — scope
+
+> **Status: BUILT**, backend and front. §2 put the morph off "until downloads
+> land and it is real"; they have, and this is that slice. What changed on the
+> way is at the end of this section.
+
+A bundle may now contain courses, downloads, or both. Buying it fans out into
+an enrolment per course (as before) and a **download grant per download**.
+
+### Decisions
+
+- **Two nullable foreign keys, not a morph.** `bundle_items`,
+  `order_item_allocations` and `refund_line_allocations` each gain a
+  `download_id` beside a now-nullable `course_id`, with a `CHECK` that exactly
+  one is set. A morph would drop the foreign keys and buy no polymorphism —
+  every reader still switches on the type (§2's argument, still true) — and
+  the existing course queries keep working once they say
+  `whereNotNull('course_id')`, which they now must: a download allocation
+  grouped by `course_id` is a NULL row that casts to course 0.
+- **A bundled download is granted with `DownloadSource::Bundle`** and the
+  order id, the twin of `EnrollmentSource::Bundle`. `RevokeOrderAccess`
+  already keys download grants on `order_id`, so a refund takes back exactly
+  what the bundle gave and never a copy owned before it. A download already
+  held is left alone, like an enrolment in an overlapping course.
+- **Download money is download revenue.** A download's share of a bundle is
+  allocated at order time like a course's, weighted by its own price, and
+  `download_revenue_minor` adds those allocations (and takes off their
+  refunds). Courses + downloads = platform stays exact.
+- **Allocation keys are typed.** `RevenueAllocator` breaks ties on an INT key,
+  and a course and a download can share an id. `allocateTargets()` takes
+  `course:ID` / `download:ID` keys and orders them course-first, then by id,
+  so a courses-only bundle splits exactly as it did before.
+- **"Two things", not "two courses".** A course and a download is a real
+  bundle. The checklist's `has_two_courses` becomes `has_two_items`, and a
+  `downloads_published` check names any download not on sale.
+- **A download leaving `published` takes its bundles to draft**, one way
+  only — `ReconcileBundleSellability` listens to `DownloadStatusChanged` too.
+- **A download in a bundle cannot be deleted** (409 `download_in_bundle`).
+  The FK cascades, and a cascade is a delete policy: deleting it would
+  silently change what a published bundle sells.
+- **The API takes two whole lists**, `course_ids` and `download_ids`, never a
+  delta. Courses are positioned before downloads; interleaving them is not
+  something any page needs yet.
+
+### Acceptance criteria
+
+- buying a bundle grants each download with `source = bundle`
+- a download already owned is not re-granted, and a refund of the bundle leaves it
+- a full refund revokes the bundle's downloads
+- owning every course AND every download refuses the sale; any gap sells
+- allocations across courses and downloads sum exactly to the line
+- download revenue includes bundle allocations; courses + downloads = platform
+- a partial refund splits across courses and downloads by what each has left
+- a course and a download satisfy `has_two_items`; an unpublished download blocks publish, named
+- a download leaving published takes its bundles to draft
+- deleting a download in a bundle is 409
+- `download_ids` 422s on an unknown id
+- the bundle page lists downloads and which the reader owns; the editor picks them
+
+### What changed on the way
+
+- **Buying a download again after a refund delivered nothing — for six
+  slices.** `download_grants` is one row per person per download, a refund
+  revokes that row rather than deleting it, and checkout (rightly) lets a
+  refunded buyer buy again. But `GrantDownload` caught the unique violation
+  and handed back the REVOKED row: the money moved and the file stayed
+  locked. `REFUNDS.md` §3 promised "buying again later works" the whole time.
+  Found because a bundle containing a previously-refunded download reaches
+  the same path. It now revives the row — new source, new order, one
+  conditional UPDATE so two deliveries cannot both announce it — and
+  `DownloadTest` asserts the second purchase can fetch.
+- **The `course_id` queries had to say `whereNotNull`.** Every per-course
+  revenue and refund query grouped allocations by `course_id`; a download's
+  row would have been a NULL group, cast by PHP to course 0. The rollup test
+  asserts there is no course 0.
+- **One list of relations for a full bundle view.** Four call sites loaded
+  `courses.product.prices` by hand; adding downloads to one and not the others
+  would have been a lazy load under strict mode. `Bundle::DETAIL_RELATIONS`.
+- **A download reports a numeric `ref`**, as a course and a media row
+  already do, because `download_ids` speaks in ids.

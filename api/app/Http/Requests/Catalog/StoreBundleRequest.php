@@ -34,6 +34,8 @@ final class StoreBundleRequest extends FormRequest
             // for — and here that set is what somebody gets charged for.
             'course_ids' => ['sometimes', 'array', 'max:50'],
             'course_ids.*' => ['integer', 'distinct', 'exists:courses,id'],
+            'download_ids' => ['sometimes', 'array', 'max:50'],
+            'download_ids.*' => ['integer', 'distinct', 'exists:downloads,id'],
         ];
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\Catalog;
 
 use App\Domain\Catalog\Models\Bundle;
+use App\Domain\Catalog\Models\DownloadGrant;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Support\Http\Resources\BaseResource;
 use Illuminate\Http\Request;
@@ -13,10 +14,11 @@ use Illuminate\Http\Request;
  * One bundle, in full.
  *
  * The per-reader facts live HERE and not on the list (§16): `owned_course_ids`
- * is a query per bundle, and thirty cards would be thirty queries for
+ * and `owned_download_ids` are a query each per bundle, and thirty cards would be thirty queries for
  * something no card renders.
  *
- * `parts_total_minor` is what the same courses would cost bought separately.
+ * `parts_total_minor` is what the same courses and downloads would cost bought
+ * separately.
  * It is the whole argument for buying a bundle, so the server computes it from
  * the same prices `PlaceOrder` will read rather than leaving the client to add
  * up numbers it may not have all of.
@@ -53,8 +55,13 @@ final class BundleResource extends BaseResource
                 fn () => CourseListResource::collection($this->courses)->resolve($request),
             ),
 
+            'downloads' => $this->whenLoaded(
+                'downloads',
+                fn () => DownloadListResource::collection($this->downloads)->resolve($request),
+            ),
+
             /*
-             * What the same courses cost separately, and what that saves.
+             * What the same courses and downloads cost separately.
              * Absent rather than zero when the courses are not loaded — "we
              * did not ask" and "they are worth nothing" are different facts.
              */
@@ -73,6 +80,11 @@ final class BundleResource extends BaseResource
                 $this->resource->relationLoaded('courses') && $request->user() !== null,
                 fn (): array => $this->ownedCourseIds($request),
             ),
+            // Held, not revoked — the rule checkout uses to decide what is new.
+            'owned_download_ids' => $this->when(
+                $this->resource->relationLoaded('downloads') && $request->user() !== null,
+                fn (): array => $this->ownedDownloadIds($request),
+            ),
         ];
     }
 
@@ -86,7 +98,32 @@ final class BundleResource extends BaseResource
                 : 0;
         }
 
+        foreach ($this->resource->relationLoaded('downloads') ? $this->downloads : [] as $download) {
+            $total += $download->relationLoaded('product')
+                ? ($download->product?->priceIn($currency)?->effectiveMinor() ?? 0)
+                : 0;
+        }
+
         return $total;
+    }
+
+    /** @return list<int> */
+    private function ownedDownloadIds(Request $request): array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return [];
+        }
+
+        /** @var list<int> */
+        return DownloadGrant::query()
+            ->where('user_id', $user->id)
+            ->whereIn('download_id', $this->downloads->pluck('id'))
+            ->active()
+            ->pluck('download_id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
     }
 
     /** @return list<int> */

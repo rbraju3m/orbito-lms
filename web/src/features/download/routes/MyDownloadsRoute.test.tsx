@@ -9,9 +9,12 @@ import { server } from '@/shared/test/server';
 import type { DownloadListItem } from '../api/types';
 import { MyDownloadsRoute } from './MyDownloadsRoute';
 
+let nextRef = 1;
+
 function owned(id: string, title: string): DownloadListItem {
   return {
     id,
+    ref: nextRef++,
     slug: id,
     title,
     subtitle: null,

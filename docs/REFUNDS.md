@@ -68,7 +68,9 @@ partials that adds up to everything revokes on the last one, if it says to.
 dialog's default does — nobody here was asked whether it was goodwill, and an
 admin can enrol the learner again. A partial one, again, never touches access.
 
-Revoked, not deleted: progress and grades stay, and buying again later works.
+Revoked, not deleted: progress and grades stay, and buying again later works
+— for a download, by reviving the revoked grant (`GrantDownload`); until the
+bundles-with-downloads slice it handed back the revoked row instead.
 
 ---
 

@@ -10,13 +10,17 @@ namespace App\Domain\Catalog\Data;
  */
 final readonly class BundleData
 {
-    /** @param  list<int>|null  $courseIds */
+    /**
+     * @param  list<int>|null  $courseIds
+     * @param  list<int>|null  $downloadIds
+     */
     public function __construct(
         public ?string $title = null,
         public ?string $subtitle = null,
         public ?string $description = null,
         public ?int $thumbnailMediaId = null,
         public ?array $courseIds = null,
+        public ?array $downloadIds = null,
     ) {}
 
     /**
@@ -32,6 +36,11 @@ final readonly class BundleData
             ? array_values(array_map(static fn (mixed $id): int => (int) $id, (array) $input['course_ids']))
             : null;
 
+        /** @var list<int>|null $downloadIds */
+        $downloadIds = array_key_exists('download_ids', $input)
+            ? array_values(array_map(static fn (mixed $id): int => (int) $id, (array) $input['download_ids']))
+            : null;
+
         return new self(
             title: $input['title'] ?? null,
             subtitle: array_key_exists('subtitle', $input) ? $input['subtitle'] : null,
@@ -40,6 +49,7 @@ final readonly class BundleData
                 ? $input['thumbnail_media_id']
                 : null,
             courseIds: $courseIds,
+            downloadIds: $downloadIds,
         );
     }
 }

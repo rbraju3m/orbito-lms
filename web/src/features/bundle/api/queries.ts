@@ -56,6 +56,7 @@ export interface BundlePayload {
    * set neither asked for.
    */
   course_ids?: number[];
+  download_ids?: number[];
 }
 
 export function useCreateBundle() {

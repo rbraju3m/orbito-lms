@@ -48,7 +48,7 @@ final class BundleStatusController
         $updated = $this->action->handle($bundle, $target, $request->user());
 
         return ApiResponse::ok(
-            BundleResource::make($updated->load(['courses.product.prices', 'thumbnail', 'product.prices']))
+            BundleResource::make($updated->load(Bundle::DETAIL_RELATIONS))
         );
     }
 }

@@ -13,6 +13,7 @@ import { DownloadDetailRoute } from './DownloadDetailRoute';
 function download(overrides: Partial<Download> = {}): Download {
   return {
     id: 'd-1',
+    ref: 1,
     slug: 'workbook',
     title: 'The complete workbook',
     subtitle: 'Every exercise, in one file',

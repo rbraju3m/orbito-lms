@@ -166,10 +166,11 @@ final class BuildDailyRollups
              * What was actually CHARGED, from the order total.
              *
              * This equals the per-course figures PLUS `download_revenue_minor`
-             * below — exactly, and a test asserts it. Bundles are already in
-             * the course figures, through their allocations. Downloads have no
-             * course, so they need their own line or the platform total would
-             * silently stop matching its parts.
+             * below — exactly, and a test asserts it. A bundle's money is in
+             * both, through its allocations: a course's share in the course
+             * figures, a download's share in the download line. Downloads have
+             * no course, so they need their own line or the platform total
+             * would silently stop matching its parts.
              *
              * A coupon's discount is SPLIT across the order's lines when it is
              * placed (largest remainder, `CouponDiscount`), and each line's
@@ -202,10 +203,35 @@ final class BuildDailyRollups
         ]);
     }
 
-    /** Downloads sold, from the order lines — the snapshot of what was charged. */
+    /**
+     * Downloads sold, from the order lines — the snapshot of what was charged
+     * — plus each download's share of a bundle, from its allocation. Refunds
+     * come off the same two ways, on the day they completed, so courses +
+     * downloads still equals the platform total exactly.
+     */
     private function downloadRevenue(CarbonImmutable $from, CarbonImmutable $to, string $currency): int
     {
-        return (int) OrderItem::query()
+        $bundled = (int) OrderItemAllocation::query()
+            ->join('order_items', 'order_items.id', '=', 'order_item_allocations.order_item_id')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->whereNotNull('order_item_allocations.download_id')
+            ->whereNotNull('orders.paid_at')
+            ->where('orders.paid_at', '>=', $from)
+            ->where('orders.paid_at', '<', $to)
+            ->where('orders.currency', $currency)
+            ->sum('order_item_allocations.amount_minor');
+
+        $bundledRefunded = (int) RefundLineAllocation::query()
+            ->join('refund_lines', 'refund_lines.id', '=', 'refund_line_allocations.refund_line_id')
+            ->join('refunds', 'refunds.id', '=', 'refund_lines.refund_id')
+            ->whereNotNull('refund_line_allocations.download_id')
+            ->where('refunds.status', RefundStatus::Completed)
+            ->where('refunds.completed_at', '>=', $from)
+            ->where('refunds.completed_at', '<', $to)
+            ->where('refunds.currency', $currency)
+            ->sum('refund_line_allocations.amount_minor');
+
+        return $bundled - $bundledRefunded + (int) OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('order_items.purchasable_type', 'download')
             ->whereNotNull('orders.paid_at')
@@ -260,6 +286,9 @@ final class BuildDailyRollups
             ->where('refunds.completed_at', '>=', $from)
             ->where('refunds.completed_at', '<', $to)
             ->where('refunds.currency', $currency)
+            // A download's share has no course; grouped here it would be a
+            // NULL row that casts to course 0.
+            ->whereNotNull('refund_line_allocations.course_id')
             ->groupBy('refund_line_allocations.course_id')
             ->selectRaw('refund_line_allocations.course_id as course_id, SUM(refund_line_allocations.amount_minor) as refunded')
             ->toBase()
@@ -397,6 +426,8 @@ final class BuildDailyRollups
             ->where('orders.paid_at', '>=', $from)
             ->where('orders.paid_at', '<', $to)
             ->where('orders.currency', $currency)
+            // Downloads in the bundle are download revenue, not course 0.
+            ->whereNotNull('order_item_allocations.course_id')
             ->groupBy('order_item_allocations.course_id')
             ->selectRaw('order_item_allocations.course_id as course_id, SUM(order_item_allocations.amount_minor) as revenue')
             ->toBase()

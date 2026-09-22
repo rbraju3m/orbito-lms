@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 final class CreateBundle
 {
     public function __construct(
-        private readonly SetBundleCourses $setCourses,
+        private readonly SetBundleContents $setContents,
         private readonly RichTextSanitizer $sanitizer,
     ) {}
 
@@ -34,8 +34,8 @@ final class CreateBundle
             $bundle->status = BundleStatus::Draft;
             $bundle->save();
 
-            if ($data->courseIds !== null) {
-                $this->setCourses->handle($bundle, $data->courseIds);
+            if ($data->courseIds !== null || $data->downloadIds !== null) {
+                $this->setContents->handle($bundle, $data->courseIds, $data->downloadIds);
             }
 
             return $bundle;
@@ -43,6 +43,6 @@ final class CreateBundle
 
         BundleCreated::dispatch($bundle);
 
-        return $bundle->fresh(['courses', 'thumbnail', 'product.prices']) ?? $bundle;
+        return $bundle->fresh(Bundle::DETAIL_RELATIONS) ?? $bundle;
     }
 }

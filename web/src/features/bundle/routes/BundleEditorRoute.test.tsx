@@ -12,9 +12,9 @@ import { BundleEditorRoute } from './BundleEditorRoute';
 
 function check(overrides: Partial<BundleCheck> = {}): BundleCheck {
   return {
-    code: 'has_two_courses',
-    field: 'courses',
-    message: 'A bundle needs at least two courses. One course is just that course.',
+    code: 'has_two_items',
+    field: 'items',
+    message: 'A bundle needs at least two things in it. One course is just that course.',
     blocking: true,
     passed: false,
     ...overrides,
@@ -33,6 +33,7 @@ function bundle(overrides: Partial<Bundle> = {}): Bundle {
     published_at: null,
     price: null,
     courses: [],
+    downloads: [],
     parts_total_minor: 0,
     checklist: [check()],
     available_actions: ['published', 'archived'],
@@ -56,6 +57,13 @@ function serve(row: Bundle, onPatch?: (body: unknown) => void) {
         links: {},
       }),
     ),
+    http.get(apiUrl('/studio/downloads'), () =>
+      HttpResponse.json({
+        data: [{ id: 'd7', ref: 7, slug: 'workbook', title: 'The workbook', status: 'published' }],
+        meta: { current_page: 1, per_page: 20, total: 1, last_page: 1 },
+        links: {},
+      }),
+    ),
     http.patch(apiUrl('/studio/bundles/b-1'), async ({ request }) => {
       onPatch?.(await request.json());
       return HttpResponse.json({ data: row });
@@ -69,7 +77,7 @@ describe('BundleEditorRoute', () => {
     serve(bundle());
     renderWithRouter(<BundleEditorRoute />, { path: '/studio/bundles/:id', route: '/studio/bundles/b-1' });
 
-    expect(await screen.findByText(/needs at least two courses/i)).toBeInTheDocument();
+    expect(await screen.findByText(/needs at least two things/i)).toBeInTheDocument();
     expect(screen.getByText(/before this can be published/i)).toBeInTheDocument();
   });
 
@@ -97,7 +105,21 @@ describe('BundleEditorRoute', () => {
     await user.click(screen.getByRole('button', { name: /^save$/i }));
 
     await vi.waitFor(() => expect(onPatch).toHaveBeenCalled());
-    expect(onPatch.mock.calls[0]?.[0]).toMatchObject({ course_ids: [1, 2] });
+    expect(onPatch.mock.calls[0]?.[0]).toMatchObject({ course_ids: [1, 2], download_ids: [] });
+  });
+
+  it('sends the whole download list beside the courses', async () => {
+    const onPatch = vi.fn();
+    serve(bundle(), onPatch);
+    renderWithRouter(<BundleEditorRoute />, { path: '/studio/bundles/:id', route: '/studio/bundles/b-1' });
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByPlaceholderText('Pick published downloads'));
+    await user.click(await screen.findByText('The workbook'));
+    await user.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await vi.waitFor(() => expect(onPatch).toHaveBeenCalled());
+    expect(onPatch.mock.calls[0]?.[0]).toMatchObject({ course_ids: [], download_ids: [7] });
   });
 
   it('offers unpublish rather than publish once it is live', async () => {

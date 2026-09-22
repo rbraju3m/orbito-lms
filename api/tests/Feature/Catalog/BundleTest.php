@@ -129,7 +129,7 @@ it('refuses to publish a bundle with fewer than two courses', function (): void 
 
     expect($response)->toBeApiError('bundle_not_publishable')
         ->and(collect($response->json('error.details'))->pluck('code'))
-        ->toContain('has_two_courses');
+        ->toContain('has_two_items');
 });
 
 it('refuses to publish with no price', function (): void {
@@ -178,7 +178,7 @@ it('renders the same checklist the publish endpoint enforces', function (): void
             ->json('data.checklist')
     )->where('passed', false)->pluck('code');
 
-    expect($codes)->toContain('has_two_courses')->toContain('price_configured');
+    expect($codes)->toContain('has_two_items')->toContain('price_configured');
 });
 
 /* ------------------------------------------------- a member course changes */

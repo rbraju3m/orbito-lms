@@ -53,9 +53,10 @@ the shortfall was found that way, on every public page, in both schemes.
 Three more that no variable fixes, so they are rules for the component:
 
 - **A light badge's coloured text fails for most hues** — orange 3.6:1,
-  green 3.8:1, and green has no darker shade to reach for. A status badge
-  keeps its tint and takes the theme's text: `c="var(--mantine-color-text)"`
-  (`InvitationsRoute`).
+  green 3.8–4.2:1, and green has no darker shade to reach for. A light badge
+  keeps its tint and takes the theme's text. The THEME does this now
+  (`Badge.extend` in `app/theme.ts`, for every `variant="light"`): written
+  here as a per-call-site rule, it was still missed by eleven badges.
 - **White on a default filled red is 3.3:1.** A destructive button that
   stands alone uses `red.9`.
 - **A link inside a sentence is underlined** (`underline="always"`). In

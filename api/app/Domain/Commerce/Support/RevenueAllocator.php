@@ -79,6 +79,37 @@ final class RevenueAllocator
     }
 
     /**
+     * The same split over typed targets — `AllocationTarget` keys, because a
+     * course and a download in one bundle can share a numeric id.
+     *
+     * Ties break courses-first, then by id: the targets are sorted into that
+     * order and allocated by position, so for a bundle of courses alone the
+     * result is exactly what `allocate()` gives on the course ids.
+     *
+     * @param  array<string, int>  $weights  target key => list price in minor units
+     * @return array<string, int> target key => allocated minor units, summing to $total
+     */
+    public function allocateTargets(int $total, array $weights): array
+    {
+        $keys = array_keys($weights);
+        usort($keys, static fn (string $a, string $b): int => AllocationTarget::sortKey($a) <=> AllocationTarget::sortKey($b));
+
+        $byPosition = [];
+
+        foreach ($keys as $position => $key) {
+            $byPosition[$position] = $weights[$key];
+        }
+
+        $shares = [];
+
+        foreach ($this->allocate($total, $byPosition) as $position => $share) {
+            $shares[$keys[$position]] = $share;
+        }
+
+        return $shares;
+    }
+
+    /**
      * @param  list<int>  $ids
      * @return array<int, int>
      */

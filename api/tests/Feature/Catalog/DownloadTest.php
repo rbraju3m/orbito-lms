@@ -247,6 +247,30 @@ it('refuses to sell a download the buyer already owns', function (): void {
         ->toThrow(CheckoutRejected::class);
 });
 
+/*
+ * The grant table is one row per person per download, and a refund REVOKES
+ * that row rather than deleting it. Checkout lets them buy again — a revoked
+ * grant is not ownership — so the capture must bring the row back. It used to
+ * hand back the revoked one: paid, and holding nothing.
+ */
+it('gives the download back to somebody who buys it again after a refund', function (): void {
+    $download = dlPublished($this->admin, $this->currency, 1500);
+    dlCheckout($this->learner, dlProduct($download), $this->currency);
+    DownloadGrant::query()->update(['revoked_at' => now()]);
+
+    $again = dlCheckout($this->learner, dlProduct($download), $this->currency);
+
+    $grant = DownloadGrant::where('download_id', $download->id)->where('user_id', $this->learner->id)->sole();
+
+    expect($again->status)->toBe(OrderStatus::Paid)
+        ->and($grant->revoked_at)->toBeNull()
+        ->and($grant->order_id)->toBe($again->id);
+
+    $this->actingAs($this->learner)
+        ->getJson("/api/v1/downloads/{$download->slug}/file")
+        ->assertOk();
+});
+
 it('lets a member claim a free download, and a second claim changes nothing', function (): void {
     $download = dlPublished($this->admin, $this->currency, null);
 

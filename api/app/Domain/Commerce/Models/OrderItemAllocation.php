@@ -10,21 +10,23 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * What one course on a bundle line was worth, in money.
+ * What one course, or one download, on a bundle line was worth, in money.
+ * Exactly one of `course_id` / `download_id` is set (a CHECK holds it).
  *
  * A snapshot for the same reason `order_items.title_snapshot` is: repricing a
  * course next month must not rewrite what last month's report said it earned.
  * Never recomputed, only written once at order time.
  *
  * @property int $order_item_id
- * @property int $course_id
+ * @property int|null $course_id
+ * @property int|null $download_id
  * @property int $amount_minor
  */
 final class OrderItemAllocation extends Model
 {
     use LivesInTenantSchema;
 
-    protected $fillable = ['order_item_id', 'course_id', 'amount_minor'];
+    protected $fillable = ['order_item_id', 'course_id', 'download_id', 'amount_minor'];
 
     /** @return array<string, string> */
     protected function casts(): array

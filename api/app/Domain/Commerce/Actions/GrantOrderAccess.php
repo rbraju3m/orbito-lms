@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Delivers every line of a PAID order: an enrolment per course, one per course
- * in a bundle, a grant per download, a place at a webinar.
+ * and a grant per download in a bundle, a grant per download, a place at a
+ * webinar.
  *
  * One place, reached two ways — a captured payment (`CapturePayment`) and an
  * order the server priced at nothing (`CompleteFreeOrder`) — so a free order
@@ -83,16 +84,17 @@ final class GrantOrderAccess
     }
 
     /**
-     * Fans a bundle out into one enrolment per course.
+     * Fans a bundle out into one enrolment per course and one grant per
+     * download.
      *
-     * Every course is attempted even if an earlier one fails: somebody paid
-     * for five courses and getting four is strictly better than getting none.
+     * Every part is attempted even if an earlier one fails: somebody paid for
+     * five things and getting four is strictly better than getting none.
      * `EnrollmentIntent::bundle()` bypasses prerequisites — without that, a
      * bundle that sells a sequence could not deliver its later half.
      */
     private function grantBundle(Order $order, User $user, int $bundleId): void
     {
-        $bundle = Bundle::with('courses')->find($bundleId);
+        $bundle = Bundle::with(['courses', 'downloads'])->find($bundleId);
 
         if ($bundle === null) {
             Log::error('Paid order references a bundle that no longer exists.', [
@@ -105,6 +107,16 @@ final class GrantOrderAccess
 
         foreach ($bundle->courses as $course) {
             $this->enrolOne($order, $user, $course, EnrollmentIntent::bundle($order->id));
+        }
+
+        /*
+         * A download they already hold is left as it is: `GrantDownload`
+         * answers with the existing grant, whose `order_id` is the purchase
+         * that made it — so refunding this bundle can never take away a copy
+         * they owned before it. The overlap rule for courses, for files.
+         */
+        foreach ($bundle->downloads as $download) {
+            $this->grants->handle($user, $download, DownloadSource::Bundle, $order->id);
         }
     }
 

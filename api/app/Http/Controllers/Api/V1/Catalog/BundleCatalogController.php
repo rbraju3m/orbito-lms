@@ -25,7 +25,7 @@ final class BundleCatalogController
     {
         $bundles = Bundle::query()
             ->published()
-            ->withCount('courses')
+            ->withCount(['courses', 'downloads'])
             ->with(['thumbnail', 'product.prices'])
             ->orderByDesc('published_at')
             ->paginate(min((int) $request->integer('per_page', 12), 50));
@@ -41,7 +41,7 @@ final class BundleCatalogController
             // Course prices are what `parts_total_minor` is computed from, so
             // they are loaded here rather than discovered one lazy query at a
             // time — strict mode forbids the latter anyway.
-            ->with(['courses.product.prices', 'thumbnail', 'product.prices'])
+            ->with(Bundle::DETAIL_RELATIONS)
             ->first();
 
         // Not 403: a bundle nobody may see is indistinguishable from one that

@@ -6,6 +6,7 @@ namespace App\Domain\Catalog\Actions;
 
 use App\Domain\Catalog\Events\DownloadDeleted;
 use App\Domain\Catalog\Exceptions\DownloadRejected;
+use App\Domain\Catalog\Models\BundleItem;
 use App\Domain\Catalog\Models\Download;
 
 /**
@@ -24,6 +25,18 @@ final class DeleteDownload
 
         if ($owners > 0) {
             throw DownloadRejected::hasOwners($owners);
+        }
+
+        /*
+         * `bundle_items.download_id` cascades, and a cascade is a delete
+         * policy: deleting this would silently change what a bundle sells —
+         * a published one included, under a price set for its old contents.
+         * The author takes it out of the bundle first, and sees that they did.
+         */
+        $bundles = BundleItem::query()->where('download_id', $download->id)->distinct()->count('bundle_id');
+
+        if ($bundles > 0) {
+            throw DownloadRejected::inBundle($bundles);
         }
 
         $id = $download->id;

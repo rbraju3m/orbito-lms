@@ -13,6 +13,8 @@ export interface DownloadFileSummary {
 
 export interface DownloadListItem {
   id: string;
+  /** Numeric id, for endpoints that reference a download — a bundle's contents. */
+  ref: number;
   slug: string;
   title: string;
   subtitle: string | null;

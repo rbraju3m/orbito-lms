@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Card,
   createTheme,
@@ -94,6 +95,16 @@ export const theme = createTheme({
 
   components: {
     Button: Button.extend({ defaultProps: { radius: 'sm' } }),
+    // A light badge's coloured text fails 4.5:1 for most hues on its own tint
+    // — green 4.2:1, orange 3.6:1 — and green has no darker shade to reach
+    // for. It keeps the tint and takes the theme's text colour, which clears
+    // it in both schemes. Here rather than at each call site: the rule was
+    // written down once (docs/DESIGN_SYSTEM.md §2) and eleven badges still
+    // missed it.
+    Badge: Badge.extend({
+      vars: (_theme, props) =>
+        props.variant === 'light' ? { root: { '--badge-color': 'var(--mantine-color-text)' } } : { root: {} },
+    }),
     Card: Card.extend({ defaultProps: { withBorder: true, radius: 'md', padding: 'lg' } }),
     // Mantine's close button is an icon with no accessible name; axe flagged
     // it on every modal in the product.

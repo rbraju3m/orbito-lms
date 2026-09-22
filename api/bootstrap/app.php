@@ -17,6 +17,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -64,6 +65,37 @@ return Application::configure(basePath: dirname(__DIR__))
 
             'super_admin' => EnsureSuperAdmin::class,
         ]);
+
+        /*
+         * WHERE the tenant middlewares sit, which is not something the alias
+         * above decides.
+         *
+         * `SubstituteBindings` resolves `{course}`, `{bundle}`, `{download}`
+         * — every bound tenant model — and Laravel's priority list puts it
+         * directly after authentication. `tenant` is not in that list, so it
+         * ran after the binding: the lookup went to the CENTRAL database and
+         * every studio page that opens one record answered 500. The list is
+         * the only place this can be said; a route declaring
+         * `['auth:sanctum', 'tenant']` in that order does not get it, because
+         * priority reorders what it names around what it does not.
+         *
+         * Before `SubstituteBindings` and therefore still AFTER
+         * `Authenticate` — which is the whole point, and the opposite of
+         * `makeTenancyMiddlewareHighestPriority()`: `tenant` reads the
+         * authenticated user, so it cannot run first (see
+         * TenancyServiceProvider and § Multi-tenancy).
+         *
+         * The harness hides this completely — it leaves an academy open for
+         * the whole test — so `RouteBindingTenancyTest` ends tenancy first.
+         */
+        foreach ([
+            InitializeTenancyByAuthenticatedUser::class,
+            InitializeTenancyBySignedRoute::class,
+            InitializeTenancyByPathTenant::class,
+            InitializeTenancyByAcademySlug::class,
+        ] as $tenancy) {
+            $middleware->prependToPriorityList(SubstituteBindings::class, $tenancy);
+        }
 
         $middleware->throttleApi('api');
     })

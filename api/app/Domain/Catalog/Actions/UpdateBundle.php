@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 final class UpdateBundle
 {
     public function __construct(
-        private readonly SetBundleCourses $setCourses,
+        private readonly SetBundleContents $setContents,
         private readonly RichTextSanitizer $sanitizer,
     ) {}
 
@@ -37,8 +37,11 @@ final class UpdateBundle
 
             $bundle->save();
 
-            if (array_key_exists('course_ids', $supplied) && $data->courseIds !== null) {
-                $this->setCourses->handle($bundle, $data->courseIds);
+            $courseIds = array_key_exists('course_ids', $supplied) ? $data->courseIds : null;
+            $downloadIds = array_key_exists('download_ids', $supplied) ? $data->downloadIds : null;
+
+            if ($courseIds !== null || $downloadIds !== null) {
+                $this->setContents->handle($bundle, $courseIds, $downloadIds);
             }
 
             /*
@@ -50,7 +53,7 @@ final class UpdateBundle
             $bundle->loadMissing('product');
             $bundle->product?->update(['title' => $bundle->title]);
 
-            return $bundle->fresh(['courses.product.prices', 'thumbnail', 'product.prices']) ?? $bundle;
+            return $bundle->fresh(Bundle::DETAIL_RELATIONS) ?? $bundle;
         });
     }
 }

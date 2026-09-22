@@ -35,15 +35,49 @@ final class GrantDownload
                 'granted_at' => now(),
             ]);
         } catch (UniqueConstraintViolationException) {
-            // Already theirs. The second click is answered with the grant the
-            // first one made, and fires nothing — anything counting owners
-            // counts people, not clicks.
-            return DownloadGrant::query()
-                ->where('download_id', $download->id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
+            return $this->existing($user, $download, $source, $orderId);
         }
 
+        DownloadGranted::dispatch($grant);
+
+        return $grant;
+    }
+
+    /**
+     * The row is already there: either they hold it, or they held it and it
+     * was revoked.
+     *
+     * Held: the second click is answered with the grant the first one made,
+     * and fires nothing — anything counting owners counts people, not clicks.
+     *
+     * Revoked: a refund keeps the row (the record of the sale), and checkout
+     * lets them buy again because a revoked grant is not ownership. So this
+     * grant is theirs AGAIN, from the new source and order — handing back the
+     * revoked row took the money and delivered nothing. One conditional
+     * UPDATE, so two deliveries racing cannot both announce it.
+     */
+    private function existing(User $user, Download $download, DownloadSource $source, ?int $orderId): DownloadGrant
+    {
+        $grant = DownloadGrant::query()
+            ->where('download_id', $download->id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $revived = DownloadGrant::query()
+            ->whereKey($grant->id)
+            ->whereNotNull('revoked_at')
+            ->update([
+                'revoked_at' => null,
+                'source' => $source,
+                'order_id' => $orderId,
+                'granted_at' => now(),
+            ]);
+
+        if ($revived === 0) {
+            return $grant;
+        }
+
+        $grant->refresh();
         DownloadGranted::dispatch($grant);
 
         return $grant;
