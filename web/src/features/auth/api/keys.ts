@@ -1,6 +1,8 @@
 export const authKeys = {
   all: ['auth'] as const,
   session: () => [...authKeys.all, 'session'] as const,
+  invitation: (academy: string, token: string) =>
+    [...authKeys.all, 'invitation', academy, token] as const,
 };
 
 export const accountKeys = {

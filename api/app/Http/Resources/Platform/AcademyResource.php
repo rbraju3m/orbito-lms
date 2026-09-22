@@ -52,9 +52,10 @@ final class AcademyResource extends BaseResource
                 fn (RegistrationMode $case): array => [
                     'value' => $case->value,
                     'label' => $case->label(),
-                    // Invitations are declared and not built. Saying so beats
-                    // an option that silently closes registration instead.
-                    'available' => $case !== RegistrationMode::Invite,
+                    // Every mode is built now that invitations are. Kept so a
+                    // mode declared before it works can say so again, rather
+                    // than silently closing registration.
+                    'available' => true,
                 ],
                 RegistrationMode::cases(),
             ),

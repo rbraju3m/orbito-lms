@@ -40,8 +40,8 @@ surface rather than an invisible mechanism.
 | A14 | "View as student" toggle for instructors | Core | — | P6 | Keep — good UX |
 | A15 | Audit log of privileged actions | — | — | P19 | |
 | A16 | GDPR consent + data export/erase | Core | — | P19 | Tutor has a decent model |
-| A17 | Per-academy signup policy (open / closed) | — | Yes | **shipped** | `/admin/academy`; `invite` is declared and not built |
-| A18 | Invitations | Pro | Yes | Open | Needs a table, an accept flow and a screen; the enum case already refuses rather than falling back to open |
+| A17 | Per-academy signup policy (open / invite / closed) | — | Yes | **shipped** | `/admin/academy`; invitations work in every mode |
+| A18 | Invitations | Pro | Yes | **shipped** | `/admin/invitations`, `/invite`; student or instructor, token hashed, an instructor invitation holds a plan seat — `INVITATIONS.md` |
 
 **Shipped in Phase 3:** A1–A5, A10, A11, A13. Course-scoped roles (A11) work
 through `role_assignments(scope_type, scope_id)`; see ADR-07 and the correction

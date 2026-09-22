@@ -29,6 +29,9 @@ pricing events, `RefundIssued`, `LeadCaptured` and `PostPublished` — each with
 | `InstructorReviewed` | `InstructorProfile $profile`, `InstructorStatus $status`, `?int $reviewedBy` | an application is approved, rejected or blocked |
 | `RoleAssigned` | `RoleAssignment $assignment` | a role is granted, globally or scoped to a resource |
 | `RoleRevoked` | `User $user`, `string $roleKey`, `?string $scopeType`, `?int $scopeId` | a role is taken away |
+| `InvitationSent` | `Invitation $invitation`, `?int $actorId` | an invitation is sent or re-sent — a fresh link is in somebody's inbox (`INVITATIONS.md`) |
+| `InvitationRevoked` | `Invitation $invitation`, `?int $actorId` | staff withdraw an open invitation |
+| `InvitationAccepted` | `Invitation $invitation`, `User $user` | an invitation becomes an account, beside that account's `UserRegistered`. An instructor's also fires `InstructorReviewed` (approved) |
 
 **One caveat about events fired inside a command running under
 `Tenant::run()`:** the dispatcher reports no listeners at the moment of

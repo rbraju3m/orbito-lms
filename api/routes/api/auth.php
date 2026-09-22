@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\Auth\AcceptInvitationController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -20,6 +21,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->name('auth.')->group(function (): void {
     Route::middleware('throttle:auth')->group(function (): void {
         Route::post('register', RegisterController::class)->name('register');
+        // Registration by invitation (docs/INVITATIONS.md) — works in every
+        // signup mode, because the academy asked.
+        Route::post('invitations/accept', AcceptInvitationController::class)->name('invitations.accept');
         Route::post('login', LoginController::class)->name('login');
         Route::post('forgot-password', [PasswordResetController::class, 'forgot'])->name('password.forgot');
         Route::post('reset-password', [PasswordResetController::class, 'reset'])->name('password.reset');

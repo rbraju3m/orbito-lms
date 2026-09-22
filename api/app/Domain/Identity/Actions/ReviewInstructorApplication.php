@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\DB;
  * Approve, reject or block an instructor.
  *
  * The Instructor *role* is granted here and only here — approval is what makes
- * someone an instructor, not registration.
+ * someone an instructor, not registration. An accepted instructor INVITATION
+ * comes through here too: the academy approved them when it invited them.
  */
 final class ReviewInstructorApplication
 {
@@ -27,8 +28,9 @@ final class ReviewInstructorApplication
     public function handle(
         InstructorProfile $profile,
         InstructorStatus $decision,
-        User $reviewer,
+        ?User $reviewer,
         ?string $note = null,
+        bool $seatHeld = false,
     ): InstructorProfile {
         if ($decision === InstructorStatus::Pending) {
             throw InstructorApplicationConflict::notPending();
@@ -44,9 +46,11 @@ final class ReviewInstructorApplication
          * re-approval never consumes a seat the applicant already holds.
          *
          * Rejecting and blocking are never capped: an academy at its seat
-         * limit must always be able to free one.
+         * limit must always be able to free one. An invitation's seat was
+         * checked when it was SENT (`SendInvitation`), and the invitee cannot
+         * do anything about the academy's plan.
          */
-        if ($decision === InstructorStatus::Approved) {
+        if ($decision === InstructorStatus::Approved && ! $seatHeld) {
             $this->limits->assert(UsageMetric::Instructors);
         }
 
@@ -54,7 +58,7 @@ final class ReviewInstructorApplication
             $profile->forceFill([
                 'status' => $decision,
                 'reviewed_at' => now(),
-                'reviewed_by' => $reviewer->id,
+                'reviewed_by' => $reviewer?->id,
                 'review_note' => $note,
             ])->save();
 
@@ -62,7 +66,7 @@ final class ReviewInstructorApplication
             $user = $profile->user;
 
             if ($decision === InstructorStatus::Approved) {
-                $user->assignRole(RoleKey::Instructor, grantedBy: $reviewer->id);
+                $user->assignRole(RoleKey::Instructor, grantedBy: $reviewer?->id);
             } else {
                 // Rejected or blocked: the role goes away immediately. Their
                 // existing courses are untouched — that is a Catalog concern.
@@ -70,7 +74,7 @@ final class ReviewInstructorApplication
             }
         });
 
-        InstructorReviewed::dispatch($profile, $decision, $reviewer->id);
+        InstructorReviewed::dispatch($profile, $decision, $reviewer?->id);
 
         return $profile->refresh();
     }

@@ -22,7 +22,7 @@ function academy(overrides: Partial<Academy> = {}): Academy {
     signup_path: '/register?academy=north-college',
     registration_modes: [
       { value: 'open', label: 'Anyone with the link', available: true },
-      { value: 'invite', label: 'Invitation only', available: false },
+      { value: 'invite', label: 'Invitation only', available: true },
       { value: 'closed', label: 'Nobody — admins create accounts', available: true },
     ],
     ...overrides,
@@ -51,18 +51,15 @@ describe('AcademySettingsRoute', () => {
     expect(link.value).toContain('/register?academy=north-college');
   });
 
-  /*
-   * Invitations are declared server-side and not built. An option that
-   * silently closed registration instead would be worse than no option.
-   */
-  it('offers the invitation mode as unavailable rather than hiding it', async () => {
+  // Invitations work in every mode; the settings screen says so beside each.
+  it('offers invitation only, and says invitations still work when closed', async () => {
     serve(academy());
     renderWithRouter(<AcademySettingsRoute />);
 
     const invite = (await screen.findByLabelText('Invitation only')) as HTMLInputElement;
 
-    expect(invite).toBeDisabled();
-    expect(screen.getByText(/invitations are not built/i)).toBeInTheDocument();
+    expect(invite).toBeEnabled();
+    expect(screen.getByText('Nobody signs up. Invitations still work.')).toBeInTheDocument();
   });
 
   it('closes sign-ups', async () => {

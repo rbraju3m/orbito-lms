@@ -24,17 +24,15 @@ enum RegistrationMode: string
     case Open = 'open';
 
     /**
-     * Only somebody holding an invitation.
-     *
-     * DECLARED, NOT BUILT. There is no invitations table and no accept flow;
-     * selecting this mode closes self-registration and says so. The case is
-     * here so the seam is visible and so an academy that sets it does not
-     * silently fall back to Open — the same reason `ItemType` declared quiz
-     * and assignment three phases before they existed.
+     * Only somebody holding an invitation (docs/INVITATIONS.md). Signing up
+     * with the academy's link is refused; following an invitation's is not.
      */
     case Invite = 'invite';
 
-    /** Nobody self-registers. Accounts are created by an academy admin. */
+    /**
+     * Nobody self-registers. An invitation still works — it is the academy's
+     * own act, and the only way in besides an admin creating the account.
+     */
     case Closed = 'closed';
 
     /**

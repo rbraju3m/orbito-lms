@@ -30,16 +30,14 @@ it('shows the academy, its signup policy and the link to share', function (): vo
         ->and($response->json('data.signup_path'))->toBe('/register?academy=test-academy');
 });
 
-it('lists the modes and says which are not built yet', function (): void {
+it('lists the modes, every one of them available now that invitations are built', function (): void {
     $modes = collect(
         $this->actingAs($this->admin)->getJson('/api/v1/admin/academy')->json('data.registration_modes')
     )->keyBy('value');
 
     expect($modes['open']['available'])->toBeTrue()
         ->and($modes['closed']['available'])->toBeTrue()
-        // Declared so an academy that picks it does not silently fall back to
-        // open — but there is no invitations table, and the UI has to say so.
-        ->and($modes['invite']['available'])->toBeFalse();
+        ->and($modes['invite']['available'])->toBeTrue();
 });
 
 it('closes sign-ups', function (): void {
@@ -51,12 +49,13 @@ it('closes sign-ups', function (): void {
     expect($this->academy->refresh()->registrationMode())->toBe(RegistrationMode::Closed);
 });
 
-it('refuses invitation-only, because invitations do not exist yet', function (): void {
-    expect($this->actingAs($this->admin)
+it('makes an academy invitation only', function (): void {
+    $this->actingAs($this->admin)
         ->patchJson('/api/v1/admin/academy', ['registration_mode' => 'invite'])
-        ->assertStatus(422))->toBeApiError('validation_failed');
+        ->assertOk()
+        ->assertJsonPath('data.registration_mode', 'invite');
 
-    expect($this->academy->refresh()->registrationMode())->toBe(RegistrationMode::Open);
+    expect($this->academy->refresh()->registrationMode())->toBe(RegistrationMode::Invite);
 });
 
 it('rejects a mode that is not a mode', function (): void {

@@ -242,9 +242,9 @@ describe('the academy an account joins', function (): void {
     });
 
     /*
-     * Declared and not built. An academy that selects it must find
-     * registration CLOSED rather than silently falling back to open — which is
-     * the failure the enum case exists to prevent.
+     * Signing up WITHOUT an invitation is what invitation-only refuses; the
+     * link in an invitation goes through `auth/invitations/accept` instead
+     * (InvitationTest).
      */
     it('refuses an invitation-only academy rather than falling back to open', function (): void {
         $academy = Tenant::findOrFail(tenancy()->tenant->getTenantKey());

@@ -19,6 +19,27 @@ export interface RegisterPayload {
   wants_to_teach?: boolean;
 }
 
+/**
+ * Registration by invitation (docs/INVITATIONS.md). No email: the account
+ * takes the invited address, which following the link proved.
+ */
+export interface AcceptInvitationPayload {
+  academy: string;
+  token: string;
+  name: string;
+  password: string;
+  password_confirmation: string;
+}
+
+/** What an invitation link is for, shown before a password is chosen. */
+export interface InvitationPreview {
+  email: string;
+  role: 'student' | 'instructor';
+  role_label: string;
+  academy_name: string;
+  expires_at: string;
+}
+
 export interface LoginPayload {
   email: string;
   password: string;
@@ -36,6 +57,28 @@ export function fetchSession(signal?: AbortSignal): Promise<Session> {
 export async function register(payload: RegisterPayload): Promise<Session> {
   await ensureCsrfCookie();
   return apiPost<Session>('/auth/register', payload);
+}
+
+export async function acceptInvitation(payload: AcceptInvitationPayload): Promise<Session> {
+  await ensureCsrfCookie();
+  return apiPost<Session>('/auth/invitations/accept', payload);
+}
+
+/**
+ * A POST although it only reads: the token is a credential, and a credential
+ * never rides in a URL the API accepts — proxies and access logs keep those.
+ */
+export async function fetchInvitationPreview(
+  academy: string,
+  token: string,
+  signal?: AbortSignal,
+): Promise<InvitationPreview> {
+  await ensureCsrfCookie();
+  return apiPost<InvitationPreview>(
+    `/public/${encodeURIComponent(academy)}/invitations/show`,
+    { token },
+    { signal },
+  );
 }
 
 export async function login(payload: LoginPayload): Promise<Session> {

@@ -967,6 +967,20 @@ Gate::authorize('publish', $course);                   // in a controller
 - **One renderer for the preview and the public page.** `PageBlocks.tsx` draws
   both from the same shape, so the preview cannot show what visitors do not
   see.
+- **A credential staff can read is a credential staff hold.** An
+  invitation's token is stored as its SHA-256 and exists in plain text once,
+  in the mail. Storing the token itself would give every admin reading the
+  list a way to sign up as the invitee.
+- **A second way to make an account is a STEP inside the first, not a copy
+  of it.** `AcceptInvitation` hands `RegisterUser` a `$first` callback that
+  claims the invitation and grants the role under the same rollback, and an
+  invited instructor is approved through `ReviewInstructorApplication`, so
+  the seat counter and the single role-granting path hold. A parallel
+  registration flow would drift from the real one within a phase.
+- **A seat promised by a link is held from the moment the link is sent.** An
+  open instructor invitation counts against the plan when the NEXT one is
+  sent, and acceptance does not check again. The invitee cannot do anything
+  about the academy's plan; the academy decided when it invited.
 
 ---
 
@@ -1073,9 +1087,9 @@ paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
 GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER, the
 public COURSE INDEX, the members catalogue's PAGER, SCHEDULED-POST
-ANNOUNCEMENTS, the ACADEMY LOGO and the lead form on the WEBINAR PAGE**,
-plus a skip link on every shell.
-1,564 backend tests · 456 frontend tests.
+ANNOUNCEMENTS, the ACADEMY LOGO, the lead form on the WEBINAR PAGE and
+INVITATIONS**, plus a skip link on every shell.
+1,584 backend tests · 467 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1158,8 +1172,6 @@ The obvious next pieces, in the order they unblock each other:
 
 Code that needs no credentials, smallest first:
 
-- **Invitations.** `RegistrationMode::Invite` is declared and refused by the
-  API — an invitations table, an accept flow and an admin screen.
 - **Bundles that hold downloads.** `bundle_items` names `course_id`; see
   Known debt for what teaching it about downloads involves.
 
@@ -1283,10 +1295,8 @@ Every one of these has already cost time at least once.
   not on the roster; a guest place becomes an account's only when that member
   registers for the same event; and buying a place still needs an account.
   `docs/GUEST_REGISTRATION.md` §6.
-- **Invitations are declared and not built.** `RegistrationMode::Invite` exists
-  so an academy that wants a controlled roster is not silently given open
-  signup; the API refuses it as a value and the UI greys it out. Building it
-  means an invitations table, an accept flow and an admin screen.
+- **Invitations: no bulk invite, no personal message, no webhook topic, no
+  course-scoped invitation** (a TA on one course). `docs/INVITATIONS.md` §6.
 - **A course added to a bundle after purchase does not reach existing
   buyers.** Deliberate: the fix is an explicit "grant to existing buyers"
   action with its own confirmation, not a side effect of saving a form.
@@ -1320,7 +1330,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 250.69 (the skip link cost 0.16, the members catalogue's pager 0.21). It had crept to 250.91 — nav icons
+  purpose**, and first paint is 250.98 (the skip link cost 0.16, the members catalogue's pager 0.21, the Invitations nav entry 0.26). It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

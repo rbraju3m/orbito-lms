@@ -4,6 +4,8 @@ import { ApiError } from '@/shared/api/errors';
 
 import { authKeys } from './keys';
 import {
+  acceptInvitation,
+  fetchInvitationPreview,
   fetchSession,
   forgotPassword,
   login,
@@ -49,6 +51,32 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: register,
+    onSuccess: (session) => {
+      queryClient.setQueryData(authKeys.session(), session);
+    },
+  });
+}
+
+/**
+ * What an invitation link is for. Not retried: every failure is an answer —
+ * expired, withdrawn, already used — that a second request would repeat.
+ */
+export const invitationPreviewQuery = (academy: string, token: string) =>
+  queryOptions({
+    queryKey: authKeys.invitation(academy, token),
+    queryFn: ({ signal }) => fetchInvitationPreview(academy, token, signal),
+    staleTime: Infinity,
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+/** Creates the account and signs it in, exactly as registering does. */
+export function useAcceptInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: acceptInvitation,
     onSuccess: (session) => {
       queryClient.setQueryData(authKeys.session(), session);
     },

@@ -168,8 +168,15 @@ carries the mode when there is one.
 | Mode | Meaning |
 |---|---|
 | `open` | anyone with the link joins, as a Student. **The default** when an academy has never chosen. |
-| `invite` | declared, **not built** — no invitations table, no accept flow. Selecting it closes self-registration and says so; the API refuses it as a value. |
-| `closed` | nobody self-registers; an academy admin creates accounts. |
+| `invite` | signing up with the academy's link is refused; an invitation's link works (`INVITATIONS.md`). |
+| `closed` | nobody self-registers. An invitation still works, because an invitation is the academy's own act. |
+
+**Registration by invitation:** `POST /auth/invitations/accept` `{academy,
+token, name, password, password_confirmation}` → the same 201 session payload
+as `register`. The email is the invitation's, the account starts verified, and
+the academy's mode is not consulted. The link is previewed first with
+`POST /public/{academy}/invitations/show {token}`. Refusals, and why they are
+told apart: `INVITATIONS.md` §3.
 
 `GET /auth/me` returns the user **and their resolved permission keys**, so the SPA can
 hide UI it may not use. The server still enforces every one of them independently.
@@ -1071,6 +1078,19 @@ DELETE /admin/leads/{uuid}          lead.manage — a HARD delete, outside the s
 What a stranger posts, the lead's shape, and why every submission gets the
 same answer: `LEADS.md`. Erasure is not gated on the subscription because
 "delete my details" has to be honoured whether or not the academy has paid.
+
+### Invitations — live (P16)
+```
+GET    /admin/invitations?status=&q=       invitation.manage — newest first; status pending | expired | accepted | revoked (derived)
+POST   /admin/invitations                  invitation.manage — {email, role: student | instructor}; re-issues an open one
+POST   /admin/invitations/{uuid}/resend    invitation.manage — a new link; the old one stops working
+POST   /admin/invitations/{uuid}/revoke    invitation.manage — the row stays; the address is freed
+```
+
+Sending and re-sending are `throttle:invitations` (60/hour per member of
+staff). An address with an account is a 422 on `email`; an instructor
+invitation with no plan seat left is 402 `plan_limit_reached`, because an
+open instructor invitation holds a seat. Full contract: `INVITATIONS.md`.
 
 ### Settings — planned
 ```

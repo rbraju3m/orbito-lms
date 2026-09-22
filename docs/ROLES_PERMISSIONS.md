@@ -53,7 +53,7 @@ Keys are `<group>.<action>`. `.own` suffix means "restricted to resources the us
 or is assigned to"; policies resolve ownership.
 
 **users** — `user.view`, `user.create`, `user.update`, `user.delete`, `user.suspend`,
-`user.impersonate`, `user.export`
+`user.impersonate`, `user.export`, `invitation.manage`
 **roles** — `role.view`, `role.create`, `role.update`, `role.delete`, `role.assign`,
 `role.assign.course`
 **instructors** — `instructor.view`, `instructor.approve`, `instructor.block`,
@@ -98,6 +98,7 @@ or is assigned to"; policies resolve ownership.
 | user.create / update / delete | ✔ | ✔ | — | — | — | — | — | — |
 | user.suspend | ✔ | ✔ | — | — | — | — | — | — |
 | user.impersonate | ✔ | — | — | — | — | — | — | — |
+| invitation.manage | ✔ | ✔ | — | — | — | — | — | — |
 | role.view | ✔ | ✔ | — | — | — | — | — | — |
 | role.create / update / delete | ✔ | — | — | — | — | — | — | — |
 | role.assign | ✔ | ✔ | — | — | — | — | — | — |
@@ -352,7 +353,7 @@ body, never a URL, and nothing on this surface accepts it as anything else.
 - `RoleAssigned` and `RoleRevoked` events are emitted. A general audit log
   (P19) will listen to them; today nothing does.
 
-**Counts today:** 107 permission keys across 8 system roles, synced into every
+**Counts today:** 108 permission keys across 8 system roles, synced into every
 academy's schema from `config/permissions.php` by `php artisan permissions:sync`
 — and by `TenantDatabaseSeeder` when an academy is provisioned, because an
 academy with no roles is one where nobody can do anything, including its owner.

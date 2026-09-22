@@ -180,6 +180,19 @@ export const adminRoutes: RouteObject[] = [
           },
         ],
       },
+      // Inviting people by email as a student or an instructor (docs/INVITATIONS.md).
+      {
+        element: <RequirePermission anyOf={['invitation.manage']} />,
+        children: [
+          {
+            path: 'admin/invitations',
+            lazy: async () => ({
+              Component: (await import('@/features/admin/routes/InvitationsRoute'))
+                .InvitationsRoute,
+            }),
+          },
+        ],
+      },
       // Strangers who asked to hear from the academy on its public site (docs/LEADS.md).
       {
         element: <RequirePermission anyOf={['lead.view']} />,

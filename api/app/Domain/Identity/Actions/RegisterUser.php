@@ -12,6 +12,7 @@ use App\Domain\Identity\Events\InstructorApplied;
 use App\Domain\Identity\Events\UserRegistered;
 use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Models\Tenant;
+use Closure;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -30,10 +31,16 @@ use Throwable;
  * first and the tenant writes follow, with an explicit compensating delete if
  * they fail. A half-registered account that can sign in and has no role is
  * worse than no account.
+ *
+ * `$first` runs inside the academy BEFORE anything else is written there, and
+ * under the same compensation: if it throws, the account is deleted. It is
+ * how an accepted invitation claims its row and grants what it promised
+ * (`AcceptInvitation`) without a second, unguarded path to an account.
  */
 final class RegisterUser
 {
-    public function handle(RegisterUserData $data, Tenant $academy): User
+    /** @param  (Closure(User): void)|null  $first */
+    public function handle(RegisterUserData $data, Tenant $academy, ?Closure $first = null): User
     {
         $user = DB::transaction(function () use ($data, $academy): User {
             $user = User::create([
@@ -49,13 +56,20 @@ final class RegisterUser
             $user->forceFill([
                 'status' => UserStatus::Active,
                 'tenant_id' => $academy->id,
+                'email_verified_at' => $data->emailVerified ? now() : null,
             ])->save();
 
             return $user;
         });
 
         try {
-            $academy->run(fn () => $this->inAcademy($user, $data));
+            $academy->run(function () use ($user, $data, $first): void {
+                if ($first !== null) {
+                    $first($user);
+                }
+
+                $this->inAcademy($user, $data);
+            });
         } catch (Throwable $e) {
             // Compensate: the central row committed and will not roll back
             // with the academy's transaction.

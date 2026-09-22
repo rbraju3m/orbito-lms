@@ -25,16 +25,7 @@ final class UpdateAcademyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            /*
-             * `invite` is a legal enum case and NOT an accepted value: there
-             * is no invitations table and no accept flow, so selecting it
-             * would close registration while appearing to open a second door.
-             * Refused here, at the edge, rather than half-honoured inside.
-             */
-            'registration_mode' => [
-                'sometimes',
-                Rule::enum(RegistrationMode::class)->except(RegistrationMode::Invite),
-            ],
+            'registration_mode' => ['sometimes', Rule::enum(RegistrationMode::class)],
             'support_email' => ['sometimes', 'nullable', 'email:rfc', 'max:255'],
             // Null takes the logo down.
             'logo_media_id' => ['sometimes', 'nullable', 'integer'],
@@ -59,13 +50,5 @@ final class UpdateAcademyRequest extends FormRequest
                 $this->assertOwnedMedia($validator, 'logo_media_id', MediaCollection::AcademyLogo);
             }
         });
-    }
-
-    /** @return array<string, string> */
-    public function messages(): array
-    {
-        return [
-            'registration_mode.Illuminate\Validation\Rules\Enum' => 'Invitations are not available yet. Choose open or closed.',
-        ];
     }
 }

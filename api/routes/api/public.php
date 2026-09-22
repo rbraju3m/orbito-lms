@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\PublicSite\AcademyController;
 use App\Http\Controllers\Api\V1\PublicSite\CourseController;
 use App\Http\Controllers\Api\V1\PublicSite\FormTokenController;
 use App\Http\Controllers\Api\V1\PublicSite\GuestRegistrationController;
+use App\Http\Controllers\Api\V1\PublicSite\InvitationController;
 use App\Http\Controllers\Api\V1\PublicSite\LeadController;
 use App\Http\Controllers\Api\V1\PublicSite\PageController;
 use App\Http\Controllers\Api\V1\PublicSite\PostController;
@@ -84,4 +85,13 @@ Route::prefix('public/{academy}')
         Route::post('guest-places/join', [GuestRegistrationController::class, 'join'])
             ->middleware('throttle:20,1')
             ->name('guest-places.join');
+
+        /*
+         * An invitation link, read by whoever holds it before they choose a
+         * password (docs/INVITATIONS.md). Writes nothing — accepting is
+         * `POST /auth/invitations/accept`, beside register.
+         */
+        Route::post('invitations/show', [InvitationController::class, 'show'])
+            ->middleware('throttle:30,1')
+            ->name('invitations.show');
     });

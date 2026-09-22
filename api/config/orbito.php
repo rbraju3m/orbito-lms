@@ -121,6 +121,17 @@ return [
     ],
 
     /*
+    | Invitations (docs/INVITATIONS.md). A link lives `ttl_days`; re-sending
+    | issues a new one and the old one stops working. `per_hour` caps how many
+    | invitation mails one member of staff can send, because each is a mail to
+    | an address they typed.
+    */
+    'invitations' => [
+        'ttl_days' => (int) env('ORBITO_INVITATION_TTL_DAYS', 14),
+        'per_hour' => (int) env('ORBITO_INVITATIONS_PER_HOUR', 60),
+    ],
+
+    /*
     | Marketplace economics. Basis points (1/100th of a percent) so the split is
     | exact integer arithmetic — 3000 bp = 30% to the platform.
     */

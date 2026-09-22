@@ -28,6 +28,7 @@ import {
   IconLayoutDashboard,
   IconLayoutGrid,
   IconLogout,
+  IconMailPlus,
   IconCertificate,
   IconCertificate2,
   IconCreditCard,
@@ -113,6 +114,12 @@ const NAV: NavItem[] = [
     anyOf: ['user.view', 'settings.view'],
   },
   { to: '/admin/instructors', label: 'Instructors', icon: IconUsers, anyOf: ['instructor.view'] },
+  {
+    to: '/admin/invitations',
+    label: 'Invitations',
+    icon: IconMailPlus,
+    anyOf: ['invitation.manage'],
+  },
   {
     to: '/admin/analytics',
     label: 'Analytics',

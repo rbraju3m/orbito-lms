@@ -81,12 +81,11 @@ retrofit, invisible to the suite for the same reason `ScheduledCommandTest`
 exists.
 
 Whether an academy accepts a signup is now its own decision, at
-`/admin/academy`: **open** (the default), or **closed**. `invite` is declared
-in `RegistrationMode` and deliberately NOT built — no invitations table, no
-accept flow — so an academy that selects it finds registration closed rather
-than silently falling back to open. Invitations are the natural next piece if
-academies want a controlled roster; host-based signup is the other route, and
-becomes worth doing when academies get their own domains.
+`/admin/academy`: **open** (the default), **invitation only**, or **closed**.
+`invite` was declared here and not built, so an academy that picked it found
+registration closed rather than silently open. Invitations landed in Phase 16
+(`INVITATIONS.md`), and they work in every mode. Host-based signup is the
+other route, and becomes worth doing when academies get their own domains.
 
 ---
 

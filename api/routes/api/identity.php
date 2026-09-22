@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\InstructorController;
 use App\Http\Controllers\Api\V1\Admin\RoleController;
 use App\Http\Controllers\Api\V1\Admin\UserController;
 use App\Http\Controllers\Api\V1\Identity\InstructorApplicationController;
+use App\Http\Controllers\Api\V1\Identity\InvitationController;
 use App\Http\Controllers\Api\V1\Identity\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -55,5 +56,20 @@ Route::middleware(['auth:sanctum', 'tenant', 'subscription'])->group(function ()
         Route::get('instructors', [InstructorController::class, 'index'])->name('instructors.index');
         Route::post('instructors/{instructorProfile}/review', [InstructorController::class, 'review'])
             ->name('instructors.review');
+
+        /*
+         * Invitations (docs/INVITATIONS.md). Revoking is a POST, not a DELETE:
+         * the row stays as the record of who was asked. Sending and re-sending
+         * each mail an address a member of staff typed, hence the limiter.
+         */
+        Route::get('invitations', [InvitationController::class, 'index'])->name('invitations.index');
+        Route::post('invitations', [InvitationController::class, 'store'])
+            ->middleware('throttle:invitations')
+            ->name('invitations.store');
+        Route::post('invitations/{invitation}/resend', [InvitationController::class, 'resend'])
+            ->middleware('throttle:invitations')
+            ->name('invitations.resend');
+        Route::post('invitations/{invitation}/revoke', [InvitationController::class, 'destroy'])
+            ->name('invitations.revoke');
     });
 });

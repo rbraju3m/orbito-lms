@@ -30,6 +30,10 @@ $permissions = [
         'user.suspend' => 'Suspend or reinstate a user',
         'user.impersonate' => 'Sign in as another user',
         'user.export' => 'Export user data',
+        // Mails a link that makes an account — a student or an instructor.
+        // Its own key: `user.create` would also mean creating accounts
+        // directly, which nothing does yet.
+        'invitation.manage' => 'Invite people to the academy by email',
     ],
 
     'roles' => [

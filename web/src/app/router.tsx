@@ -139,6 +139,15 @@ export const routes: RouteObject[] = [
               Component: (await import('@/features/auth/routes/RegisterRoute')).RegisterRoute,
             }),
           },
+          // Where an invitation's mail link lands (docs/INVITATIONS.md). Not
+          // under /a/:academy: it makes an account, like /register.
+          {
+            path: 'invite',
+            lazy: async () => ({
+              Component: (await import('@/features/auth/routes/AcceptInvitationRoute'))
+                .AcceptInvitationRoute,
+            }),
+          },
           {
             path: 'forgot-password',
             lazy: async () => ({

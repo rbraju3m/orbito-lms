@@ -34,6 +34,13 @@ import {
  * can see the answer on the registry screen, so support can explain why nobody
  * is getting in, but not change it.
  */
+/** What each mode means in practice — invitations work in every one of them. */
+const MODE_NOTES: Record<RegistrationMode, string> = {
+  open: 'Anybody with the sign-up link below can join as a student.',
+  invite: 'The sign-up link is refused. People join from an invitation you send.',
+  closed: 'Nobody signs up. Invitations still work.',
+};
+
 export function AcademySettingsRoute() {
   const { data, isPending, isError, error, refetch } = useQuery(academyQuery());
 
@@ -75,9 +82,7 @@ function AcademySettings({ academy }: { academy: Academy }) {
                     label={option.label}
                     disabled={!option.available}
                     description={
-                      option.available
-                        ? undefined
-                        : 'Not available yet — invitations are not built.'
+                      option.available ? MODE_NOTES[option.value] : 'Not available yet.'
                     }
                   />
                 ))}

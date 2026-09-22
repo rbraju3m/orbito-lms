@@ -47,9 +47,11 @@ use App\Domain\Engagement\Policies\ReviewPolicy;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Enrollment\Policies\EnrollmentPolicy;
 use App\Domain\Identity\Models\InstructorProfile;
+use App\Domain\Identity\Models\Invitation;
 use App\Domain\Identity\Models\Role;
 use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Policies\InstructorProfilePolicy;
+use App\Domain\Identity\Policies\InvitationPolicy;
 use App\Domain\Identity\Policies\RolePolicy;
 use App\Domain\Identity\Policies\UserPolicy;
 use App\Domain\Live\Models\LiveSession;
@@ -88,6 +90,7 @@ final class AuthServiceProvider extends ServiceProvider
         WebhookEndpoint::class => WebhookEndpointPolicy::class,
         Coupon::class => CouponPolicy::class,
         Lead::class => LeadPolicy::class,
+        Invitation::class => InvitationPolicy::class,
         Post::class => PostPolicy::class,
         Page::class => PagePolicy::class,
         // Refund reports the webhook left for a person (REFUNDS.md §6).

@@ -16,5 +16,8 @@ final readonly class RegisterUserData
         public bool $wantsToTeach = false,
         public string $timezone = 'UTC',
         public string $locale = 'en',
+        // True only when the address has already been proven — an invitation
+        // was followed from that mailbox. Never from a request body.
+        public bool $emailVerified = false,
     ) {}
 }

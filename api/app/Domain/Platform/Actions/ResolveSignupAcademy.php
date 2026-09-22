@@ -27,6 +27,25 @@ final class ResolveSignupAcademy
 {
     public function handle(string $slug): Tenant
     {
+        $tenant = $this->forInvitation($slug);
+
+        $mode = $tenant->registrationMode();
+
+        if (! $mode->allowsSelfSignup()) {
+            throw RegistrationNotOpen::mode($mode);
+        }
+
+        return $tenant;
+    }
+
+    /**
+     * The academy an invitation is accepted into: it must exist and be open,
+     * and its signup mode does not matter. An invitation is the academy's own
+     * deliberate act, so it works in every mode — "invitation only" means
+     * signing up WITHOUT one is refused (docs/INVITATIONS.md §1).
+     */
+    public function forInvitation(string $slug): Tenant
+    {
         $tenant = Tenant::where('slug', $slug)->first();
 
         if ($tenant === null) {
@@ -37,12 +56,6 @@ final class ResolveSignupAcademy
         // this must be answered before anything opens a connection to it.
         if (! $tenant->isOpen()) {
             throw RegistrationNotOpen::academyClosed();
-        }
-
-        $mode = $tenant->registrationMode();
-
-        if (! $mode->allowsSelfSignup()) {
-            throw RegistrationNotOpen::mode($mode);
         }
 
         return $tenant;

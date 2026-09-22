@@ -143,6 +143,11 @@ final class AppServiceProvider extends ServiceProvider
             Limit::perDay((int) config('orbito.rate_limits.guest_registrations_per_day'))->by('ip-day:'.$request->ip()),
         ]);
 
+        // Each invitation is a mail to an address a member of staff typed.
+        RateLimiter::for('invitations', fn (Request $request) => Limit::perHour(
+            (int) config('orbito.invitations.per_hour')
+        )->by('user:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         RateLimiter::for('webhook', fn (Request $request) => Limit::perMinute(
             (int) config('orbito.rate_limits.webhook')
         )->by('ip:'.$request->ip()));

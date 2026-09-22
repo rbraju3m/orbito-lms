@@ -31,6 +31,19 @@ export const registerSchema = z
   });
 export type RegisterValues = z.infer<typeof registerSchema>;
 
+/** Registration by invitation: the address is the invitation's, so no email field. */
+export const acceptInvitationSchema = z
+  .object({
+    name: z.string().min(2, 'Enter your name.').max(120),
+    password,
+    password_confirmation: z.string(),
+  })
+  .refine((values) => values.password === values.password_confirmation, {
+    message: 'Passwords do not match.',
+    path: ['password_confirmation'],
+  });
+export type AcceptInvitationValues = z.infer<typeof acceptInvitationSchema>;
+
 export const forgotPasswordSchema = z.object({ email });
 export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 

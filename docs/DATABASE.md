@@ -69,7 +69,7 @@ period must not retroactively re-open academies that already lapsed.
 **`tenants.data` is where an academy's settings live** unless something filters
 or sorts on them — the rule the model states for its own columns. Today it
 holds `suspended_reason`, `rejected_reason` and **`registration_mode`**
-(`open` | `invite` | `closed`; see `RegistrationMode`). A key that is absent
+(`open` | `invite` | `closed`; see `RegistrationMode` — invitations work in all three). A key that is absent
 means the DEFAULT rather than a state, so a setting added later reaches every
 academy that never touched the switch without a backfill — the same shape as
 notification preferences. Promote one to a real column the day something needs
@@ -121,6 +121,16 @@ permission_role(role_id, permission_id)                             PRIMARY KEY(
 role_assignments(id, user_id, role_id, scope_type NULL, scope_id NULL, granted_by, expires_at)
       UNIQUE (user_id, role_id, scope_type, scope_id)
       INDEX (scope_type, scope_id)
+
+-- PER ACADEMY. BUILT (P16), INVITATIONS.md. Only the token's SHA-256 is
+-- stored. `pending_email` holds the address while the invitation is open and
+-- is NULL once settled, so UNIQUE on it allows one open invitation per
+-- address. Status is derived from the timestamps and the clock. `invited_by`
+-- and `accepted_user_id` are central ids, with no foreign key.
+invitations(id, uuid, email, pending_email NULL UNIQUE, role ENUM(student,instructor),
+      token_hash CHAR(64) UNIQUE, invited_by NULL, expires_at, sent_count, last_sent_at,
+      accepted_at NULL, accepted_user_id NULL, revoked_at NULL)
+      INDEX (accepted_at, revoked_at, expires_at), INDEX (created_at), INDEX (email)
 
 personal_access_tokens(...)          -- Sanctum
 user_devices(id, user_id, token_id, platform, name, last_used_at, ip, user_agent)
