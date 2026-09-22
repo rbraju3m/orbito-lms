@@ -199,7 +199,7 @@ reading a flag to decide whether to do nothing should not have been called.
 | Event | Payload | Fired when |
 |---|---|---|
 | `LeadCaptured` | `Lead $lead` | a NEW address is left on an academy's public lead form |
-| `PostPublished` | `Post $post` | a blog post goes from draft to live — not when it is scheduled, and not when a scheduled one's time comes (`BLOG.md` §2) |
+| `PostPublished` | `Post $post` | a blog post goes live — once per post, ever (`AnnouncePost`). Published now: from the request. Scheduled: from `blog:announce` when its time comes, never when it is scheduled (`BLOG.md` §2) |
 
 Fired once per address, never for a repeat submission of one already on the
 list — the repeat may be a stranger typing somebody else's address, and a

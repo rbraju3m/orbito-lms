@@ -28,6 +28,7 @@ use Illuminate\Support\Str;
  * @property int|null $cover_media_id
  * @property PostStatus $status
  * @property CarbonInterface|null $published_at
+ * @property CarbonInterface|null $announced_at when `post.published` fired — once, ever (`AnnouncePost`)
  * @property string|null $seo_title
  * @property string|null $seo_description
  * @property CarbonInterface $created_at
@@ -55,6 +56,7 @@ final class Post extends Model
             'cover_media_id' => 'integer',
             'status' => PostStatus::class,
             'published_at' => 'datetime',
+            'announced_at' => 'datetime',
         ];
     }
 

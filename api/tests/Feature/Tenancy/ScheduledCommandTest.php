@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Content\Enums\PostStatus;
+use App\Domain\Content\Models\Post;
 use App\Domain\Enrollment\Enums\EnrollmentStatus;
 use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Enums\RoleKey;
@@ -86,6 +88,18 @@ it('syncs gamification rules with no tenant open', function (): void {
 
 it('sends live session reminders with no tenant open', function (): void {
     ($this->centrally)('live:remind');
+});
+
+it('announces scheduled blog posts with no tenant open', function (): void {
+    $post = Post::factory()->create([
+        'status' => PostStatus::Published,
+        'published_at' => now()->subMinute(),
+    ]);
+
+    ($this->centrally)('blog:announce');
+
+    // A tenant-blind sweep would find no `posts` table centrally and die.
+    expect($post->fresh()?->announced_at)->not->toBeNull();
 });
 
 it('builds leaderboards with no tenant open', function (): void {

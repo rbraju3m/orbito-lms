@@ -38,12 +38,13 @@ final class PostFactory extends Factory
         ];
     }
 
-    /** Live since yesterday. */
+    /** Live since yesterday, and already announced — as the app would have. */
     public function published(): static
     {
         return $this->state(fn (): array => [
             'status' => PostStatus::Published,
             'published_at' => now()->subDay(),
+            'announced_at' => now()->subDay(),
         ]);
     }
 

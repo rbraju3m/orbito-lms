@@ -56,11 +56,25 @@ published ──unpublish──▶ draft   (keeps its address and its first date
 - **Deleting is outright.** Nothing refers to a post, so there is no history to
   keep; unpublishing is how an author only hides one.
 
-`PostPublished` fires on the transition from draft, and only if the post is
-live at that moment. A scheduled post fires nothing when it is scheduled and
-nothing when its time comes — an integration told "published" early would
-announce a page that does not exist yet, and telling it on time needs a sweep
-at the scheduled moment (§6).
+`PostPublished` fires **once per post, ever**, and only when the post is live
+— both paths go through `AnnouncePost`:
+
+- **Published now** — announced by the publish request itself.
+- **Scheduled** — nothing when it is scheduled (an integration told
+  "published" early would link to a page that does not exist yet), then
+  `blog:announce`, every minute, announces it once its time has come. The page
+  itself still needs no job; only TELLING somebody does.
+- **Taken down and put back** — not announced again. A post pulled to fix a
+  typo is not news, and an integration that posts "new article" somewhere
+  would post it twice. The same reason the slug locks at first publication.
+- **Brought forward** — a scheduled post republished with a time already
+  passed is announced at once.
+
+`posts.announced_at` is the flag, claimed with a conditional UPDATE before the
+event is dispatched, so two sweeps on two hosts — or a sweep and a publish
+request — cannot both fire. The migration that added it marked every post
+already live as announced: a backlog of old scheduled posts announced in a
+burst on deploy, days late, is worse than none.
 
 ---
 
@@ -166,9 +180,6 @@ unaffected either way.
 
 - **No categories or tags.** An academy with a handful of posts needs a list,
   not a taxonomy; `DATABASE.md` §12 still sketches both.
-- **A scheduled post never fires `post.published`.** Telling integrations on
-  time means a sweep at the scheduled moment — the one place a clock-derived
-  state needs a job.
 - **No RSS feed and no sitemap.**
 - **No rich-text editor.** HTML in a textarea, like lessons; the sanitiser is
   what keeps it safe, not the editor.

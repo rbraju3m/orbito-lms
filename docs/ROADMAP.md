@@ -1754,6 +1754,22 @@ filter the API already took. The pager itself is `CoursePager`, shared by both.
 The parser reads `category` only when asked (`withCategory`): the public page
 has no control for it, and a filter nobody can see is one nobody can clear.
 
+**Scheduled posts are announced.** A scheduled post went live by the clock and
+`post.published` never fired, so no integration heard about it. `blog:announce`
+now runs every minute and announces a post once its time has come; the page
+itself still needs no job. Both paths — publish-now and the sweep — go through
+`AnnouncePost`, which claims `posts.announced_at` with a conditional UPDATE
+before dispatching, so a sweep and a publish request cannot both fire.
+- **Once per post, ever — a behaviour change.** Unpublishing and republishing
+  used to announce again; now it does not. A post pulled to fix a typo is not
+  news, and an integration posting "new article" would post it twice.
+- **Backfilled as announced.** Every post already live when the column landed
+  counts as announced, including scheduled ones that went out unannounced: a
+  burst of days-old announcements on deploy is worse than none.
+- **No floor on the window**, unlike `live:remind`: a reminder for a finished
+  class is wrong, a post announced late because the scheduler was down is
+  still true.
+
 Still open in this phase: subscriptions and
 memberships, coaching, multilingual, RTL. The blog's categories, tags, RSS
 and sitemap are named in `BLOG.md` §6.

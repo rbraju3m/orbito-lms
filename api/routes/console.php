@@ -81,3 +81,9 @@ Schedule::command('gamification:sync')->dailyAt('02:50')->withoutOverlapping();
  * "starts in 30 minutes" about a class that has already finished.
  */
 Schedule::command('live:remind')->everyFiveMinutes()->withoutOverlapping();
+
+/*
+ * A scheduled blog post goes live by the clock; this is what TELLS anybody.
+ * Every minute, so `post.published` lands within a minute of the page.
+ */
+Schedule::command('blog:announce')->everyMinute()->withoutOverlapping();

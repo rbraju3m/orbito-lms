@@ -946,8 +946,11 @@ Gate::authorize('publish', $course);                   // in a controller
   there whether or not the page currently is.
 - **An event that announces a thing must not fire before the thing exists.**
   A scheduled post is published and not yet visible, so `PostPublished` fires
-  only for a post live at that moment. Firing on schedule would need a sweep —
-  say so rather than fire early.
+  only once it is live — from the request, or from `blog:announce` when its
+  time comes. And an announcement is ONCE per thing, ever: a post taken down
+  and put back is not news. `AnnouncePost` claims `announced_at` with a
+  conditional UPDATE before dispatching, so a sweep and a request cannot both
+  fire.
 - **Count words with Unicode, never `str_word_count`.** It knows ASCII
   letters only, and this product's first academy writes in Bengali.
 - **A page is a closed set of blocks, saved WHOLE.** No custom-HTML block: a
@@ -1070,7 +1073,7 @@ paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
 GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER and the
 public COURSE INDEX**, plus a skip link on every shell.
-1,538 backend tests · 451 frontend tests.
+1,546 backend tests · 451 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1258,9 +1261,7 @@ Every one of these has already cost time at least once.
   document.
 - **Pages: no custom HTML, columns, revisions or scheduling**, and the course
   picker offers only the first page of public courses. `docs/PAGES.md` §6.
-- **Blog: no categories, tags, RSS, sitemap or revisions, and a scheduled post
-  never fires `post.published`** — telling integrations on time needs a sweep
-  at the scheduled moment. `docs/BLOG.md` §6.
+- **Blog: no categories, tags, RSS, sitemap or revisions.** `docs/BLOG.md` §6.
 - **Leads: no CAPTCHA, no double opt-in, no staff digest, and no link to the
   account a lead later becomes.** Each is in `docs/LEADS.md` §6 with what it
   would take. `source: webinar` is accepted by the API and not yet placed on

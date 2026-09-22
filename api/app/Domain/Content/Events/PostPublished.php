@@ -8,9 +8,10 @@ use App\Domain\Content\Models\Post;
 use Illuminate\Foundation\Events\Dispatchable;
 
 /**
- * A post went live on the academy's public site — the transition from draft,
- * and only when its time had already come. A scheduled post does not fire
- * this when it is scheduled (`ChangePostStatus::publish`).
+ * A post went live on the academy's public site. Once per post, ever — never
+ * again for a post taken down and put back — and never before it is live: a
+ * scheduled post fires when its time comes, from `blog:announce`. Both paths
+ * go through `AnnouncePost`.
  */
 final class PostPublished
 {
