@@ -31,7 +31,12 @@ export function EmptyState({
           <IconComponent size={28} stroke={1.5} />
         </ThemeIcon>
 
-        <Title order={3}>{title}</Title>
+        {/* h2, drawn at h3 size: it sits directly under the page's h1, and
+            an h3 there skipped a level on every empty list (axe
+            heading-order). */}
+        <Title order={2} size="h3">
+          {title}
+        </Title>
 
         {description ? (
           <Text c="dimmed" size="sm">

@@ -93,7 +93,9 @@ export function AcceptInvitationRoute() {
     <form onSubmit={onSubmit} noValidate>
       <Stack gap="md">
         <Stack gap={4}>
-          <Title order={2}>Join {invitation.academy_name}</Title>
+          <Title order={1} size="h2">
+            Join {invitation.academy_name}
+          </Title>
           <Text c="dimmed" size="sm">
             You have been invited as {article} {invitation.role_label.toLowerCase()}. Choose a
             password to create your account.
@@ -195,7 +197,7 @@ function Refusal({ error, message, inline = false }: RefusalProps) {
 
   return (
     <Stack gap="md">
-      <Title order={2}>
+      <Title order={1} size="h2">
         {signIn ? 'You already have an account' : 'This invitation cannot be used'}
       </Title>
       {alert}

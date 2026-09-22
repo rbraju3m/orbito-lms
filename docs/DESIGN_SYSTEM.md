@@ -44,10 +44,22 @@ Domain accents (used for item-type icons and status dots, and nowhere else):
 `lesson` blue · `quiz` violet · `assignment` orange · `resource` teal · `live` red.
 
 **Contrast:** body text ≥ 4.5:1, large text and UI borders ≥ 3:1, in both schemes.
-Mantine's own `dimmed`, dark-scheme anchor, light `success` text and gray
-outline all fall short of that; `cssVariablesResolver` in `app/theme.ts`
+Mantine's own `dimmed`, dark-scheme anchor, light `success` text, gray
+outline and field ERROR text (red.6 is 3.3:1 on white, red.8 3.3:1 on a dark
+card) all fall short of that; `cssVariablesResolver` in `app/theme.ts`
 overrides them, with the ratio beside each. Measure with axe, not by eye —
 the shortfall was found that way, on every public page, in both schemes.
+
+Three more that no variable fixes, so they are rules for the component:
+
+- **A light badge's coloured text fails for most hues** — orange 3.6:1,
+  green 3.8:1, and green has no darker shade to reach for. A status badge
+  keeps its tint and takes the theme's text: `c="var(--mantine-color-text)"`
+  (`InvitationsRoute`).
+- **White on a default filled red is 3.3:1.** A destructive button that
+  stands alone uses `red.9`.
+- **A link inside a sentence is underlined** (`underline="always"`). In
+  dimmed text, colour alone does not tell it apart.
 Colour never carries meaning alone — always pair with an icon or a label.
 
 ### Typography
@@ -197,6 +209,29 @@ something the user can already see happened.
   router's location for Back to step through. `app/layouts/SkipLink.test.tsx`
   holds every shell in one table — a new shell belongs there.
 - Target size ≥ 44 × 44 px on touch.
+- **Every shell puts everything in a landmark and gives each page ONE h1.**
+  `AuthLayout` is header / main / footer, and each auth page's title is the
+  h1 (drawn at h2 size); the brand is text, not a heading. Headings inside a
+  page step down from there. `EmptyState`'s title is an h2 drawn at h3
+  size, because it sits under the page's h1 on every empty list.
+- **Theme defaults close two holes Mantine leaves in every modal:**
+  `closeButtonProps['aria-label'] = 'Close'` (the icon button had no name),
+  and the modal header is a `div`. Mantine draws it as a `<header>` inside a
+  `<section role="dialog">`, and the role strips the section's meaning, so
+  every open modal announced a second page banner.
+- **A panel is not a menu.** `role="menu"` may hold only menu items. The
+  notification bell holds a heading, a "Mark all read" button and status
+  text, so it is a `Popover` (a dialog) whose rows are plain buttons. It is
+  controlled, closes on Escape through `onDismiss`, traps focus, and returns
+  it to the bell. Anything wrapping a `Menu.Target`/`Popover.Target` (an
+  `Indicator`) goes OUTSIDE the Menu, or the trigger's `aria-expanded` lands
+  on a `div`.
+- **The browser pass is the check, and it is run the same way each time:**
+  headless system Chrome through Playwright against the Apache hosts
+  (`orbito-lms.local`, the built `dist/`), axe-core injected, at 360 and
+  1280px, light and dark, plus a keyboard walk. Audit an EXISTING page
+  beside the new one, so a finding can be placed in the shell or in the
+  slice before anybody fixes it.
 
 ---
 

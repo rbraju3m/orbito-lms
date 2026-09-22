@@ -54,7 +54,9 @@ export function LoginRoute() {
     <form onSubmit={onSubmit} noValidate>
       <Stack gap="md">
         <Stack gap={4}>
-          <Title order={2}>Welcome back</Title>
+          <Title order={1} size="h2">
+            Welcome back
+          </Title>
           <Text c="dimmed" size="sm">
             Sign in to continue learning or teaching.
           </Text>
@@ -95,7 +97,7 @@ export function LoginRoute() {
           </Anchor>
           <Text size="sm" c="dimmed">
             New here?{' '}
-            <Anchor component={Link} to="/register">
+            <Anchor component={Link} to="/register" underline="always">
               Create an account
             </Anchor>
           </Text>

@@ -100,6 +100,13 @@ export const theme = createTheme({
     Modal: Modal.extend({
       defaultProps: { centered: true, radius: 'lg', closeButtonProps: { 'aria-label': 'Close' } },
     }),
+    // Mantine draws the modal's title bar as a <header> inside a
+    // <section role="dialog">. The role strips the section's sectioning
+    // meaning, so the header became a second page BANNER beside the app's.
+    // A plain entry, not ModalHeader.extend(): the header's props do not
+    // declare `component`, though Box honours it (ModalBaseHeader spreads it
+    // after its own "header").
+    ModalHeader: { defaultProps: { component: 'div' } },
   },
 
   other: {
@@ -124,6 +131,9 @@ export const theme = createTheme({
  *   Text only — filled buttons and badges keep their own shade.
  * - gray OUTLINE, light: the "All levels" badge's text is gray.6, 3.3:1.
  *   gray.7 is 8.2:1, and the border it also draws is only firmer for it.
+ * - error: a field's error message and its required asterisk. red.6 is
+ *   3.3:1 on white and red.8 is 3.3:1 on a dark card; red.9 and red.4
+ *   clear 4.5:1 on each.
  */
 export const cssVariablesResolver: CSSVariablesResolver = () => ({
   variables: {},
@@ -131,9 +141,11 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     '--mantine-color-dimmed': '#687078',
     '--mantine-color-success-text': 'var(--mantine-color-success-9)',
     '--mantine-color-gray-outline': 'var(--mantine-color-gray-7)',
+    '--mantine-color-error': 'var(--mantine-color-red-9)',
   },
   dark: {
     '--mantine-color-dimmed': '#a3a3a3',
     '--mantine-color-anchor': 'var(--mantine-color-orbito-3)',
+    '--mantine-color-error': 'var(--mantine-color-red-4)',
   },
 });

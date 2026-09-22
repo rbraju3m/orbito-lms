@@ -74,14 +74,20 @@ export function RegisterRoute() {
   if (academy === '') {
     return (
       <Stack gap="md">
-        <Title order={2}>You need an invitation link</Title>
+        <Title order={1} size="h2">
+          You need an invitation link
+        </Title>
         <Alert color="warning" icon={<IconAlertCircle size={16} />}>
-          Accounts belong to an academy, so signing up needs that academy&rsquo;s own link — it
-          ends in <Text span ff="monospace">?academy=…</Text>. Ask whoever invited you for it.
+          Accounts belong to an academy, so signing up needs that academy&rsquo;s own link — it ends
+          in{' '}
+          <Text span ff="monospace">
+            ?academy=…
+          </Text>
+          . Ask whoever invited you for it.
         </Alert>
         <Text size="sm" c="dimmed" ta="center">
           Already have an account?{' '}
-          <Anchor component={Link} to="/login">
+          <Anchor component={Link} to="/login" underline="always">
             Sign in
           </Anchor>
         </Text>
@@ -93,7 +99,9 @@ export function RegisterRoute() {
     <form onSubmit={onSubmit} noValidate>
       <Stack gap="md">
         <Stack gap={4}>
-          <Title order={2}>Create your account</Title>
+          <Title order={1} size="h2">
+            Create your account
+          </Title>
           <Text c="dimmed" size="sm">
             Learn, or teach. You can do both from one account.
           </Text>
@@ -151,7 +159,7 @@ export function RegisterRoute() {
 
         <Text size="sm" c="dimmed" ta="center">
           Already have an account?{' '}
-          <Anchor component={Link} to="/login">
+          <Anchor component={Link} to="/login" underline="always">
             Sign in
           </Anchor>
         </Text>

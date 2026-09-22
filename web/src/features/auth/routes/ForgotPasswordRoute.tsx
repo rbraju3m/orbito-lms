@@ -55,7 +55,9 @@ export function ForgotPasswordRoute() {
     <form onSubmit={onSubmit} noValidate>
       <Stack gap="md">
         <Stack gap={4}>
-          <Title order={2}>Reset your password</Title>
+          <Title order={1} size="h2">
+            Reset your password
+          </Title>
           <Text c="dimmed" size="sm">
             Enter your email and we'll send you a link.
           </Text>

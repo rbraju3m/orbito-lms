@@ -60,7 +60,7 @@ export function VerifyEmailRoute() {
 
     return (
       <Stack gap="md">
-        <Title order={2}>
+        <Title order={1} size="h2">
           {alreadyVerified ? 'Already verified' : 'We could not verify that link'}
         </Title>
         <Text c="dimmed" size="sm">

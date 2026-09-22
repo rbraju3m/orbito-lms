@@ -87,3 +87,18 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * A row in the notification bell's panel. The panel is a Popover (a dialog),
+ * not a Menu, so its rows are plain buttons and carry the look Menu.Item had.
+ */
+.orbito-bell-row {
+  display: block;
+  width: 100%;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.orbito-bell-row:hover {
+  background-color: var(--mantine-color-default-hover);
+}

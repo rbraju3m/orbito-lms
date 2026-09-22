@@ -18,9 +18,9 @@ both need credentials rather than code:
 
 | | |
 |---|---|
-| Backend | 1,432 Pest tests / 5,324 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
-| Frontend | 365 Vitest tests across 67 files · `tsc` clean · oxlint clean · build clean |
-| Budget | first-paint JS **250.01 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
+| Backend | 1,584 Pest tests / 6,119 assertions (1 skipped) · PHPStan level 6 clean · Pint clean |
+| Frontend | 467 Vitest tests across 89 files · `tsc` clean · oxlint clean · build clean · axe clean on every shell, 360 and 1280px, both schemes (`DESIGN_SYSTEM.md` §5) |
+| Budget | first-paint JS **251.06 KB** gzipped against **255 KB** — raised from 250 in Phase 16, then 1.67 KB bought back by splitting the route table; see there. `npm run size` is the measurement (`web/scripts/first-paint.mjs`): entry script plus every `modulepreload`, gzip-9 through Node's zlib, and it fails above the budget |
 | E2E | Playwright specs for phases 2–3 only; the host cannot run it (Ubuntu 20.04) |
 | Suite runtime | ~20 minutes on a quiet machine (18–26 across Phase 16's later runs), up from ~2 — provisioning tests build real schemas |
 
@@ -46,8 +46,10 @@ against its plan, price any course — which, until Phase 16, nothing in the
 product could do — sell several courses as one bundle with the saving shown,
 sell or give away digital downloads, connect the academy's own meeting
 provider, author a standalone webinar and sell places at it, call one off
-(which tells everybody holding a place), and hand out a link to a public site
-a stranger can read without an account.
+(which tells everybody holding a place), hand out a link to a public site
+a stranger can read without an account — with a blog, pages built from blocks
+and a lead form on it — and invite somebody by email as a student or an
+instructor, whatever the academy's signup setting.
 
 **What a learner can do:** find a course or a bundle, buy it, enrol, learn through a
 player with video resume and notes, take a timed quiz, hand in written and
@@ -58,15 +60,15 @@ certificate or a file they bought — and see all of it in a calendar, an inbox 
 
 **What somebody with NO account can do, as of Phase 16:** read an academy's
 public site — its published courses, a course's sales page, a published
-event — and then sign up into that academy from a link that names it. That is
-the whole of the anonymous surface: nothing is bought, enrolled in or
-registered for without an account.
+event, the blog and built pages — leave an email on a lead form, hold a place
+at a FREE webinar by confirming from their mailbox, and sign up into that
+academy from a link that names it or from an invitation. Nothing is bought or
+enrolled in without an account.
 
-**What is conspicuously missing:** most of Phase 16 onward —
-subscriptions, the blog and page builder (whose foundation, the public site,
-has now landed), multilingual and RTL, and outbound
-webhooks. (Plan-limit enforcement, long the oldest item on
-this list, has landed.) Plus the two unproven
+**What is conspicuously missing:** subscriptions and memberships (waiting,
+deliberately, on the first real Stripe payment), coaching, multilingual and
+RTL. (Plan limits, outbound webhooks, the blog, the page builder and
+invitations have all landed in Phase 16.) Plus the two unproven
 integrations above, and the Playwright gap, which has now outlasted thirteen
 phases. On the operator surface specifically: no cross-academy usage view, no
 audit of who approved what, and no screen for editing a plan — plans are still

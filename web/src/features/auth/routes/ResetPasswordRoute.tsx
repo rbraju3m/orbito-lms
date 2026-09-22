@@ -53,7 +53,9 @@ export function ResetPasswordRoute() {
     <form onSubmit={onSubmit} noValidate>
       <Stack gap="md">
         <Stack gap={4}>
-          <Title order={2}>Choose a new password</Title>
+          <Title order={1} size="h2">
+            Choose a new password
+          </Title>
           <Text c="dimmed" size="sm">
             Resetting signs you out of every device.
           </Text>

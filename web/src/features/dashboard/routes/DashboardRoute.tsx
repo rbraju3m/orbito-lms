@@ -61,7 +61,7 @@ export function DashboardRoute() {
         <Card>
           <Stack gap="sm">
             <Group justify="space-between">
-              <Title order={3}>Your access</Title>
+              <Title order={2} size="h3">Your access</Title>
               <Badge variant="light">{session.permissions.length} permissions</Badge>
             </Group>
 
@@ -86,14 +86,14 @@ export function DashboardRoute() {
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <Card>
             <Stack gap="xs">
-              <Title order={4}>Continue learning</Title>
+              <Title order={2} size="h4">Continue learning</Title>
               <ContinueLearning />
             </Stack>
           </Card>
 
           <Card>
             <Stack gap="xs">
-              <Title order={4}>Account</Title>
+              <Title order={2} size="h4">Account</Title>
               <Text size="sm" c="dimmed">
                 Update your details, or apply to teach.
               </Text>

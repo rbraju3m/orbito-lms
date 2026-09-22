@@ -1097,7 +1097,17 @@ touching anything.
 
 ### What to do next
 
-**0. The public site's browser pass — DONE.** Every
+**0. The shared shells' accessibility pass — DONE.** After the
+invitation pages' own pass, every finding that had been measured on
+EXISTING pages too (`/login`, `/register`, `/admin/leads`, `/admin/coupons`)
+was fixed rather than left: the auth layout's landmarks and h1, field-error
+contrast, the bell's misplaced `aria-expanded` (and the bell itself, which
+was a menu holding things a menu may not), every modal's nameless close
+button and second banner, and `EmptyState`'s skipped heading level. 58
+views, both schemes, both widths, clean. The rules are in
+`docs/DESIGN_SYSTEM.md` §2 and §5.
+
+**0a. The public site's browser pass — DONE.** Every
 public page was walked headless (system Chrome through Playwright) at 360 and
 1280px, light and dark, with axe and a keyboard. It found: theme text below
 4.5:1 everywhere, an invisible duplicate of the header links in the tab order
@@ -1174,6 +1184,11 @@ Code that needs no credentials, smallest first:
 
 - **Bundles that hold downloads.** `bundle_items` names `course_id`; see
   Known debt for what teaching it about downloads involves.
+- **Usage-counter drift in the local academies.** `usage:reconcile
+  --dry-run` reports 13 drifted counters in demo-academy (mostly
+  `courses_total` per owner), from before Phase 16's invitations. Worth one
+  look at WHY before running the reconcile for real — drift is a bug alert
+  (§ Patterns established in Phase 6), not a number to overwrite.
 
 Also ahead: coaching, multilingual, RTL.
 
@@ -1214,6 +1229,19 @@ there and generalise:
 
 Every one of these has already cost time at least once.
 
+- **Locally, Orbito is Apache on `orbito-lms.local` / `orbito-lms-api.local`,
+  and it needs Redis.** Ports 5173 and 8000 on this machine belong to a
+  different project. The Redis service is disabled, and without it every API
+  request 500s ("Connection refused 6379"); a browser pass starts a
+  throwaway `redis-server --daemonize yes --save ""` and shuts it down after.
+  The SPA there is the BUILT `web/dist`, so rebuild before looking.
+- **`permissions:sync` syncs ONE schema.** Reaching every academy is
+  `php artisan tenants:run permissions:sync`, and nothing runs it on deploy.
+  The first run in Phase 16 created 11 and 7 missing keys in the two local
+  academies, so earlier slices' keys had never arrived either.
+- **`src/app/router.test.tsx` "discovers /admin/webhooks/42" can fail under
+  the full parallel run** and pass alone. A timing flake, seen twice; re-run
+  before chasing it.
 - **Two Laravel SPAs on `localhost` share the `XSRF-TOKEN` cookie.** Cookies
   are per host, not per port, so another local Laravel app breaks Orbito's
   login with "CSRF token mismatch" while Orbito's own config is correct. Run
@@ -1330,7 +1358,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 251.01 (the skip link cost 0.16, the members catalogue's pager 0.21, the Invitations nav entry 0.26). It had crept to 250.91 — nav icons
+  purpose**, and first paint is 251.06 (the skip link cost 0.16, the members catalogue's pager 0.21, the Invitations nav entry 0.26). It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

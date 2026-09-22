@@ -1,6 +1,17 @@
-import { ActionIcon, Button, Divider, Group, Indicator, Menu, Stack, Text } from '@mantine/core';
+import {
+  ActionIcon,
+  Button,
+  Divider,
+  Group,
+  Indicator,
+  Popover,
+  Stack,
+  Text,
+  UnstyledButton,
+} from '@mantine/core';
 import { IconBell, IconCheck } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { formatDateTime } from '@/shared/lib/datetime';
@@ -24,34 +35,56 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const count = useQuery(unreadCountQuery());
   const unread = count.data?.unread_count ?? 0;
+  const [opened, setOpened] = useState(false);
 
   return (
-    <Menu position="bottom-end" width={360} withinPortal shadow="md">
-      <Menu.Target>
-        <Indicator
-          disabled={unread === 0}
-          label={unread > 99 ? '99+' : unread}
-          size={16}
-          offset={4}
-          color="danger"
-        >
+    // A Popover — a dialog — not a Menu. The panel holds a heading, a "Mark
+    // all read" button and status text beside its rows, which a role="menu"
+    // may not contain; axe flagged it. The Indicator wraps the whole thing so
+    // the trigger's aria-haspopup / aria-expanded land on the button itself.
+    <Indicator
+      disabled={unread === 0}
+      label={unread > 99 ? '99+' : unread}
+      size={16}
+      offset={4}
+      color="danger"
+    >
+      <Popover
+        position="bottom-end"
+        width={360}
+        withinPortal
+        shadow="md"
+        opened={opened}
+        // Controlled, so Escape and a click outside arrive as a dismissal
+        // rather than a change; focus moves into the panel and back.
+        onDismiss={() => setOpened(false)}
+        trapFocus
+        returnFocus
+      >
+        <Popover.Target>
           <ActionIcon
             variant="subtle"
             aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ''}`}
+            onClick={() => setOpened((open) => !open)}
           >
             <IconBell size={18} />
           </ActionIcon>
-        </Indicator>
-      </Menu.Target>
+        </Popover.Target>
 
-      <Menu.Dropdown>
-        <BellContents onOpenAll={() => void navigate('/notifications')} />
-      </Menu.Dropdown>
-    </Menu>
+        <Popover.Dropdown p={4}>
+          <BellContents
+            onNavigate={(path) => {
+              setOpened(false);
+              void navigate(path);
+            }}
+          />
+        </Popover.Dropdown>
+      </Popover>
+    </Indicator>
   );
 }
 
-function BellContents({ onOpenAll }: { onOpenAll: () => void }) {
+function BellContents({ onNavigate }: { onNavigate: (path: string) => void }) {
   // Mounted only when the dropdown renders, which is what keeps the list off
   // the first paint of every page.
   const { data, isPending } = useQuery(notificationsQuery(1, false));
@@ -90,31 +123,39 @@ function BellContents({ onOpenAll }: { onOpenAll: () => void }) {
           Nothing yet. Announcements, replies and grades land here.
         </Text>
       ) : (
-        rows.map((notification) => <BellRow key={notification.id} notification={notification} />)
+        rows.map((notification) => (
+          <BellRow key={notification.id} notification={notification} onNavigate={onNavigate} />
+        ))
       )}
 
       <Divider />
 
-      <Menu.Item onClick={onOpenAll}>
+      <UnstyledButton className="orbito-bell-row" onClick={() => onNavigate('/notifications')}>
         <Text size="sm" ta="center">
           See all
         </Text>
-      </Menu.Item>
+      </UnstyledButton>
     </Stack>
   );
 }
 
-function BellRow({ notification }: { notification: AppNotification }) {
-  const navigate = useNavigate();
+function BellRow({
+  notification,
+  onNavigate,
+}: {
+  notification: AppNotification;
+  onNavigate: (path: string) => void;
+}) {
   const markRead = useMarkNotificationRead();
 
   return (
-    <Menu.Item
+    <UnstyledButton
+      className="orbito-bell-row"
       onClick={() => {
         if (!notification.is_read) markRead.mutate(notification.id);
         // The stored path is relative, so this is an in-app navigation rather
         // than a full page load.
-        if (notification.action_path) void navigate(notification.action_path);
+        if (notification.action_path) onNavigate(notification.action_path);
       }}
     >
       <Group gap="xs" wrap="nowrap" align="flex-start">
@@ -134,6 +175,6 @@ function BellRow({ notification }: { notification: AppNotification }) {
           </Text>
         </Stack>
       </Group>
-    </Menu.Item>
+    </UnstyledButton>
   );
 }
