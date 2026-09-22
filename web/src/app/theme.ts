@@ -95,7 +95,11 @@ export const theme = createTheme({
   components: {
     Button: Button.extend({ defaultProps: { radius: 'sm' } }),
     Card: Card.extend({ defaultProps: { withBorder: true, radius: 'md', padding: 'lg' } }),
-    Modal: Modal.extend({ defaultProps: { centered: true, radius: 'lg' } }),
+    // Mantine's close button is an icon with no accessible name; axe flagged
+    // it on every modal in the product.
+    Modal: Modal.extend({
+      defaultProps: { centered: true, radius: 'lg', closeButtonProps: { 'aria-label': 'Close' } },
+    }),
   },
 
   other: {

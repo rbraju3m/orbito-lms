@@ -1330,7 +1330,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 250.98 (the skip link cost 0.16, the members catalogue's pager 0.21, the Invitations nav entry 0.26). It had crept to 250.91 — nav icons
+  purpose**, and first paint is 251.01 (the skip link cost 0.16, the members catalogue's pager 0.21, the Invitations nav entry 0.26). It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

@@ -137,7 +137,9 @@ describe('InvitationsRoute', () => {
     const user = userEvent.setup();
     renderWithRouter(<InvitationsRoute />);
 
-    await user.click(await screen.findByRole('button', { name: 'Revoke the invitation to ada@example.test' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Revoke the invitation to ada@example.test' }),
+    );
     const dialog = within(await screen.findByRole('dialog'));
     await user.click(dialog.getByRole('button', { name: 'Revoke' }));
 

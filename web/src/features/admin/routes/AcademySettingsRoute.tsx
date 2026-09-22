@@ -81,9 +81,7 @@ function AcademySettings({ academy }: { academy: Academy }) {
                     value={option.value}
                     label={option.label}
                     disabled={!option.available}
-                    description={
-                      option.available ? MODE_NOTES[option.value] : 'Not available yet.'
-                    }
+                    description={option.available ? MODE_NOTES[option.value] : 'Not available yet.'}
                   />
                 ))}
               </Stack>

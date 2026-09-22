@@ -12,7 +12,10 @@ import { AcceptInvitationRoute } from './AcceptInvitationRoute';
 const LINK = '?academy=north-college&token=the-token';
 
 function renderAt(search: string) {
-  return renderWithRouter(<AcceptInvitationRoute />, { path: '/invite', route: `/invite${search}` });
+  return renderWithRouter(<AcceptInvitationRoute />, {
+    path: '/invite',
+    route: `/invite${search}`,
+  });
 }
 
 function refusal(code: string, message: string, status: number) {
@@ -61,8 +64,8 @@ describe('AcceptInvitationRoute', () => {
     expect(await screen.findByRole('heading', { name: 'Join North College' })).toBeInTheDocument();
     expect(screen.getByText(/invited as an instructor/)).toBeInTheDocument();
     // Shown, not asked for: the account takes the invited address.
-    expect(screen.getByLabelText(/^Email/)).toHaveValue('grace@example.test');
-    expect(screen.getByLabelText(/^Email/)).toHaveAttribute('readonly');
+    expect(screen.getByText('grace@example.test')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /email/i })).not.toBeInTheDocument();
     expect(bodies).toEqual([{ token: 'the-token' }]);
   });
 
@@ -91,24 +94,36 @@ describe('AcceptInvitationRoute', () => {
 
   it('tells the holder of an expired link to ask for another, instead of a form', async () => {
     servePreview(() =>
-      refusal('invitation_expired', 'This invitation has expired. Ask the academy to send you a new one.', 410),
+      refusal(
+        'invitation_expired',
+        'This invitation has expired. Ask the academy to send you a new one.',
+        410,
+      ),
     );
 
     renderAt(LINK);
 
-    expect(await screen.findByRole('heading', { name: 'This invitation cannot be used' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'This invitation cannot be used' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent(/Ask the academy to send you a new one/);
     expect(screen.queryByRole('button', { name: 'Create account' })).not.toBeInTheDocument();
   });
 
   it('sends somebody whose link was already used to sign in', async () => {
     servePreview(() =>
-      refusal('invitation_accepted', 'This invitation has already been used. Sign in with the account it created.', 410),
+      refusal(
+        'invitation_accepted',
+        'This invitation has already been used. Sign in with the account it created.',
+        410,
+      ),
     );
 
     renderAt(LINK);
 
-    expect(await screen.findByRole('heading', { name: 'You already have an account' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'You already have an account' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
   });
 
@@ -116,7 +131,11 @@ describe('AcceptInvitationRoute', () => {
     servePreview();
     server.use(
       http.post(apiUrl('/auth/invitations/accept'), () =>
-        refusal('account_exists', 'An account with this email address already exists. Sign in instead.', 409),
+        refusal(
+          'account_exists',
+          'An account with this email address already exists. Sign in instead.',
+          409,
+        ),
       ),
     );
 

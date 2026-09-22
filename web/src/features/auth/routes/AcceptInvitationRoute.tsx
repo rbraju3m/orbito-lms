@@ -1,4 +1,14 @@
-import { Alert, Anchor, Button, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core';
+import {
+  Alert,
+  Anchor,
+  Button,
+  Input,
+  PasswordInput,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
@@ -98,16 +108,18 @@ export function AcceptInvitationRoute() {
           </Alert>
         ) : null}
 
-        {/* Shown, not asked for: the account takes the invited address. Kept
-            as a field so a password manager saves the new password against it. */}
-        <TextInput
-          label="Email"
-          type="email"
-          autoComplete="username"
-          value={invitation.email}
-          readOnly
-          description="The address this invitation was sent to."
-        />
+        {/* Shown, not asked for: the account takes the invited address. As
+            text, so a long address wraps rather than being cut off in a field
+            at phone width; the hidden input is what a password manager saves
+            the new password against. */}
+        <Stack gap={2}>
+          <Input.Label component="div">Email</Input.Label>
+          <Text style={{ overflowWrap: 'anywhere' }}>{invitation.email}</Text>
+          <Text size="xs" c="dimmed">
+            The address this invitation was sent to. Your account will use it.
+          </Text>
+          <input type="email" autoComplete="username" value={invitation.email} readOnly hidden />
+        </Stack>
 
         <TextInput
           {...field('name')}
@@ -157,7 +169,9 @@ interface RefusalProps {
 function Refusal({ error, message, inline = false }: RefusalProps) {
   const text =
     message ??
-    (error instanceof ApiError ? error.message : 'This invitation could not be checked. Try again.');
+    (error instanceof ApiError
+      ? error.message
+      : 'This invitation could not be checked. Try again.');
   const signIn = error instanceof ApiError && SIGN_IN_CODES.has(error.code);
 
   const alert = (
@@ -170,7 +184,7 @@ function Refusal({ error, message, inline = false }: RefusalProps) {
     return signIn ? (
       <Stack gap="xs">
         {alert}
-        <Anchor component={Link} to="/login" size="sm">
+        <Anchor component={Link} to="/login" underline="always" size="sm">
           Sign in
         </Anchor>
       </Stack>
@@ -181,11 +195,13 @@ function Refusal({ error, message, inline = false }: RefusalProps) {
 
   return (
     <Stack gap="md">
-      <Title order={2}>{signIn ? 'You already have an account' : 'This invitation cannot be used'}</Title>
+      <Title order={2}>
+        {signIn ? 'You already have an account' : 'This invitation cannot be used'}
+      </Title>
       {alert}
       <Text size="sm" c="dimmed" ta="center">
         {signIn ? 'Your account is ready. ' : 'Already have an account? '}
-        <Anchor component={Link} to="/login">
+        <Anchor component={Link} to="/login" underline="always">
           Sign in
         </Anchor>
       </Text>

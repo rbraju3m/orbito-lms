@@ -8,6 +8,7 @@ import {
   Modal,
   Pagination,
   SegmentedControl,
+  Select,
   Stack,
   Text,
   TextInput,
@@ -34,6 +35,9 @@ import {
 } from '../api/invitations';
 import { invitationSchema, type InvitationValues } from '../invitationSchema';
 
+// The hue is the tint; the text is the theme's own (see the Badge below),
+// because a light badge's coloured text fails 4.5:1 for most hues — orange
+// measured 3.6, green 3.8.
 const STATUS_COLOR: Record<InvitationStatus, string> = {
   pending: 'blue',
   expired: 'orange',
@@ -60,8 +64,7 @@ function isStatus(value: string): value is InvitationStatus {
 
 /** The one line under each address — what happened to it, and when. */
 function history(invitation: Invitation): string {
-  const sent =
-    invitation.sent_count === 1 ? 'Sent once' : `Sent ${invitation.sent_count} times`;
+  const sent = invitation.sent_count === 1 ? 'Sent once' : `Sent ${invitation.sent_count} times`;
 
   switch (invitation.status) {
     case 'accepted':
@@ -119,12 +122,16 @@ export function InvitationsRoute() {
 
       <Stack gap="md">
         <Group gap="sm" wrap="wrap" align="flex-end">
-          <SegmentedControl
-            aria-label="Filter by status"
+          {/* A select, not a segmented control: five statuses do not fit a
+              phone's width, and the last one was clipped out of reach. */}
+          <Select
+            label="Status"
             data={FILTERS}
             value={status}
+            allowDeselect={false}
+            w={160}
             onChange={(value) => {
-              setStatus(isStatus(value) ? value : 'all');
+              setStatus(value !== null && isStatus(value) ? value : 'all');
               setPage(1);
             }}
           />
@@ -181,7 +188,11 @@ export function InvitationsRoute() {
                       <Badge variant="outline" color="gray">
                         {invitation.role_label}
                       </Badge>
-                      <Badge color={STATUS_COLOR[invitation.status]} variant="light">
+                      <Badge
+                        color={STATUS_COLOR[invitation.status]}
+                        variant="light"
+                        c="var(--mantine-color-text)"
+                      >
                         {invitation.status_label}
                       </Badge>
                     </Group>
@@ -236,8 +247,8 @@ export function InvitationsRoute() {
         {revoking !== null ? (
           <Stack gap="sm">
             <Text size="sm">
-              The link sent to <strong>{revoking.email}</strong> stops working. The invitation
-              stays on this list as revoked, and you can invite the address again later.
+              The link sent to <strong>{revoking.email}</strong> stops working. The invitation stays
+              on this list as revoked, and you can invite the address again later.
             </Text>
             {revoke.error instanceof ApiError ? (
               <Alert color="red" role="alert">
@@ -248,8 +259,9 @@ export function InvitationsRoute() {
               <Button variant="default" onClick={closeRevoke}>
                 Keep it
               </Button>
+              {/* The darkest red: white on the default shade is 3.3:1. */}
               <Button
-                color="red"
+                color="red.9"
                 loading={revoke.isPending}
                 onClick={() => revoke.mutate(revoking.id, { onSuccess: closeRevoke })}
               >
