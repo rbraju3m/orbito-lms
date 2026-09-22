@@ -1,12 +1,30 @@
-import { Alert, Button, Card, CopyButton, Group, Radio, Stack, Text, TextInput } from '@mantine/core';
-import { IconAlertTriangle, IconCheck, IconCopy } from '@tabler/icons-react';
+import {
+  Alert,
+  Button,
+  Card,
+  CopyButton,
+  FileInput,
+  Group,
+  Image,
+  Radio,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
+import { IconAlertTriangle, IconCheck, IconCopy, IconUpload } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { useUploadMedia } from '@/features/media/api/queries';
 import { ApiError } from '@/shared/api/errors';
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
-import { academyQuery, useUpdateAcademy, type Academy, type RegistrationMode } from '../api/academy';
+import {
+  academyQuery,
+  useUpdateAcademy,
+  type Academy,
+  type RegistrationMode,
+} from '../api/academy';
 
 /**
  * Who may join this academy, and the link that lets them.
@@ -38,10 +56,12 @@ function AcademySettings({ academy }: { academy: Academy }) {
     <>
       <PageHeader
         title="Academy"
-        description={`Who may join ${academy.name}, and how they do it.`}
+        description={`How ${academy.name} looks to visitors, who may join it, and how they do it.`}
       />
 
       <Stack gap="md" maw={720}>
+        <LogoCard academy={academy} />
+
         <Card withBorder>
           <Stack gap="sm">
             <Text fw={600}>Sign-ups</Text>
@@ -55,7 +75,9 @@ function AcademySettings({ academy }: { academy: Academy }) {
                     label={option.label}
                     disabled={!option.available}
                     description={
-                      option.available ? undefined : 'Not available yet — invitations are not built.'
+                      option.available
+                        ? undefined
+                        : 'Not available yet — invitations are not built.'
                     }
                   />
                 ))}
@@ -114,5 +136,80 @@ function AcademySettings({ academy }: { academy: Academy }) {
         </Card>
       </Stack>
     </>
+  );
+}
+
+/**
+ * The mark on the public site's header, beside the academy's name.
+ *
+ * Saved the moment it is uploaded, like a post's cover: a picture uploaded and
+ * never saved would be a file nobody could see again. Replacing or removing
+ * the logo deletes the old file server-side (`UpdateAcademySettings`).
+ */
+function LogoCard({ academy }: { academy: Academy }) {
+  const upload = useUploadMedia();
+  const update = useUpdateAcademy();
+
+  const onFile = (file: File | null) => {
+    if (file === null) return;
+    upload.mutate(
+      { file, collection: 'academy_logo' },
+      { onSuccess: (media) => update.mutate({ logo_media_id: media.ref }) },
+    );
+  };
+
+  const error = [upload.error, update.error].find((candidate) => candidate instanceof ApiError);
+  const busy = upload.isPending || update.isPending;
+
+  return (
+    <Card withBorder>
+      <Stack gap="sm">
+        <Text fw={600}>Logo</Text>
+        <Text size="sm" c="dimmed">
+          Shown beside {academy.name} at the top of your public site. A wide image works best; it is
+          drawn 28 pixels high. JPEG, PNG, WebP or AVIF, up to 2 MB.
+        </Text>
+
+        {academy.logo_url ? (
+          <Image
+            src={academy.logo_url}
+            alt={`${academy.name} logo`}
+            h={56}
+            w="auto"
+            fit="contain"
+            style={{ alignSelf: 'flex-start' }}
+          />
+        ) : null}
+
+        {error ? (
+          <Alert color="danger" icon={<IconAlertTriangle size={16} />} role="alert">
+            {error.message}
+          </Alert>
+        ) : null}
+
+        <Group gap="sm" align="flex-end">
+          <FileInput
+            label={academy.logo_url ? 'Replace the logo' : 'Upload a logo'}
+            // No SVG: it can carry script, and this is shown to every visitor.
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            leftSection={<IconUpload size={16} />}
+            onChange={onFile}
+            disabled={busy}
+            clearable={false}
+          />
+          {academy.logo_url ? (
+            <Button
+              variant="subtle"
+              color="danger"
+              loading={update.isPending && !upload.isPending}
+              disabled={busy}
+              onClick={() => update.mutate({ logo_media_id: null })}
+            >
+              Remove logo
+            </Button>
+          ) : null}
+        </Group>
+      </Stack>
+    </Card>
   );
 }

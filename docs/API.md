@@ -678,7 +678,7 @@ GET    /admin/users/{user}/roles · POST · DELETE /…/roles/{role:key}
 GET    /admin/instructors?status=pending
 POST   /admin/instructors/{instructorProfile}/review   {decision, reason?}
 GET    /admin/roles · GET /admin/permissions
-GET    /admin/academy · PATCH                    {registration_mode?, support_email?}
+GET    /admin/academy · PATCH                    {registration_mode?, support_email?, logo_media_id?}
 GET    /admin/academy/usage                      usage against the plan's limits
 GET    /health
 ```
@@ -693,6 +693,15 @@ It is a permission (`settings.view` / `settings.update`), not the operator
 flag: this is inside an academy, unlike `/admin/tenants`. The operator sees
 `registration_mode` on the registry screen but cannot change it — whose members
 an academy accepts is the academy's decision.
+
+**The logo** is a file uploaded into the `academy_logo` collection
+(`POST /media`, which needs `settings.update`; JPEG, PNG, WebP or AVIF, 2 MB,
+never SVG — it can carry script and every visitor is served it), then saved by
+its numeric `ref` as `logo_media_id`. `null` takes it down. Replacing or
+removing a logo DELETES the old file. The id must be a logo the caller uploaded
+— except the one already set, so a colleague can re-save the form. The
+response carries `logo_media_id` and `logo_url`; `GET /public/{academy}`
+carries `logo_url` only.
 
 **`/admin/academy/usage` is that academy's meter**, built from `PlanLimits` —
 the same class the write path consults, so a screen cannot promise room the

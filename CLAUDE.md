@@ -1073,7 +1073,7 @@ paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
 GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER and the
 public COURSE INDEX**, plus a skip link on every shell.
-1,546 backend tests · 451 frontend tests.
+1,562 backend tests · 454 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1249,11 +1249,9 @@ Every one of these has already cost time at least once.
 
 ### Known debt, deliberately left
 
-- **The academy has no logo.** The standard front page at `/a/:academy` is
-  fixed — a page built with the page builder can replace it — and `tenants.logo_path` has been declared since Phase 1 with
-  nothing ever writing it, so `logo_url` is always null and the header draws
-  the name alone. An academy logo is an upload screen plus a decision about
-  whether it becomes a `Media` reference like every other image. Also
+- **The public site's front page is fixed** at `/a/:academy` unless a page
+  built with the page builder replaces it. The academy LOGO shows only in the
+  public header — the members shell still draws the name alone. Also
   missing: a sitemap, meta tags on any page but the blog's and the course
   list's, and a CATEGORY filter on `/a/:academy/courses` — the category list
   is members-only, and a public one is its own decision. Every public page renders client-side — ACCEPTED for now

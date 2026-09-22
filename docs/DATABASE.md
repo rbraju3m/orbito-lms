@@ -44,8 +44,10 @@ Three consequences that decide how you write a query:
 ```sql
 -- CENTRAL
 tenants(id VARCHAR PK, slug UNIQUE, name, status ENUM(pending,active,suspended,rejected),
-      is_active BOOL, logo_path, support_email, approved_at, approved_by,
-      data JSON)                        -- stancl virtual columns
+      is_active BOOL, support_email, approved_at, approved_by,
+      data JSON)                        -- stancl virtual columns: registration_mode,
+                                        -- logo_media_id (a row in the ACADEMY's
+                                        -- media table — Tenant::logoUrl())
       INDEX (status, created_at), INDEX (is_active)
 
 plans(id, slug UNIQUE, name, description,

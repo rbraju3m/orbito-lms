@@ -3,9 +3,9 @@
 Established in Phase 2. Every later phase adds tests in these shapes; none
 introduces a new testing tool without a reason recorded here.
 
-**Where it stands during Phase 16:** 1,546 backend tests (counted with
+**Where it stands during Phase 16:** 1,562 backend tests (counted with
 `--list-tests`; the assertion total was 5,770 at 1,520 and needs a full run to
-recount) · 451 frontend tests across 87 files · PHPStan level 6 clean ·
+recount) · 454 frontend tests across 87 files · PHPStan level 6 clean ·
 Pint, oxlint, `tsc` and `vite build` clean · first-paint JS 250.69 KB against
 a 255 KB budget (`npm run size`, which is the only comparable measurement).
 

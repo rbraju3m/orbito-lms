@@ -27,7 +27,9 @@ export type MediaCollection =
   | 'lesson_attachment'
   | 'submission'
   /** A file an academy sells. Needs `download.manage` to write into. */
-  | 'download';
+  | 'download'
+  /** The public site's header. Needs `settings.update`; never SVG. */
+  | 'academy_logo';
 
 /**
  * Uploads through the API. The server derives the real MIME type from the

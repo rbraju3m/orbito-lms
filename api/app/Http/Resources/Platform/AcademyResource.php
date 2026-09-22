@@ -31,6 +31,9 @@ final class AcademyResource extends BaseResource
             'slug' => $this->slug,
             'name' => $this->name,
             'support_email' => $this->support_email,
+            // The id is what a save speaks; the URL is what the screen draws.
+            'logo_media_id' => $this->resource->logoMediaId(),
+            'logo_url' => $this->resource->logoUrl(),
 
             'registration_mode' => $mode->value,
             'registration_mode_label' => $mode->label(),

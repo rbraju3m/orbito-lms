@@ -34,16 +34,11 @@ final class PublicAcademyResource extends BaseResource
             'slug' => $this->slug,
             'name' => $this->name,
             /*
-             * ALWAYS null today: `tenants.logo_path` was declared with the
-             * table in Phase 1 and nothing has ever written it — there is no
-             * screen that uploads an academy logo (§ Known debt). The field is
-             * here because the site's header reads it, so wiring the upload is
-             * one Action and not also an API change; `url()` treats the value
-             * as a path relative to the app, which is the convention to
-             * revisit when the logo becomes a `Media` reference like every
-             * other image in the product.
+             * The URL, never the id: an id means nothing to somebody outside.
+             * Resolved against the academy `tenant.public` opened, which is
+             * this one (`Tenant::logoUrl()`).
              */
-            'logo_url' => $this->logo_path === null ? null : url($this->logo_path),
+            'logo_url' => $this->resource->logoUrl(),
             // A support address IS public — it is on the page for a reason.
             'support_email' => $this->support_email,
             'registration_open' => $this->registrationMode()->allowsSelfSignup(),

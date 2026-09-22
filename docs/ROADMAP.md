@@ -1770,6 +1770,24 @@ before dispatching, so a sweep and a publish request cannot both fire.
   class is wrong, a post announced late because the scheduler was down is
   still true.
 
+**The academy logo.** `tenants.logo_path` was declared in Phase 1 and nothing
+ever wrote it. The logo is now a `Media` reference like every other image,
+uploaded into its own `academy_logo` collection from the Academy settings
+screen and saved the moment it lands.
+- **The id on the central row, the file in the academy's schema.**
+  `logo_media_id` sits in the `data` blob beside `registration_mode`;
+  `Tenant::logoUrl()` answers only while THAT academy is open, because with
+  another one open the same id names somebody else's file. `logo_path` was
+  DROPPED rather than kept beside it — two links to one file are free to
+  disagree.
+- **Never SVG.** It is the format logos come in, and it can carry script to
+  every stranger who opens the public site.
+- **Replacing or removing deletes the old file**, after the save, so a failed
+  save never leaves the header pointing at nothing.
+- **Ownership is checked on what is NEW**: a colleague re-saving the form with
+  the logo somebody else uploaded is not refused.
+- The members shell still draws the academy's name alone.
+
 Still open in this phase: subscriptions and
 memberships, coaching, multilingual, RTL. The blog's categories, tags, RSS
 and sitemap are named in `BLOG.md` §6.

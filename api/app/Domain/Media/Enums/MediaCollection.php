@@ -21,11 +21,13 @@ enum MediaCollection: string
     case Certificate = 'certificate';
     /* A file an academy SELLS (P16). See docs/DOWNLOADS.md. */
     case Download = 'download';
+    /* The academy's mark on its public site's header (`Tenant::logoUrl()`). */
+    case AcademyLogo = 'academy_logo';
 
     public function disk(): MediaDisk
     {
         return match ($this) {
-            self::Avatar, self::CourseThumbnail, self::CategoryImage => MediaDisk::Public,
+            self::Avatar, self::CourseThumbnail, self::CategoryImage, self::AcademyLogo => MediaDisk::Public,
             // Private, and served only through a signed URL: a certificate
             // names a person, and a guessable public path would list them.
             default => MediaDisk::Private,
@@ -39,6 +41,13 @@ enum MediaCollection: string
             self::Avatar, self::CourseThumbnail, self::CategoryImage => [
                 'image/jpeg', 'image/png', 'image/webp', 'image/avif',
             ],
+            /*
+             * Never SVG, although it is the format a logo most often comes in.
+             * An SVG is a document that can carry script, this one is served
+             * to every stranger who opens the public site, and nothing here
+             * sanitises one.
+             */
+            self::AcademyLogo => ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
             self::CourseIntroVideo, self::LessonVideo => [
                 'video/mp4', 'video/webm', 'video/quicktime',
             ],
@@ -76,7 +85,8 @@ enum MediaCollection: string
     public function maxBytes(): int
     {
         return match ($this) {
-            self::Avatar => 2 * 1024 * 1024,
+            // Drawn 28px high in a header; anything bigger is a photograph.
+            self::Avatar, self::AcademyLogo => 2 * 1024 * 1024,
             self::CourseThumbnail, self::CategoryImage => 5 * 1024 * 1024,
             self::CourseIntroVideo, self::LessonVideo => 2 * 1024 * 1024 * 1024,
             self::LessonAttachment => 50 * 1024 * 1024,
@@ -133,6 +143,8 @@ enum MediaCollection: string
             self::CategoryImage => ['settings.update'],
             // Somebody who can upload into this can stock a shop.
             self::Download => ['download.manage'],
+            // Whoever edits the academy's own settings (AcademyPolicy::update).
+            self::AcademyLogo => ['settings.update'],
             // Rendered by the platform, never uploaded. A certificate a user
             // could upload is a certificate a user could forge.
             self::Certificate => null,

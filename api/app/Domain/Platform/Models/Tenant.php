@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Platform\Models;
 
 use App\Domain\Identity\Models\User;
+use App\Domain\Media\Enums\MediaCollection;
+use App\Domain\Media\Models\Media;
 use App\Domain\Platform\Enums\RegistrationMode;
 use App\Domain\Platform\Enums\TenantStatus;
 use Carbon\CarbonInterface;
@@ -28,13 +30,13 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string $name
  * @property TenantStatus $status
  * @property bool $is_active
- * @property string|null $logo_path
  * @property string|null $support_email
  * @property CarbonInterface|null $approved_at
  * @property int|null $approved_by
  * @property string|null $suspended_reason
  * @property string|null $rejected_reason
  * @property string|null $registration_mode read through registrationMode()
+ * @property int|null $logo_media_id read through logoUrl()
  */
 final class Tenant extends BaseTenant implements TenantWithDatabase
 {
@@ -62,7 +64,6 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
             'name',
             'status',
             'is_active',
-            'logo_path',
             'support_email',
             'approved_at',
             'approved_by',
@@ -117,6 +118,41 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
      * every academy that never touched the switch and no backfill is needed
      * (the same shape as notification preferences).
      */
+    public function logoMediaId(): ?int
+    {
+        $stored = $this->logo_media_id;
+
+        return is_numeric($stored) ? (int) $stored : null;
+    }
+
+    /**
+     * Where the academy's logo is served from, or null for none.
+     *
+     * The id lives HERE, on the central row, in the `data` blob — the place an
+     * academy's own settings already live. The file lives in the academy's own
+     * `media` table. So this answers only while THIS academy is the one open:
+     * with another academy's connection active, the same id names somebody
+     * else's file, and drawing it would put one academy's picture in another's
+     * header (§ Multi-tenancy — which connection is this running on?).
+     *
+     * A deleted file reads as no logo. `Media` soft-deletes, and the query
+     * does not see a soft-deleted row, so nothing has to clear the id first.
+     */
+    public function logoUrl(): ?string
+    {
+        $id = $this->logoMediaId();
+
+        if ($id === null || tenant()?->getTenantKey() !== $this->getTenantKey()) {
+            return null;
+        }
+
+        return Media::query()
+            ->whereKey($id)
+            ->where('collection', MediaCollection::AcademyLogo->value)
+            ->first()
+            ?->publicUrl();
+    }
+
     public function registrationMode(): RegistrationMode
     {
         $stored = $this->registration_mode;

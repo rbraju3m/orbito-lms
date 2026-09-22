@@ -30,7 +30,7 @@ beforeEach(function (): void {
 function uploadFor(string $collection): UploadedFile
 {
     return match ($collection) {
-        'avatar', 'course_thumbnail', 'category_image' => UploadedFile::fake()->image('picture.jpg', 400, 300),
+        'avatar', 'course_thumbnail', 'category_image', 'academy_logo' => UploadedFile::fake()->image('picture.jpg', 400, 300),
         'lesson_video', 'course_intro_video' => UploadedFile::fake()->create('clip.mp4', 256, 'video/mp4'),
         default => UploadedFile::fake()->create('notes.pdf', 40, 'application/pdf'),
     };
@@ -53,7 +53,7 @@ it('lets a student upload an avatar and a submission', function (string $collect
 /* The hole this closes: authoring collections were open to every uploader. */
 it('refuses a student the authoring collections', function (string $collection): void {
     uploadAs(User::factory()->withRole(RoleKey::Student)->create(), $collection)->assertForbidden();
-})->with(['course_thumbnail', 'course_intro_video', 'lesson_video', 'lesson_attachment', 'category_image']);
+})->with(['course_thumbnail', 'course_intro_video', 'lesson_video', 'lesson_attachment', 'category_image', 'academy_logo']);
 
 /* Staff hold `media.upload` for support work, and author nothing. */
 it('refuses staff a lesson video', function (): void {
@@ -88,11 +88,16 @@ it('refuses a Course Manager whose course-scoped role has expired', function ():
 });
 
 /* A seat on one course is not the academy's settings. */
-it('refuses a Course Manager a category image', function (): void {
+it('refuses a Course Manager a category image and the academy logo', function (string $collection): void {
     $manager = User::factory()->create();
     $manager->assignRole(RoleKey::CourseManager, Course::factory()->create());
 
-    uploadAs($manager->fresh(), 'category_image')->assertForbidden();
+    uploadAs($manager->fresh(), $collection)->assertForbidden();
+})->with(['category_image', 'academy_logo']);
+
+/* Teaching in the academy is not speaking for it. */
+it('refuses an instructor the academy logo', function (): void {
+    uploadAs(User::factory()->instructor()->create(), 'academy_logo')->assertForbidden();
 });
 
 /*
@@ -101,7 +106,7 @@ it('refuses a Course Manager a category image', function (): void {
  */
 it('lets an admin upload authoring files and a category image', function (string $collection): void {
     uploadAs(userWithRole(RoleKey::Admin), $collection)->assertCreated();
-})->with(['lesson_video', 'course_intro_video', 'lesson_attachment', 'category_image']);
+})->with(['lesson_video', 'course_intro_video', 'lesson_attachment', 'category_image', 'academy_logo']);
 
 /* ------------------------------------------------- the question itself */
 
