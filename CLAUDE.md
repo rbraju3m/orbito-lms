@@ -1089,7 +1089,7 @@ GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER, the
 public COURSE INDEX, the members catalogue's PAGER, SCHEDULED-POST
 ANNOUNCEMENTS, the ACADEMY LOGO, the lead form on the WEBINAR PAGE and
 INVITATIONS**, plus a skip link on every shell.
-1,584 backend tests · 467 frontend tests.
+1,585 backend tests · 467 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1184,11 +1184,13 @@ Code that needs no credentials, smallest first:
 
 - **Bundles that hold downloads.** `bundle_items` names `course_id`; see
   Known debt for what teaching it about downloads involves.
-- **Usage-counter drift in the local academies.** `usage:reconcile
-  --dry-run` reports 13 drifted counters in demo-academy (mostly
-  `courses_total` per owner), from before Phase 16's invitations. Worth one
-  look at WHY before running the reconcile for real — drift is a bug alert
-  (§ Patterns established in Phase 6), not a number to overwrite.
+- ~~Usage-counter drift in the local academies~~ — DONE. The 12 in
+  demo-academy were fixture courses minted by factories for the public-site
+  browser pass (2026-09-15), which fire no `CourseCreated`; reconciled. The
+  look also found a REAL leak: `StoreGeneratedMedia` (certificate PDFs)
+  fired no `MediaUploaded`, so every certificate issued was nightly drift in
+  `media_files` and `storage_bytes`. It fires the event now. **A fixture you
+  mint in a browser pass drifts the counters — run `usage:reconcile` after.**
 
 Also ahead: coaching, multilingual, RTL.
 

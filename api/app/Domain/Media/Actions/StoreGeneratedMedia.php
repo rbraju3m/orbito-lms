@@ -6,6 +6,7 @@ namespace App\Domain\Media\Actions;
 
 use App\Domain\Media\Enums\MediaCollection;
 use App\Domain\Media\Enums\MediaStatus;
+use App\Domain\Media\Events\MediaUploaded;
 use App\Domain\Media\Exceptions\MediaRejected;
 use App\Domain\Media\Models\Media;
 use Illuminate\Support\Facades\Storage;
@@ -25,6 +26,10 @@ use Illuminate\Support\Str;
  * the collection accepts and the size cap still applies, because a renderer
  * that produces a 400MB PDF is a bug that should stop here rather than fill a
  * disk.
+ *
+ * Nor is the accounting. The row counts toward its owner's storage exactly as
+ * an upload does — `ReconcileUsageCounters` sums every media row — so it fires
+ * the same event. Without it every certificate issued was nightly drift.
  */
 final class StoreGeneratedMedia
 {
@@ -54,7 +59,7 @@ final class StoreGeneratedMedia
 
         Storage::disk($disk->value)->put($path, $contents);
 
-        return Media::create([
+        $media = Media::create([
             'owner_id' => $ownerId,
             'disk' => $disk,
             'path' => $path,
@@ -67,5 +72,9 @@ final class StoreGeneratedMedia
             'height' => null,
             'status' => MediaStatus::Ready,
         ]);
+
+        MediaUploaded::dispatch($media);
+
+        return $media;
     }
 }

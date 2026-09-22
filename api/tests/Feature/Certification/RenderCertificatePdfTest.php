@@ -12,6 +12,9 @@ use App\Domain\Enrollment\Models\Enrollment;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
 use App\Domain\Media\Models\Media;
+use App\Domain\Platform\Actions\ReconcileUsageCounters;
+use App\Domain\Platform\Enums\UsageMetric;
+use App\Domain\Platform\Support\UsageCounters;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -65,6 +68,30 @@ it('produces a real PDF and attaches it to the certificate', function (): void {
 
     expect($bytes)->toStartWith('%PDF-')
         ->and(strlen((string) $bytes))->toBeGreaterThan(1000);
+});
+
+it('counts the PDF in storage usage, so the nightly reconcile finds no drift', function (): void {
+    /*
+     * A generated file is a media row like any other, and the reconcile
+     * counts every row. The render stored its PDF without saying so, so each
+     * certificate issued was a byte count the counters never saw.
+     */
+    app(RenderCertificatePdf::class)->handle($this->certificate);
+
+    $counters = app(UsageCounters::class);
+    $bytes = (int) Media::where('owner_id', $this->student->id)->sum('size_bytes');
+
+    expect($counters->get(UsageMetric::MediaFiles, $this->student))->toBe(2)
+        ->and($counters->get(UsageMetric::StorageBytes, $this->student))->toBe($bytes);
+
+    // Factories elsewhere in the fixture skip their own events; only the
+    // media metrics are this test's business.
+    $mediaDrift = array_filter(
+        app(ReconcileUsageCounters::class)->handle(dryRun: true),
+        fn (array $row): bool => in_array($row['metric'], [UsageMetric::MediaFiles->value, UsageMetric::StorageBytes->value], true),
+    );
+
+    expect($mediaDrift)->toBe([]);
 });
 
 it('stores the PDF privately, never on the public disk', function (): void {
