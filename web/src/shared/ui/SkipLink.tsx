@@ -1,13 +1,6 @@
 import type { MouseEvent } from 'react';
 
-/** The id every shell puts on its main region, and the one place it is spelled. */
-export const MAIN_CONTENT_ID = 'main-content';
-
-/**
- * Spread onto a shell's `<main>`. `tabIndex={-1}` lets the skip link focus it
- * without putting the region itself into the Tab order.
- */
-export const mainContentProps = { id: MAIN_CONTENT_ID, tabIndex: -1 } as const;
+import { MAIN_CONTENT_ID } from './mainContent';
 
 /**
  * The first thing Tab reaches on every shell: past the header and nav,

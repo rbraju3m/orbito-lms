@@ -7,4 +7,5 @@ export type { LoadingStateProps } from './LoadingState';
 export { PageHeader } from './PageHeader';
 export type { PageHeaderProps } from './PageHeader';
 export { ThemeToggle } from './ThemeToggle';
-export { MAIN_CONTENT_ID, mainContentProps, SkipLink } from './SkipLink';
+export { MAIN_CONTENT_ID, mainContentProps } from './mainContent';
+export { SkipLink } from './SkipLink';
