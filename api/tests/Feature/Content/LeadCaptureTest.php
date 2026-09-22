@@ -8,6 +8,8 @@ use App\Domain\Content\Enums\LeadSource;
 use App\Domain\Content\Enums\LeadStatus;
 use App\Domain\Content\Events\LeadCaptured;
 use App\Domain\Content\Models\Lead;
+use App\Domain\Live\Models\LiveSession;
+use App\Domain\Live\Models\Webinar;
 use App\Domain\Platform\Models\Tenant;
 use App\Domain\Webhook\Enums\WebhookTopic;
 use App\Domain\Webhook\Models\WebhookEndpoint;
@@ -138,6 +140,37 @@ it('attributes a lead to the course page it was left on, by the title the server
     expect($lead->source)->toBe(LeadSource::Course)
         ->and($lead->source_id)->toBe($course->id)
         ->and($lead->source_title)->toBe('Watercolour for beginners');
+});
+
+it('attributes a lead to an event page, including one that is over', function (): void {
+    // Ended, on purpose: a printed link outlives the event, and "tell me about
+    // the next one" is what its page asks for once it is over.
+    $webinar = Webinar::factory()->published()->create([
+        'title' => 'Open evening',
+        'slug' => 'open-evening',
+        'live_session_id' => LiveSession::factory()
+            ->state(['course_id' => null, 'cohort_id' => null])
+            ->startingAt(now()->subWeek())
+            ->create()->id,
+    ]);
+
+    submitLead(['source' => 'webinar', 'source_slug' => 'open-evening'])->assertAccepted();
+
+    $lead = capturedLeads()->sole();
+
+    expect($lead->source)->toBe(LeadSource::Webinar)
+        ->and($lead->source_id)->toBe($webinar->id)
+        ->and($lead->source_title)->toBe('Open evening');
+});
+
+it('refuses to attribute a lead to an event that was never published', function (): void {
+    Webinar::factory()->create(['slug' => 'still-planning']);
+
+    $response = submitLead(['source' => 'webinar', 'source_slug' => 'still-planning'])->assertUnprocessable();
+
+    expect($response)->toBeApiError('validation_failed')
+        ->and($response->json('error.details.0.field'))->toBe('source_slug')
+        ->and(capturedLeads())->toBeEmpty();
 });
 
 it('refuses to attribute a lead to a page a stranger could not have been reading', function (): void {

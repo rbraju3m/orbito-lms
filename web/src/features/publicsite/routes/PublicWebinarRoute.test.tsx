@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -135,12 +135,58 @@ describe('PublicWebinarRoute', () => {
 
     renderWithRouter(<PublicWebinarRoute />, { path: PATH, route: ROUTE });
 
-    await user.type(await screen.findByRole('textbox', { name: /email/i }), 'ada@example.test');
-    await user.click(screen.getByRole('button', { name: 'Email me a link' }));
+    const guest = within(await screen.findByRole('region', { name: 'Hold a place' }));
+    await user.type(await guest.findByRole('textbox', { name: /email/i }), 'ada@example.test');
+    await user.click(guest.getByRole('button', { name: 'Email me a link' }));
 
     expect(await screen.findByText(/Check your inbox/)).toBeInTheDocument();
     expect(bodies).toEqual([
       { email: 'ada@example.test', name: null, form_token: 'test-form-token', website: '' },
     ]);
+  });
+
+  it('offers somebody who cannot make it a way to hear about the next event', async () => {
+    serve();
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(apiUrl(`${ACADEMY}/leads`), async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ data: { received: true } }, { status: 202 });
+      }),
+    );
+    const user = userEvent.setup();
+
+    renderWithRouter(<PublicWebinarRoute />, { path: PATH, route: ROUTE });
+
+    const lead = within(await screen.findByRole('region', { name: "Can't make it?" }));
+    await user.type(await lead.findByRole('textbox', { name: /email/i }), 'ada@example.test');
+    await user.click(lead.getByRole('checkbox', { name: 'I agree to be contacted by email.' }));
+    await user.click(lead.getByRole('button', { name: 'Keep me posted' }));
+
+    expect(await screen.findByText(/we will be in touch/)).toBeInTheDocument();
+    // Attributed to this event by its slug; the server resolves the title.
+    expect(bodies).toEqual([
+      {
+        email: 'ada@example.test',
+        name: null,
+        consent: true,
+        source: 'webinar',
+        source_slug: 'open-evening',
+        form_token: 'test-lead-token',
+        website: '',
+      },
+    ]);
+  });
+
+  it('keeps the lead form on an event that is over, asking about the next one', async () => {
+    // A printed link outlives the evening; the stranger following it can
+    // still ask to hear about the next one.
+    serve({ session: { ...webinar().session, status: 'ended' } });
+
+    renderWithRouter(<PublicWebinarRoute />, { path: PATH, route: ROUTE });
+
+    expect(await screen.findByText('This event has ended.')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Hear about the next one' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Keep me posted' })).toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 import { Alert, Button, Stack, Text, TextInput, Title } from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -42,6 +42,7 @@ export interface GuestRegistrationFormProps {
  * says only what is always true: look in your inbox.
  */
 export function GuestRegistrationForm({ academy, slug }: GuestRegistrationFormProps) {
+  const headingId = useId();
   const form = useQuery(publicFormTokenQuery(academy));
   const request = useRequestGuestPlace(academy, slug);
   const [formError, setFormError] = useState<string | null>(null);
@@ -144,8 +145,11 @@ export function GuestRegistrationForm({ academy, slug }: GuestRegistrationFormPr
   }
 
   return (
-    <Stack gap="sm">
-      <Title order={2} size="h4">
+    // A named region: the event page also carries the lead form, and two
+    // unnamed "Email" fields on one page are one a screen reader cannot tell
+    // apart.
+    <Stack gap="sm" component="section" aria-labelledby={headingId}>
+      <Title order={2} size="h4" id={headingId}>
         Hold a place
       </Title>
       {body}

@@ -7,6 +7,7 @@ import { formatMinor } from '@/shared/lib/money';
 
 import { publicAcademyQuery, publicWebinarQuery } from '../api/queries';
 import { GuestRegistrationForm } from '../components/GuestRegistrationForm';
+import { LeadCaptureForm } from '../components/LeadCaptureForm';
 import { offersGuestPlace } from '../lib/guest';
 
 /**
@@ -18,6 +19,10 @@ import { offersGuestPlace } from '../lib/guest';
  * (docs/GUEST_REGISTRATION.md). A PAID place still needs an account, because
  * buying one does, and the page says so rather than offering a form the
  * server would refuse.
+ *
+ * Either way it ends with the lead form (docs/LEADS.md), and it matters most
+ * once the event is over: a printed link outlives the evening, and the
+ * stranger following it can still ask to hear about the next one.
  */
 export function PublicWebinarRoute() {
   const { academy = '', slug = '' } = useParams();
@@ -36,6 +41,7 @@ export function PublicWebinarRoute() {
   const session = data.session;
   const price = data.price;
   const full = data.places_remaining === 0;
+  const ended = session?.status === 'ended';
 
   return (
     <Stack gap="lg" p="md" maw={760} mx="auto">
@@ -72,7 +78,7 @@ export function PublicWebinarRoute() {
       {/* The server's word, derived from the clock: a printed link outlives
           the event, and a stranger following it should learn it is over
           rather than meet a form — or a button to buy a place — that is gone. */}
-      {session?.status === 'ended' ? (
+      {ended ? (
         <Text c="dimmed">This event has ended.</Text>
       ) : (
         <Card withBorder padding="lg">
@@ -110,6 +116,18 @@ export function PublicWebinarRoute() {
           </Stack>
         </Card>
       )}
+
+      <LeadCaptureForm
+        academy={academy}
+        source="webinar"
+        sourceSlug={data.slug}
+        title={ended ? 'Hear about the next one' : "Can't make it?"}
+        description={
+          ended
+            ? 'Leave your email and we will tell you when the next event is announced.'
+            : 'Leave your email and we will tell you about future events and what else is coming.'
+        }
+      />
     </Stack>
   );
 }

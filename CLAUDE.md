@@ -1073,8 +1073,9 @@ paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
 GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER, the
 public COURSE INDEX, the members catalogue's PAGER, SCHEDULED-POST
-ANNOUNCEMENTS and the ACADEMY LOGO**, plus a skip link on every shell.
-1,562 backend tests · 454 frontend tests.
+ANNOUNCEMENTS, the ACADEMY LOGO and the lead form on the WEBINAR PAGE**,
+plus a skip link on every shell.
+1,564 backend tests · 456 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1157,8 +1158,6 @@ The obvious next pieces, in the order they unblock each other:
 
 Code that needs no credentials, smallest first:
 
-- **The lead form on the public webinar page.** The API already accepts
-  `source: webinar` (`docs/LEADS.md`); the form is not placed there yet.
 - **Invitations.** `RegistrationMode::Invite` is declared and refused by the
   API — an invitations table, an accept flow and an admin screen.
 - **Bundles that hold downloads.** `bundle_items` names `course_id`; see
@@ -1278,8 +1277,7 @@ Every one of these has already cost time at least once.
 - **Blog: no categories, tags, RSS, sitemap or revisions.** `docs/BLOG.md` §6.
 - **Leads: no CAPTCHA, no double opt-in, no staff digest, and no link to the
   account a lead later becomes.** Each is in `docs/LEADS.md` §6 with what it
-  would take. `source: webinar` is accepted by the API and not yet placed on
-  the event page.
+  would take.
 - **Guests: no attendance, no adoption on sign-up, no paid places.**
   `session_attendance` is keyed on a central user, so a guest who joins is
   not on the roster; a guest place becomes an account's only when that member

@@ -24,7 +24,7 @@ Code: `app/Domain/Content` (the first thing in the `Content` context),
 
 | | |
 |---|---|
-| **Writes** | Anybody on the internet, with no account, through the form on the academy's front page and on each course sales page |
+| **Writes** | Anybody on the internet, with no account, through the form on the academy's front page, on each course sales page, and on each event page — below the guest form, and still there once the event is over, because a printed link outlives the evening and "tell me about the next one" is what its reader wants |
 | **Reads** | Academy staff holding `lead.view` — Admin and Super Admin |
 | **Never reads** | The person the lead describes. They have no account to see it through |
 
@@ -166,6 +166,3 @@ the record of what was agreed to.
 - **A person who finishes the form in under 3 seconds is dropped silently** —
   autofill plus one click could do it. The wait counts from when the form was
   *served*, which is page load, so reading the page is usually enough.
-- **`source: webinar` is accepted by the API and not yet placed** on the event
-  page, which today asks the visitor to sign in to register; guest
-  registration will decide what that page offers.
