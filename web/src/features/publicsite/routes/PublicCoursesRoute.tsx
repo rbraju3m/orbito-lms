@@ -1,14 +1,4 @@
-import {
-  Group,
-  Pagination,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-  useMatches,
-} from '@mantine/core';
+import { Group, Select, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconBook, IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
@@ -16,17 +6,17 @@ import { useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 
 import { CourseCard } from '@/features/catalog/components/CourseCard';
+import { CoursePager } from '@/features/catalog/components/CoursePager';
+import {
+  courseFiltersFromParams,
+  isFiltered,
+  LEVELS,
+  PRICES,
+  SORTS,
+} from '@/features/catalog/lib/courseFilters';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
 
 import { publicAcademyQuery, publicCoursesQuery } from '../api/queries';
-import { courseFiltersFromParams, isFiltered, LEVELS, PRICES, SORTS } from '../lib/courseFilters';
-
-const CONTROL_LABELS = {
-  first: 'First page',
-  previous: 'Previous page',
-  next: 'Next page',
-  last: 'Last page',
-} as const;
 
 /**
  * Every course an academy lists, to somebody with no account.
@@ -43,9 +33,6 @@ export function PublicCoursesRoute() {
   const [params, setParams] = useSearchParams();
   const [debouncedQ] = useDebouncedValue(params.get('q') ?? '', 300);
   const heading = useRef<HTMLHeadingElement>(null);
-  // At 360px "< 1 2 3 4 5 … 40 >" wraps onto a second line; one neighbour
-  // each side of the current page fits only from `xs` up.
-  const siblings = useMatches({ base: 0, xs: 1 });
 
   const filters = courseFiltersFromParams(params, debouncedQ);
   const academyQuery = useQuery(publicAcademyQuery(academy));
@@ -186,19 +173,7 @@ export function PublicCoursesRoute() {
             ))}
           </SimpleGrid>
 
-          {data.meta.last_page > 1 ? (
-            <Group justify="center">
-              <Pagination
-                // What was ASKED for: the placeholder still holds the last page.
-                value={filters.page ?? 1}
-                onChange={setPage}
-                total={data.meta.last_page}
-                siblings={siblings}
-                getControlProps={(control) => ({ 'aria-label': CONTROL_LABELS[control] })}
-                getItemProps={(page) => ({ 'aria-label': `Page ${page}` })}
-              />
-            </Group>
-          ) : null}
+          <CoursePager page={filters.page ?? 1} total={data.meta.last_page} onChange={setPage} />
         </Stack>
       ) : null}
     </Stack>

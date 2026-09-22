@@ -5,8 +5,8 @@ introduces a new testing tool without a reason recorded here.
 
 **Where it stands during Phase 16:** 1,538 backend tests (counted with
 `--list-tests`; the assertion total was 5,770 at 1,520 and needs a full run to
-recount) · 445 frontend tests across 87 files · PHPStan level 6 clean ·
-Pint, oxlint, `tsc` and `vite build` clean · first-paint JS 250.48 KB against
+recount) · 451 frontend tests across 87 files · PHPStan level 6 clean ·
+Pint, oxlint, `tsc` and `vite build` clean · first-paint JS 250.69 KB against
 a 255 KB budget (`npm run size`, which is the only comparable measurement).
 
 **Playwright specs exist for phases 2 and 3 only** — two files, `auth.spec.ts`

@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions } from '@tanstack/react-query';
 
 import { apiGet, apiGetRaw } from '@/shared/api/client';
 import type { Paginated } from '@/shared/api/types';
@@ -12,6 +12,8 @@ export const courseCatalogQuery = (filters: CatalogFilters) =>
     queryFn: ({ signal }) =>
       apiGetRaw<Paginated<CourseListItem>>('/courses', { signal, params: filters }),
     staleTime: 60_000,
+    // Paging and filtering keep the last grid on screen, not a skeleton.
+    placeholderData: keepPreviousData,
   });
 
 export const courseDetailQuery = (slug: string) =>

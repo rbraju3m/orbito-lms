@@ -1744,8 +1744,18 @@ the URL so a filtered list is a link somebody can send.
   its own decision) and **no price sort** (a price is a row per currency; the
   API accepts `price_*` for the documented contract and answers newest-first).
 
+**The members catalogue's pager.** `/courses` showed the first 20 and nothing
+said there were more. It now pages the way the public list does — the page in
+the URL, Back steps through pages, focus returns to the heading, a link past
+the end offers page 1 — and reads its filters through the same
+`courseFiltersFromParams`, moved to `features/catalog/lib`. That also stops a
+mangled `?level=` in a shared link 422-ing the members page, and adds the price
+filter the API already took. The pager itself is `CoursePager`, shared by both.
+The parser reads `category` only when asked (`withCategory`): the public page
+has no control for it, and a filter nobody can see is one nobody can clear.
+
 Still open in this phase: subscriptions and
-memberships, coaching, multilingual, RTL. The members catalogue has no pager. The blog's categories, tags, RSS
+memberships, coaching, multilingual, RTL. The blog's categories, tags, RSS
 and sitemap are named in `BLOG.md` §6.
 
 ### Phase 17 — AI

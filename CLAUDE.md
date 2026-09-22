@@ -1070,7 +1070,7 @@ paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
 GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER and the
 public COURSE INDEX**, plus a skip link on every shell.
-1,538 backend tests · 445 frontend tests.
+1,538 backend tests · 451 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1256,9 +1256,6 @@ Every one of these has already cost time at least once.
   is members-only, and a public one is its own decision. Every public page renders client-side — ACCEPTED for now
   (`docs/BLOG.md` §5) — so a crawler that runs no JavaScript sees an empty
   document.
-- **The members catalogue at `/courses` has no pager.** It shows the first 20
-  and nothing says there are more. `/a/:academy/courses` has one, and the
-  same `useSearchParams` shape would carry across.
 - **Pages: no custom HTML, columns, revisions or scheduling**, and the course
   picker offers only the first page of public courses. `docs/PAGES.md` §6.
 - **Blog: no categories, tags, RSS, sitemap or revisions, and a scheduled post
@@ -1310,7 +1307,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 250.48 (the skip link cost 0.16). It had crept to 250.91 — nav icons
+  purpose**, and first paint is 250.69 (the skip link cost 0.16, the members catalogue's pager 0.21). It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

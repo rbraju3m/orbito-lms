@@ -27,22 +27,32 @@ const pick = <T extends string>(value: string | null, allowed: { value: T }[]): 
   allowed.find((option) => option.value === value)?.value;
 
 /**
- * The filters a public course URL asks for, keeping only values the API
+ * The filters a course-list URL asks for, keeping only values the API
  * accepts. The URL is somebody's shared link — mistyped, truncated, or from
  * an older version of this page — and the API answers a bad value with a
  * 422. Dropping it shows the list; passing it on shows an error page.
  *
- * `q` is taken separately because the page debounces it.
+ * `q` is taken separately because the page debounces it. `category` only
+ * where the page has a control for it: the public site has none (the
+ * category list is members-only), and a filter nobody can see is one
+ * nobody can clear.
  */
-export function courseFiltersFromParams(params: URLSearchParams, q: string): CatalogFilters {
+export function courseFiltersFromParams(
+  params: URLSearchParams,
+  q: string,
+  { withCategory = false }: { withCategory?: boolean } = {},
+): CatalogFilters {
   const level = pick(params.get('level'), LEVELS);
   const price = pick(params.get('price'), PRICES);
   const sort = pick(params.get('sort'), SORTS);
   const page = Number(params.get('page'));
   const query = q.trim().slice(0, 200);
+  // A slug is not a closed set, so only its length can be checked here.
+  const category = withCategory ? (params.get('category') ?? '').trim().slice(0, 120) : '';
 
   return {
     ...(query ? { q: query } : {}),
+    ...(category ? { category } : {}),
     ...(level ? { level } : {}),
     ...(price ? { price } : {}),
     ...(sort ? { sort } : {}),
@@ -52,5 +62,5 @@ export function courseFiltersFromParams(params: URLSearchParams, q: string): Cat
 
 /** Whether the reader narrowed the list — which decides what "empty" means. */
 export function isFiltered(filters: CatalogFilters): boolean {
-  return Boolean(filters.q ?? filters.level ?? filters.price);
+  return Boolean(filters.q ?? filters.category ?? filters.level ?? filters.price);
 }

@@ -26,6 +26,13 @@ describe('courseFiltersFromParams', () => {
     expect(parse('page=1')).toEqual({});
   });
 
+  it('reads a category only where the page offers one', () => {
+    expect(parse('category=design')).toEqual({});
+    expect(
+      courseFiltersFromParams(new URLSearchParams('category=design'), '', { withCategory: true }),
+    ).toEqual({ category: 'design' });
+  });
+
   it('trims the search and caps it at the length the API accepts', () => {
     expect(parse('', '   ')).toEqual({});
     expect(parse('', 'x'.repeat(250)).q).toHaveLength(200);
@@ -38,5 +45,6 @@ describe('isFiltered', () => {
     expect(isFiltered({ level: 'beginner' })).toBe(true);
     expect(isFiltered({ price: 'paid' })).toBe(true);
     expect(isFiltered({ q: 'ink' })).toBe(true);
+    expect(isFiltered({ category: 'design' })).toBe(true);
   });
 });
