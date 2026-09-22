@@ -102,6 +102,36 @@ it('lists the published, public courses', function (): void {
         ->assertJsonPath('data.0.title', 'Watercolour for beginners');
 });
 
+it('refuses a malformed filter from a stranger with a 422, never a 500', function (): void {
+    asStranger();
+
+    // Each of these reached SQL or an enum cast before the catalogue validated.
+    foreach (['level=bogus', 'per_page=-3', 'q[]=x', 'instructor=abc'] as $query) {
+        expect($this->getJson("/api/v1/public/test-academy/courses?{$query}"))
+            ->toBeApiError('validation_failed');
+    }
+});
+
+it('pages and filters the public course list', function (): void {
+    Course::factory()->published()->count(4)->create([
+        'visibility' => CourseVisibility::Public,
+        'level' => 'advanced',
+        'pricing_model' => 'free',
+    ]);
+
+    asStranger();
+
+    $this->getJson('/api/v1/public/test-academy/courses?per_page=2&page=3')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('meta.total', 5)
+        ->assertJsonPath('meta.last_page', 3);
+
+    $this->getJson('/api/v1/public/test-academy/courses?level=advanced')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 4);
+});
+
 it('opens a course sales page by slug, with no account and no academy open', function (): void {
     asStranger();
 

@@ -1068,8 +1068,9 @@ provider refund webhooks, Stripe Checkout, refund reports, the studio's
 live-session scheduling, connecting a meeting provider, webinar authoring,
 paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 — the first anonymous surface — LEAD CAPTURE, its first anonymous write,
-GUEST WEBINAR REGISTRATION, its second, the BLOG and the PAGE BUILDER**.
-1,520 backend tests / 5,770 assertions · 413 frontend tests.
+GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER and the
+public COURSE INDEX**, plus a skip link on every shell.
+1,538 backend tests · 445 frontend tests.
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1250,11 +1251,14 @@ Every one of these has already cost time at least once.
   nothing ever writing it, so `logo_url` is always null and the header draws
   the name alone. An academy logo is an upload screen plus a decision about
   whether it becomes a `Media` reference like every other image. Also
-  missing: a public courses INDEX page (the front page lists them, there is
-  no paginated `/a/:academy/courses`), a sitemap, and meta tags on any page
-  but the blog's. Every public page renders client-side — ACCEPTED for now
+  missing: a sitemap, meta tags on any page but the blog's and the course
+  list's, and a CATEGORY filter on `/a/:academy/courses` — the category list
+  is members-only, and a public one is its own decision. Every public page renders client-side — ACCEPTED for now
   (`docs/BLOG.md` §5) — so a crawler that runs no JavaScript sees an empty
   document.
+- **The members catalogue at `/courses` has no pager.** It shows the first 20
+  and nothing says there are more. `/a/:academy/courses` has one, and the
+  same `useSearchParams` shape would carry across.
 - **Pages: no custom HTML, columns, revisions or scheduling**, and the course
   picker offers only the first page of public courses. `docs/PAGES.md` §6.
 - **Blog: no categories, tags, RSS, sitemap or revisions, and a scheduled post

@@ -1716,8 +1716,36 @@ blocks at `/a/:academy/p/:slug`, one of which can be the site's front page.
   otherwise re-saving a page refuses a colleague's picture already on it.
 - **One renderer** for the public page and the builder's preview.
 
+**A skip link on every shell.** Required by `DESIGN_SYSTEM.md` §5 since
+Phase 2 and built on none until now — all five shells in one pass, because a
+skip link that works on three of five teaches a keyboard user not to trust
+it. It focuses the shell's one `<main>` rather than following the fragment,
+so no `#main-content` lands in the router's history. One test table holds
+every shell.
+
+**The public course index — every course, not the front page's first
+twenty.** `/a/:academy/courses`: search, level, price, sort and pages, all in
+the URL so a filtered list is a link somebody can send.
+
+- **Building it found five 500s on the API it reads.** `?level=bogus`,
+  `?per_page=-3`, `?q[]=x` and `?sort[]=x` reached SQL or an enum cast, and
+  `?instructor=` ran a `whereHas` across the central/tenant boundary. Both
+  catalogue routes now validate through `CatalogCoursesRequest` (422), and the
+  instructor is resolved centrally, then `whereIn` — `where(col, null)` would
+  have compiled to `IS NULL`.
+- **Every sort ends on `id`.** A tie split across a page boundary shows a
+  course twice or never. MySQL would not reproduce it on seven tied rows, so
+  the test asserts the ORDER BY rather than a symptom it cannot provoke — a
+  paging test written first passed with the fix removed.
+- **A shared link is untrusted input on the CLIENT too.** The page drops
+  values the API would refuse (`courseFiltersFromParams`), so a mangled link
+  shows the list, not a 422.
+- **No category filter** (the category list is members-only; a public one is
+  its own decision) and **no price sort** (a price is a row per currency; the
+  API accepts `price_*` for the documented contract and answers newest-first).
+
 Still open in this phase: subscriptions and
-memberships, coaching, multilingual, RTL. The blog's categories, tags, RSS
+memberships, coaching, multilingual, RTL. The members catalogue has no pager. The blog's categories, tags, RSS
 and sitemap are named in `BLOG.md` §6.
 
 ### Phase 17 — AI

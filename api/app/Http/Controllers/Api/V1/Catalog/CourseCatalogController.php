@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1\Catalog;
 
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Queries\CourseCatalogQuery;
+use App\Http\Requests\Catalog\CatalogCoursesRequest;
 use App\Http\Resources\Catalog\CourseListResource;
 use App\Http\Resources\Catalog\CourseResource;
 use App\Support\Http\ApiResponse;
@@ -15,18 +16,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class CourseCatalogController
 {
-    public function index(Request $request, CourseCatalogQuery $query): JsonResponse
+    public function index(CatalogCoursesRequest $request, CourseCatalogQuery $query): JsonResponse
     {
-        $perPage = min(
-            (int) $request->integer('per_page', (int) config('orbito.pagination.default_per_page')),
-            (int) config('orbito.pagination.max_per_page'),
-        );
-
-        $filters = $request->only([
-            'q', 'category', 'tags', 'level', 'language', 'price', 'min_rating', 'instructor', 'sort',
-        ]);
-
-        return ApiResponse::ok(CourseListResource::collection($query->paginate($filters, $perPage)));
+        return ApiResponse::ok(CourseListResource::collection(
+            $query->paginate($request->catalogFilters(), $request->perPage()),
+        ));
     }
 
     /**

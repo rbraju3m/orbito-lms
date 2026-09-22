@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions } from '@tanstack/react-query';
 
 import type { CatalogFilters, Course, CourseListItem } from '@/features/catalog/api/types';
 import type { Webinar } from '@/features/live/api/types';
@@ -32,6 +32,8 @@ export const publicCoursesQuery = (academy: string, filters: CatalogFilters = {}
         params: filters,
       }),
     staleTime: 60_000,
+    // The index pages and filters: keep the last page on screen, not a skeleton.
+    placeholderData: keepPreviousData,
   });
 
 export const publicCourseQuery = (academy: string, slug: string) =>

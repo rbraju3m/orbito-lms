@@ -303,6 +303,13 @@ transitions; an author cannot approve their own submitted course.
 Catalogue filters (documented, stable, all optional):
 `?q=&category=&tags[]=&level=&language=&price=free|paid&min_rating=&instructor=&sort=popular|newest|rating|price_asc|price_desc&page=&per_page=`
 
+Validated by `CatalogCoursesRequest`, on `/courses` and `/public/{academy}/courses`
+alike: a value outside the set above is `422 validation_failed` (each was a 500
+before, on a route anybody can call). `per_page` above the cap is clamped, not
+refused. `price_asc` / `price_desc` are accepted and answer NEWEST first — a
+price is a row per currency, so there is no single one to sort on. Every sort
+ends on `id`, so a tie cannot split across a page boundary.
+
 ### Curriculum
 ```
 # live

@@ -6,6 +6,7 @@ namespace App\Domain\Catalog\Queries;
 
 use App\Domain\Catalog\Enums\CourseLevel;
 use App\Domain\Catalog\Models\Course;
+use App\Domain\Identity\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -78,9 +79,13 @@ final class CourseCatalogQuery
             )
             ->when(
                 filled($filters['instructor'] ?? null),
-                fn (Builder $q) => $q->whereHas(
-                    'owner',
-                    fn (Builder $o) => $o->where('uuid', $filters['instructor']),
+                // Users are central and courses are not: a `whereHas('owner')`
+                // is one statement across two schemas (§ Multi-tenancy).
+                // Resolve the id centrally, then filter here — `whereIn`, so
+                // an unknown instructor matches nothing rather than `IS NULL`.
+                fn (Builder $q) => $q->whereIn(
+                    'owner_id',
+                    User::query()->where('uuid', $filters['instructor'])->pluck('id')->all(),
                 ),
             )
             ->tap(fn (Builder $q) => $this->applySort($q, (string) ($filters['sort'] ?? 'popular')));
@@ -92,10 +97,20 @@ final class CourseCatalogQuery
         match ($sort) {
             'newest' => $query->orderByDesc('published_at'),
             'rating' => $query->orderByDesc('rating_avg')->orderByDesc('rating_count'),
-            // Price ordering becomes real in Phase 10; until then it degrades
-            // to newest rather than silently returning an arbitrary order.
+            /*
+             * NOT IMPLEMENTED, and Phase 10 did not change that: a price is a
+             * row per currency on `product_prices`, so "cheapest first" has no
+             * single answer to sort on. Accepted because docs/API.md lists it;
+             * it degrades to newest rather than an arbitrary order. The SPA
+             * does not offer it.
+             */
             'price_asc', 'price_desc' => $query->orderByDesc('published_at'),
             default => $query->orderByDesc('enrollment_count')->orderByDesc('published_at'),
         };
+
+        // A tiebreak, or a page boundary can split a tie so that a course
+        // shows on two pages or on none (§ Patterns established in Phase 8).
+        // `published_at` has second precision; the id does not repeat.
+        $query->orderByDesc('id');
     }
 }

@@ -32,6 +32,7 @@ export function AcademySiteLayout() {
   const { opened, close, navbarInert, burgerProps } = useNavMenu({ onDesktop: 'header' });
 
   const links = [
+    { key: 'courses', to: `/a/${academy}/courses`, label: 'Courses' },
     ...(navigation.data ?? []).map((link) => ({
       key: `page-${link.slug}`,
       to: `/a/${academy}/p/${link.slug}`,

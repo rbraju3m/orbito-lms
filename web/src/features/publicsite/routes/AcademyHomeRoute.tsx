@@ -87,9 +87,17 @@ export function AcademyHomeRoute() {
       </Stack>
 
       <Stack gap="md">
-        <Title order={2} size="h3">
-          Courses
-        </Title>
+        <Group justify="space-between" align="baseline">
+          <Title order={2} size="h3">
+            Courses
+          </Title>
+          {/* Only when there is more to see than this page shows. */}
+          {courses.isSuccess && courses.data.meta.total > courses.data.data.length ? (
+            <Anchor component={Link} to={`/a/${academy}/courses`}>
+              All {courses.data.meta.total} courses
+            </Anchor>
+          ) : null}
+        </Group>
 
         {courses.isPending ? <LoadingState label="Loading courses" /> : null}
 

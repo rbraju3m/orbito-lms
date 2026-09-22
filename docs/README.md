@@ -17,9 +17,8 @@ is still members-only. `CLAUDE.md` § Multi-tenancy carries the three ways a
 route with no user can resolve an academy, and why they are not
 interchangeable.
 
-1,520 backend tests / 5,770 assertions · 411 frontend tests · Pint, PHPStan
-level 6, oxlint, tsc and build all clean · first-paint JS 250.01 KB of a
-255 KB budget.
+1,538 backend tests · 445 frontend tests · Pint, PHPStan level 6, oxlint,
+tsc and build all clean · first-paint JS 250.48 KB of a 255 KB budget.
 
 Audit, architecture, foundation, identity, course management, the curriculum
 builder, the learning experience, quizzes, assignments, enrolment & access,

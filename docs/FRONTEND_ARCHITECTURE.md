@@ -85,6 +85,7 @@ checks.
 ~~/blog · /blog/:slug~~             the blog lives on the academy's site, below
 /verify/:token                     public certificate verification
 /a/:academy                        an academy's front page, with the lead form        ✅ anonymous
+/a/:academy/courses                every listed course: search, level, price, sort, pages ✅ anonymous
 /a/:academy/courses/:slug          a course sales page, with the lead form           ✅ anonymous
 /a/:academy/blog                   the academy's blog                                ✅ anonymous
 /a/:academy/blog/:slug             one post; sets its own title and description tags ✅ anonymous

@@ -29,6 +29,14 @@ export const publicSiteRoutes: RouteObject[] = [
             .AcademyHomeRoute,
         }),
       },
+      // Every listed course; the front page shows only the first few.
+      {
+        path: 'courses',
+        lazy: async () => ({
+          Component: (await import('@/features/publicsite/routes/PublicCoursesRoute'))
+            .PublicCoursesRoute,
+        }),
+      },
       {
         path: 'courses/:slug',
         lazy: async () => ({

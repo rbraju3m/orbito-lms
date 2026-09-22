@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Domain\Catalog\Models\Course;
 use App\Domain\Catalog\Models\CourseCategory;
+use App\Domain\Catalog\Queries\CourseCatalogQuery;
 use App\Domain\Identity\Enums\RoleKey;
 use App\Domain\Identity\Models\User;
+use Illuminate\Support\Str;
 
 /*
  * The catalogue is MEMBERS-ONLY under multi-tenancy: tenancy is resolved from
@@ -159,3 +161,51 @@ it('renders a course list in a bounded number of queries', function (): void {
     // Ten courses must not mean ten category lookups (docs/ARCHITECTURE §7).
     expect($queries)->toBeLessThanOrEqual(6);
 });
+
+/*
+ * Every one of these was a 500 before the catalogue had a Form Request — on
+ * the public copy of this route too, where anybody on the internet can type
+ * it. A filter that lives in a shareable URL must be refused, not crash.
+ */
+it('refuses a malformed filter with a 422', function (string $query): void {
+    expect($this->getJson("/api/v1/courses?{$query}"))->toBeApiError('validation_failed');
+})->with([
+    'unknown level' => 'level=bogus',
+    'negative page size' => 'per_page=-3',
+    'page zero' => 'page=0',
+    'array search' => 'q[]=x',
+    'array sort' => 'sort[]=x',
+    'unknown sort' => 'sort=cheapest',
+    'unknown price' => 'price=cheap',
+    'instructor not a uuid' => 'instructor=abc',
+    'rating out of range' => 'min_rating=9',
+]);
+
+it('filters by instructor without joining across schemas', function (): void {
+    $instructor = User::factory()->withRole(RoleKey::Instructor)->create();
+    Course::factory()->published()->count(2)->create(['owner_id' => $instructor->id]);
+    Course::factory()->published()->create();
+
+    expect($this->getJson("/api/v1/courses?instructor={$instructor->uuid}")->assertOk()->json('meta.total'))
+        ->toBe(2);
+});
+
+it('matches nothing for an instructor who does not exist', function (): void {
+    Course::factory()->published()->create();
+
+    // Not `owner_id IS NULL`, which is what `where('owner_id', null)` compiles to.
+    expect($this->getJson('/api/v1/courses?instructor='.Str::uuid()->toString())->assertOk()->json('meta.total'))
+        ->toBe(0);
+});
+
+/*
+ * A page boundary can split a tie, so that a course shows on two pages or on
+ * none (§ Patterns established in Phase 8). MySQL will not reproduce that on
+ * demand — seven tied rows come back in the same order every time — so this
+ * asserts the tiebreak itself rather than a symptom the test cannot provoke.
+ */
+it('ends every sort on a unique column', function (string $sort): void {
+    $orders = app(CourseCatalogQuery::class)->build(['sort' => $sort])->toBase()->orders;
+
+    expect(end($orders))->toMatchArray(['column' => 'id', 'direction' => 'desc']);
+})->with(['popular', 'newest', 'rating', 'price_asc']);
