@@ -4,7 +4,7 @@ import { Link, Outlet, useParams } from 'react-router';
 
 import { publicNavigationQuery } from '@/features/publicsite/api/pages';
 import { publicAcademyQuery } from '@/features/publicsite/api/queries';
-import { ThemeToggle } from '@/shared/ui';
+import { mainContentProps, SkipLink, ThemeToggle } from '@/shared/ui';
 
 import { useNavMenu } from './useNavMenu';
 
@@ -59,6 +59,8 @@ export function AcademySiteLayout() {
       navbar={{ width: 260, breakpoint: 'sm', collapsed: { desktop: true, mobile: !opened } }}
       padding="md"
     >
+      <SkipLink />
+
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap" miw={0}>
@@ -127,7 +129,7 @@ export function AcademySiteLayout() {
         </Stack>
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main {...mainContentProps}>
         <Outlet />
       </AppShell.Main>
     </AppShell>

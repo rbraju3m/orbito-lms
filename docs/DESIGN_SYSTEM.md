@@ -83,11 +83,14 @@ Design mobile-first: the 360 px layout is the primary target, not a fallback.
 
 ## 3. Component inventory (`shared/ui`)
 
-> **What actually exists during Phase 16 is still those same five components**:
-> `EmptyState`, `ErrorState`, `LoadingState`, `PageHeader`, `ThemeToggle` — the
-> four that encode a *decision* (what an empty screen says, that an error
-> carries a retry and a request id, that a loading state matches the layout it
-> replaces) plus the theme switch. Everything else on this list is either used
+> **What actually exists during Phase 16 is six components**:
+> `EmptyState`, `ErrorState`, `LoadingState`, `PageHeader`, `SkipLink`,
+> `ThemeToggle` — the five that encode a *decision* (what an empty screen says,
+> that an error carries a retry and a request id, that a loading state matches
+> the layout it replaces, that skipping focuses the page instead of writing a
+> fragment into the URL) plus the theme switch. `SkipLink` was the first
+> addition in eight phases, and it got in on that decision, not because five
+> shells use it. Everything else on this list is either used
 > straight from `@mantine/core` or lives in the feature that needed it.
 >
 > **Seven more phases changed nothing here, which is the finding.** Reviews,
@@ -185,13 +188,14 @@ something the user can already see happened.
 - Live regions announce async results (save state, drag moves, quiz timer at 5 min / 1 min).
 - Video: captions supported, keyboard controls, no autoplay with sound.
 - Colour is never the only signal; motion respects `prefers-reduced-motion`.
-- Skip-to-content link on every shell. **NOT BUILT — and it is a rule this
-  document has stated since Phase 2 while no shell has ever had one.** There
-  are five (`AppLayout`, `PublicLayout`, `AcademySiteLayout`, the player's,
-  the auth shell), each with a nav a keyboard user currently tabs through on
-  every page. Building it is one component plus a `<main id>` per shell, and
-  it should be done in one pass rather than a shell at a time — a skip link
-  that works on three of five is a keyboard user learning not to trust it.
+- Skip-to-content link on every shell — `SkipLink` plus `mainContentProps`
+  on the shell's one `<main>`. Five shells (`AppLayout`, `PublicLayout`,
+  `AcademySiteLayout`, `AuthLayout`, the player), built in ONE pass in Phase
+  16 after being required here since Phase 2, because a skip link that works
+  on three of five teaches a keyboard user not to trust it. It FOCUSES the
+  region rather than following `#main-content`, so no fragment lands in the
+  router's location for Back to step through. `app/layouts/SkipLink.test.tsx`
+  holds every shell in one table — a new shell belongs there.
 - Target size ≥ 44 × 44 px on touch.
 
 ---

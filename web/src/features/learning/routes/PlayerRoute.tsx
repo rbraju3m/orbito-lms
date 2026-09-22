@@ -24,7 +24,7 @@ import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 
 import { ApiError } from '@/shared/api/errors';
-import { ErrorState, LoadingState } from '@/shared/ui';
+import { ErrorState, LoadingState, mainContentProps, SkipLink } from '@/shared/ui';
 
 import {
   itemQuery,
@@ -137,6 +137,10 @@ export function PlayerRoute() {
 
   return (
     <Box mih="100dvh" bg="var(--mantine-color-body)">
+      {/* Matters most here: at desktop width the whole curriculum sits
+          between the header and the lesson. */}
+      <SkipLink />
+
       {/* A distraction-free shell: the player is not the dashboard. */}
       <Group
         justify="space-between"
@@ -196,7 +200,7 @@ export function PlayerRoute() {
           </Box>
         ) : null}
 
-        <Box style={{ flex: 1, minWidth: 0 }} p="lg">
+        <Box component="main" {...mainContentProps} style={{ flex: 1, minWidth: 0 }} p="lg">
           <Stack gap="lg" maw={860} mx="auto">
             {!access.granted && !current?.is_preview ? (
               <Alert

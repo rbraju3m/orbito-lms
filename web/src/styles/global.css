@@ -42,6 +42,34 @@ body {
   border: 0;
 }
 
+/* Off-screen until Tab reaches it, then over the header's top-left corner.
+   Above Mantine's header and navbar, which sit at z-index 100–200. */
+.orbito-skip-link {
+  position: fixed;
+  top: var(--mantine-spacing-xs);
+  left: var(--mantine-spacing-xs);
+  z-index: 1000;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 2 * var(--mantine-spacing-xs)));
+}
+
+.orbito-skip-link:focus {
+  transform: none;
+}
+
+/* The link's target is a region, not a control: it takes focus only so the
+   next Tab starts inside it. A ring around the whole page says nothing. */
+#main-content:focus {
+  outline: none;
+}
+
 /* Long-form reading measure for lesson content. */
 .orbito-prose {
   max-width: 68ch;

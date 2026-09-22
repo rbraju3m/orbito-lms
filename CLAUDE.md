@@ -1245,11 +1245,6 @@ Every one of these has already cost time at least once.
 
 ### Known debt, deliberately left
 
-- **No shell has a skip-to-content link**, though `docs/DESIGN_SYSTEM.md`
-  has required one since Phase 2. Five shells, each with a nav a keyboard
-  user tabs through on every page. One component plus a `<main id>` per
-  shell, done in ONE pass — a skip link present on three of five teaches a
-  keyboard user not to trust it.
 - **The academy has no logo.** The standard front page at `/a/:academy` is
   fixed — a page built with the page builder can replace it — and `tenants.logo_path` has been declared since Phase 1 with
   nothing ever writing it, so `logo_url` is always null and the header draws
@@ -1311,7 +1306,7 @@ Every one of these has already cost time at least once.
 - `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
   owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
-  purpose**, and first paint is 250.01. It had crept to 250.91 — nav icons
+  purpose**, and first paint is 250.48 (the skip link cost 0.16). It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
   to buy no more than ~0.1 KB. Splitting the route table bought 1.67 KB: the
   studio, admin and platform tables are discovered on first visit

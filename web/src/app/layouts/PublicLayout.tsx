@@ -1,7 +1,7 @@
 import { AppShell, Burger, Group, Text } from '@mantine/core';
 import { NavLink, Outlet } from 'react-router';
 
-import { ThemeToggle } from '@/shared/ui';
+import { mainContentProps, SkipLink, ThemeToggle } from '@/shared/ui';
 
 import { useNavMenu } from './useNavMenu';
 
@@ -25,6 +25,8 @@ export function PublicLayout() {
       navbar={{ width: 220, breakpoint: 'sm', collapsed: { desktop: true, mobile: !opened } }}
       padding="md"
     >
+      <SkipLink />
+
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
           <Group gap="sm">
@@ -65,7 +67,7 @@ export function PublicLayout() {
         ))}
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main {...mainContentProps}>
         <Outlet />
       </AppShell.Main>
     </AppShell>

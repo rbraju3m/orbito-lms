@@ -52,7 +52,7 @@ import { SubscriptionBanner } from '@/features/platform/SubscriptionBanner';
 
 import { useLogout } from '@/features/auth/api/queries';
 import { useSession } from '@/features/auth/hooks/useSession';
-import { ThemeToggle } from '@/shared/ui';
+import { mainContentProps, SkipLink, ThemeToggle } from '@/shared/ui';
 
 import { useNavMenu } from './useNavMenu';
 
@@ -199,6 +199,8 @@ export function AppLayout() {
       navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       padding="md"
     >
+      <SkipLink />
+
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
           <Group gap="sm">
@@ -279,7 +281,7 @@ export function AppLayout() {
         </ScrollArea>
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main {...mainContentProps}>
         <NoAcademyBanner />
         <SubscriptionBanner />
         <Outlet />

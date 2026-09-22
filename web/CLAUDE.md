@@ -11,10 +11,10 @@ specific to the web workspace.
   every feature repeats.
 - Run `npm run check` before pushing (oxlint + tsc + vitest). ~2 minutes.
   `npm run build` too if you touched anything imported by `AppLayout`.
-- **`shared/ui` holds five components and has not grown in eight phases.** A
-  wrapper earns its place by encoding a decision — what an empty screen says,
-  that an error carries a retry and a request id — not by being used twice.
-  See `../docs/DESIGN_SYSTEM.md` §3 before adding a sixth.
+- **`shared/ui` holds six components; `SkipLink` was the first added in eight
+  phases.** A wrapper earns its place by encoding a decision — what an empty
+  screen says, that an error carries a retry and a request id — not by being
+  used twice. See `../docs/DESIGN_SYSTEM.md` §3 before adding a seventh.
 - **Measure anything you add to `AppLayout` with `npm run size`.** It builds,
   sums the first-paint JS — the entry script plus every `modulepreload`,
   gzip-9 — and fails above the 255 KB budget. It is the ONLY measurement:
