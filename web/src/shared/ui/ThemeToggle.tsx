@@ -1,10 +1,13 @@
 import { ActionIcon, Menu, useMantineColorScheme } from '@mantine/core';
 import { IconDeviceDesktop, IconMoon, IconSun } from '@tabler/icons-react';
 
+import { t } from '@/shared/i18n';
+
+// Labels are functions: this list is built at import, before the catalogue.
 const OPTIONS = [
-  { value: 'light', label: 'Light', Icon: IconSun },
-  { value: 'dark', label: 'Dark', Icon: IconMoon },
-  { value: 'auto', label: 'System', Icon: IconDeviceDesktop },
+  { value: 'light', label: () => t('shell.theme.light', 'Light'), Icon: IconSun },
+  { value: 'dark', label: () => t('shell.theme.dark', 'Dark'), Icon: IconMoon },
+  { value: 'auto', label: () => t('shell.theme.system', 'System'), Icon: IconDeviceDesktop },
 ] as const;
 
 /**
@@ -20,13 +23,19 @@ export function ThemeToggle() {
   return (
     <Menu position="bottom-end" width={160} withinPortal>
       <Menu.Target>
-        <ActionIcon variant="default" size="lg" aria-label={`Colour scheme: ${current.label}`}>
+        <ActionIcon
+          variant="default"
+          size="lg"
+          aria-label={t('shell.theme.current', 'Colour scheme: {scheme}', {
+            scheme: current.label(),
+          })}
+        >
           <CurrentIcon size={18} stroke={1.5} />
         </ActionIcon>
       </Menu.Target>
 
       <Menu.Dropdown>
-        <Menu.Label>Appearance</Menu.Label>
+        <Menu.Label>{t('shell.theme.appearance', 'Appearance')}</Menu.Label>
         {OPTIONS.map(({ value, label, Icon }) => (
           <Menu.Item
             key={value}
@@ -34,7 +43,7 @@ export function ThemeToggle() {
             onClick={() => setColorScheme(value)}
             aria-current={colorScheme === value}
           >
-            {label}
+            {label()}
           </Menu.Item>
         ))}
       </Menu.Dropdown>

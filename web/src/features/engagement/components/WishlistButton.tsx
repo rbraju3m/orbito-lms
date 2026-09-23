@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { catalogKeys } from '@/features/catalog/api/keys';
+import { t } from '@/shared/i18n';
 
 import { useToggleWishlist } from '../api/queries';
 
@@ -45,7 +46,9 @@ export function WishlistButton({ courseId, saved }: { courseId: string; saved: b
         );
       }}
     >
-      {isSaved ? 'Saved' : 'Save for later'}
+      {isSaved
+        ? t('engagement.wishlist.saved', 'Saved')
+        : t('engagement.wishlist.save', 'Save for later')}
     </Button>
   );
 }

@@ -79,7 +79,8 @@ export const routes: RouteObject[] = [
           {
             path: 'my-downloads',
             lazy: async () => ({
-              Component: (await import('@/features/download/routes/MyDownloadsRoute')).MyDownloadsRoute,
+              Component: (await import('@/features/download/routes/MyDownloadsRoute'))
+                .MyDownloadsRoute,
             }),
           },
         ],
@@ -185,17 +186,26 @@ export const routes: RouteObject[] = [
        * still land somewhere.
        */
       {
-        path: 'announcements',
+        // Pages outside the player still need a <main> (LearnPageLayout).
         lazy: async () => ({
-          Component: (await import('@/features/engagement/routes/CourseAnnouncementsRoute'))
-            .CourseAnnouncementsRoute,
+          Component: (await import('./layouts/LearnPageLayout')).LearnPageLayout,
         }),
-      },
-      {
-        path: 'discussions/:discussionId',
-        lazy: async () => ({
-          Component: (await import('@/features/engagement/routes/DiscussionRoute')).DiscussionRoute,
-        }),
+        children: [
+          {
+            path: 'announcements',
+            lazy: async () => ({
+              Component: (await import('@/features/engagement/routes/CourseAnnouncementsRoute'))
+                .CourseAnnouncementsRoute,
+            }),
+          },
+          {
+            path: 'discussions/:discussionId',
+            lazy: async () => ({
+              Component: (await import('@/features/engagement/routes/DiscussionRoute'))
+                .DiscussionRoute,
+            }),
+          },
+        ],
       },
       {
         path: ':itemId',
@@ -207,6 +217,9 @@ export const routes: RouteObject[] = [
       // attempt has a countdown and unsaved answers, and the player's Next
       // button would silently discard both.
       {
+        lazy: async () => ({
+          Component: (await import('./layouts/LearnPageLayout')).LearnPageLayout,
+        }),
         children: [
           {
             path: ':itemId/quiz',

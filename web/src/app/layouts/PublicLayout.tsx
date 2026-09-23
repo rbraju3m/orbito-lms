@@ -1,14 +1,16 @@
 import { AppShell, Burger, Group, Text } from '@mantine/core';
 import { NavLink, Outlet } from 'react-router';
 
+import { t } from '@/shared/i18n';
 import { mainContentProps, SkipLink, ThemeToggle } from '@/shared/ui';
 
 import { useNavMenu } from './useNavMenu';
 
+// Labels are functions: this list is built at import, before the catalogue.
 const NAV = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/courses', label: 'Courses', end: false },
-  { to: '/system', label: 'System', end: false },
+  { to: '/', label: () => t('shell.public.home', 'Home'), end: true },
+  { to: '/courses', label: () => t('shell.public.courses', 'Courses'), end: false },
+  { to: '/system', label: () => t('shell.public.system', 'System'), end: false },
 ];
 
 /**
@@ -41,7 +43,7 @@ export function PublicLayout() {
               <NavLink key={item.to} to={item.to} end={item.end}>
                 {({ isActive }) => (
                   <Text size="sm" fw={isActive ? 600 : 400} c={isActive ? undefined : 'dimmed'}>
-                    {item.label}
+                    {item.label()}
                   </Text>
                 )}
               </NavLink>
@@ -60,7 +62,7 @@ export function PublicLayout() {
           <NavLink key={item.to} to={item.to} end={item.end} onClick={close}>
             {({ isActive }) => (
               <Text py="xs" fw={isActive ? 600 : 400}>
-                {item.label}
+                {item.label()}
               </Text>
             )}
           </NavLink>

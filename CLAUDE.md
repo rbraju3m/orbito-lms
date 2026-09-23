@@ -1010,6 +1010,13 @@ Gate::authorize('publish', $course);                   // in a controller
   figure goes through `shared/lib/{datetime,number,bytes,money}`. And a
   `YYYY-MM-DD` day is formatted in UTC (`formatDay`): as local time it is
   the day before for everybody west of Greenwich.
+- **A page outside the shell still needs a shell.** The quiz, the
+  announcements and a thread sat under a pathless route with no element, so
+  they had no `<main>` and no `h1`, in every language. `LearnPageLayout` is
+  the frame; a new route beside them belongs under it.
+- **An invalid CSS value fails SILENTLY.** `bd="0 1px 0 0 solid …"` is not a
+  border — the browser drops it, and the player's dividers never drew. Only
+  looking at the page finds that.
 - **Left and right are not directions.** Styles say start and end;
   `logicalStyles.test.ts` fails on a physical side, and an exception names
   its reason in the test.
@@ -1226,12 +1233,13 @@ The obvious next pieces, in the order they unblock each other:
 
 Code that needs no credentials, smallest first:
 
-- **Multilingual, I2** (`docs/I18N.md` §3) — translate the interface area by
-  area, learner shell first, with a Bengali catalogue drafted in the slice
-  and reviewed by a native speaker in its browser pass. I1 laid the
-  foundation; no screen reads Bengali words yet, only Bengali digits. Then
-  I3: server text, mail in the recipient's language, and Bengali
-  certificates, which dompdf cannot shape.
+- **Multilingual, I2** (`docs/I18N.md` §3) — the LEARNER area is translated
+  (384 keys) and SHIPPED UNREVIEWED — the native-speaker review sheet came
+  back empty; it is still owed (`docs/I18N.md` §3, I2). Next: the public site and
+  auth pages, then studio, admin and platform. First paint is 253.04 KB of
+  255 — every new `t()` in `AppLayout` or `AcademySiteLayout` costs bytes,
+  so measure. Then I3: server text (`*_label`, error messages), mail in the
+  recipient's language, and Bengali certificates, which dompdf cannot shape.
 
 - ~~Bundles that hold downloads~~ — DONE (`docs/BUNDLES.md` §9). A bundle
   holds courses, downloads or both; a download's share of the price is
@@ -1401,6 +1409,11 @@ Every one of these has already cost time at least once.
   one. A webinar place in a bundle is its own slice: a place is capacity,
   and a bundle would be the first thing to sell capacity it cannot check at
   grant time (`WebinarPurchase`).
+- **Seventeen `Table.ScrollContainer`s outside the learner area** scroll
+  sideways at 360px and cannot be reached by keyboard (axe
+  `scrollable-region-focusable`). The quiz intro's shows the fix —
+  `tabIndex={0}` and an `aria-label` naming the table; each area's i18n
+  browser pass should apply it as it goes.
 - **Avatars are counted but never swept.** Nothing references an avatar yet —
   the header draws initials — so every avatar reads as unused, and a live one
   cannot be told from an abandoned one. Wiring avatars to a profile means

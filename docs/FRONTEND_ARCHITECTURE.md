@@ -224,7 +224,9 @@ src/
 │   ├── routes/               studio.tsx, admin.tsx, platform.tsx — loaded on demand
 │   ├── providers.tsx         QueryClient, MantineProvider, Notifications, ModalsProvider
 │   ├── theme.ts              design tokens → Mantine theme
-│   └── layouts/{Public,Learn,Dashboard,Studio,Admin}Layout.tsx
+│   ├── LocaleSync.tsx        draws the app in the server's resolved locale (I18N.md)
+│   └── layouts/              AppLayout, PublicLayout, AcademySiteLayout, AuthLayout,
+│                             LearnPageLayout (quiz, announcements, a thread: <main> outside the player)
 ├── shared/
 │   ├── api/
 │   │   ├── client.ts         axios instance, base URL, credentials, interceptors
@@ -232,8 +234,8 @@ src/
 │   │   └── types.ts          Envelope<T>, Paginated<T>, CursorPaginated<T>, ApiErrorBody
 │   ├── ui/                   the design system (see DESIGN_SYSTEM.md)
 │   ├── hooks/                useDebounce, useMediaQuery, usePermission, useConfirm
-│   ├── lib/                  money.ts, bytes.ts, date.ts, duration.ts, slug.ts, cn.ts
-│   └── i18n/
+│   ├── lib/                  money.ts, bytes.ts, datetime.ts, number.ts — every figure in the reader's locale
+│   └── i18n/                 t(), plural(), rich(), the locale store, catalogues/bn/<area>.json
 └── features/
     ├── account/       ✅ profile, password, instructor application
     ├── admin/         ✅ users, instructor approval queue, academy settings, plan usage

@@ -3,6 +3,7 @@ import { IconTrash } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { t } from '@/shared/i18n';
 import { EmptyState, LoadingState } from '@/shared/ui';
 import { formatDateTime } from '@/shared/lib/datetime';
 
@@ -22,7 +23,7 @@ export function NotesPanel({ itemId, canWrite }: NotesPanelProps) {
   if (!canWrite) {
     return (
       <Text size="sm" c="dimmed">
-        Enrol in this course to take notes.
+        {t('learning.notes.enrol', 'Enrol in this course to take notes.')}
       </Text>
     );
   }
@@ -35,8 +36,8 @@ export function NotesPanel({ itemId, canWrite }: NotesPanelProps) {
         <Textarea
           value={draft}
           onChange={(event) => setDraft(event.currentTarget.value)}
-          placeholder="Write a note for yourself…"
-          aria-label="New note"
+          placeholder={t('learning.notes.placeholder', 'Write a note for yourself…')}
+          aria-label={t('learning.notes.new', 'New note')}
           autosize
           minRows={2}
           maxRows={8}
@@ -51,13 +52,16 @@ export function NotesPanel({ itemId, canWrite }: NotesPanelProps) {
               setDraft('');
             }}
           >
-            Save note
+            {t('learning.notes.save', 'Save note')}
           </Button>
         </Group>
       </Stack>
 
       {data && data.length === 0 ? (
-        <EmptyState title="No notes yet" description="Notes are private to you." />
+        <EmptyState
+          title={t('learning.notes.empty_title', 'No notes yet')}
+          description={t('learning.notes.empty_body', 'Notes are private to you.')}
+        />
       ) : null}
 
       <Stack gap="xs">
@@ -75,7 +79,7 @@ export function NotesPanel({ itemId, canWrite }: NotesPanelProps) {
               variant="subtle"
               color="danger"
               size="sm"
-              aria-label="Delete note"
+              aria-label={t('learning.notes.delete', 'Delete note')}
               onClick={() => deleteNote.mutate(note.id)}
             >
               <IconTrash size={14} />

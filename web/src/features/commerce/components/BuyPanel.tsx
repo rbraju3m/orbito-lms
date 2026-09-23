@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router';
 
 import type { CoursePrice } from '@/features/catalog/api/types';
 import { ApiError } from '@/shared/api/errors';
+import { t } from '@/shared/i18n';
 
 import { cartQuery, useAddToCart } from '../api/queries';
 import { PriceTag } from './PriceTag';
@@ -36,10 +37,13 @@ export function BuyPanel({
     return (
       <Stack gap="sm">
         <Text fw={700} size="xl">
-          Not available
+          {t('commerce.buy.unavailable', 'Not available')}
         </Text>
         <Text size="sm" c="dimmed">
-          This course is not on sale at the moment. It may be back shortly.
+          {t(
+            'commerce.buy.unavailable_body',
+            'This course is not on sale at the moment. It may be back shortly.',
+          )}
         </Text>
       </Stack>
     );
@@ -74,11 +78,11 @@ export function BuyPanel({
           <Group gap={6} c="green">
             <IconCheck size={16} />
             <Text size="sm" fw={500}>
-              In your basket
+              {t('commerce.buy.in_basket', 'In your basket')}
             </Text>
           </Group>
           <Button component={Link} to="/cart" variant="light" fullWidth>
-            Go to basket
+            {t('commerce.buy.go_to_basket', 'Go to basket')}
           </Button>
         </Stack>
       ) : (
@@ -93,7 +97,7 @@ export function BuyPanel({
             })
           }
         >
-          Buy this course
+          {t('commerce.buy.buy', 'Buy this course')}
         </Button>
       )}
 
@@ -105,7 +109,9 @@ export function BuyPanel({
       )}
 
       <Text size="xs" c="dimmed" ta="center">
-        You will be able to review {courseTitle} before paying.
+        {t('commerce.buy.review_note', 'You will be able to review {title} before paying.', {
+          title: courseTitle,
+        })}
       </Text>
     </Stack>
   );

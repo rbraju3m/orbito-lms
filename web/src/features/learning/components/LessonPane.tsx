@@ -1,6 +1,8 @@
 import { AspectRatio, Box, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useRef } from 'react';
 
+import { t } from '@/shared/i18n';
+
 import type { ItemPayload, LessonPayload } from '../api/types';
 import { useWatchHeartbeat } from '../hooks/useWatchHeartbeat';
 
@@ -26,7 +28,10 @@ export function LessonPane({ item, resumeAt }: LessonPaneProps) {
 
   return (
     <Stack gap="lg">
-      <Title order={2}>{item.title}</Title>
+      {/* The page's one h1: the player has no other heading above it. */}
+      <Title order={1} size="h2">
+        {item.title}
+      </Title>
 
       {lesson.video_signed_url ? (
         <AspectRatio ratio={16 / 9}>
@@ -60,7 +65,7 @@ export function LessonPane({ item, resumeAt }: LessonPaneProps) {
         <Box className="orbito-prose" dangerouslySetInnerHTML={{ __html: lesson.body }} />
       ) : (
         <Text c="dimmed" size="sm">
-          This lesson has no written content.
+          {t('learning.lesson.no_content', 'This lesson has no written content.')}
         </Text>
       )}
     </Stack>

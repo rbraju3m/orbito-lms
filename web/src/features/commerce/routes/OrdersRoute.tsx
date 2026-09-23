@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
+import { t } from '@/shared/i18n';
 import { formatDateTime } from '@/shared/lib/datetime';
 import { formatMinor } from '@/shared/lib/money';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
@@ -29,12 +30,18 @@ export function OrdersRoute() {
   if (data.data.length === 0) {
     return (
       <Container size="md" py="lg">
-        <PageHeader title="Orders" />
+        <PageHeader title={t('commerce.orders.title', 'Orders')} />
         <EmptyState
           icon={IconReceipt}
-          title="No orders yet"
-          description="Courses you buy will show up here with their receipts."
-          action={{ label: 'Browse courses', onClick: () => void navigate('/courses') }}
+          title={t('commerce.orders.empty_title', 'No orders yet')}
+          description={t(
+            'commerce.orders.empty_body',
+            'Courses you buy will show up here with their receipts.',
+          )}
+          action={{
+            label: t('commerce.orders.browse', 'Browse courses'),
+            onClick: () => void navigate('/courses'),
+          }}
         />
       </Container>
     );
@@ -42,7 +49,10 @@ export function OrdersRoute() {
 
   return (
     <Container size="md" py="lg">
-      <PageHeader title="Orders" description="Everything you have bought." />
+      <PageHeader
+        title={t('commerce.orders.title', 'Orders')}
+        description={t('commerce.orders.description', 'Everything you have bought.')}
+      />
 
       <Stack gap="sm">
         {data.data.map((order) => (

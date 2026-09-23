@@ -14,6 +14,8 @@ import { IconCheck, IconClock, IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 
+import { t } from '@/shared/i18n';
+import { formatNumber } from '@/shared/lib/number';
 import { ErrorState, LoadingState } from '@/shared/ui';
 
 import { attemptResultQuery } from '../api/queries';
@@ -34,7 +36,11 @@ export function QuizResultRoute() {
   if (isError) {
     return (
       <Container size="md" py="lg">
-        <ErrorState error={error} onRetry={() => void refetch()} title="Result unavailable" />
+        <ErrorState
+          error={error}
+          onRetry={() => void refetch()}
+          title={t('quiz.result.unavailable', 'Result unavailable')}
+        />
       </Container>
     );
   }
@@ -52,9 +58,14 @@ export function QuizResultRoute() {
                 <ThemeIcon size={54} radius="xl" variant="light" color="warning">
                   <IconClock size={28} />
                 </ThemeIcon>
-                <Title order={2}>Waiting on your instructor</Title>
+                <Title order={1} size="h2">
+                  {t('quiz.result.waiting_title', 'Waiting on your instructor')}
+                </Title>
                 <Text size="sm" c="dimmed" ta="center">
-                  Some answers need a person to read them. You'll see your score once they have.
+                  {t(
+                    'quiz.result.waiting_body',
+                    "Some answers need a person to read them. You'll see your score once they have.",
+                  )}
                 </Text>
               </>
             ) : (
@@ -67,13 +78,20 @@ export function QuizResultRoute() {
                 >
                   {attempt.passed ? <IconCheck size={28} /> : <IconX size={28} />}
                 </ThemeIcon>
-                <Title order={2}>{attempt.passed ? 'Passed' : 'Not passed'}</Title>
+                <Title order={1} size="h2">
+                  {attempt.passed
+                    ? t('quiz.result.passed', 'Passed')
+                    : t('quiz.result.not_passed', 'Not passed')}
+                </Title>
                 <Text size="xl" fw={700}>
-                  {Math.round(attempt.percent ?? 0)}%
+                  {formatNumber(Math.round(attempt.percent ?? 0))}%
                 </Text>
                 <Text size="sm" c="dimmed">
-                  {attempt.earned_points} of {attempt.total_points} points · pass mark{' '}
-                  {attempt.quiz?.passing_score_percent}%
+                  {t('quiz.result.points', '{earned} of {total} points · pass mark {pass}%', {
+                    earned: figure(attempt.earned_points),
+                    total: figure(attempt.total_points),
+                    pass: figure(attempt.quiz?.passing_score_percent),
+                  })}
                 </Text>
               </>
             )}
@@ -82,12 +100,14 @@ export function QuizResultRoute() {
 
         {attempt.quiz?.show_correct_answers === false && !pending ? (
           <Alert color="gray" variant="light">
-            This quiz does not reveal the correct answers.
+            {t('quiz.result.no_reveal', 'This quiz does not reveal the correct answers.')}
           </Alert>
         ) : null}
 
         <Stack gap="sm">
-          <Title order={4}>Your answers</Title>
+          <Title order={2} size="h4">
+            {t('quiz.result.your_answers', 'Your answers')}
+          </Title>
           {review.map((row, index) => (
             <ReviewCard key={row.question_id} row={row} number={index + 1} />
           ))}
@@ -95,7 +115,7 @@ export function QuizResultRoute() {
 
         <Group justify="center">
           <Button component={Link} to={`/learn/${courseId}/${itemId}`} variant="light">
-            Back to the course
+            {t('quiz.result.back', 'Back to the course')}
           </Button>
         </Group>
       </Stack>
@@ -105,28 +125,32 @@ export function QuizResultRoute() {
 
 function ReviewCard({ row, number }: { row: ReviewRow; number: number }) {
   const color = row.awaiting_review ? 'warning' : row.is_correct ? 'success' : 'danger';
-  const label = row.awaiting_review ? 'Awaiting review' : row.is_correct ? 'Correct' : 'Incorrect';
+  const label = row.awaiting_review
+    ? t('quiz.result.awaiting_review', 'Awaiting review')
+    : row.is_correct
+      ? t('quiz.result.correct', 'Correct')
+      : t('quiz.result.incorrect', 'Incorrect');
 
   return (
     <Card>
       <Stack gap="xs">
         <Group justify="space-between" align="flex-start">
           <Text fw={600} size="sm">
-            {number}. {row.title}
+            {formatNumber(number)}. {row.title}
           </Text>
           <Group gap="xs">
             <Badge color={color} variant="light" size="sm">
               {label}
             </Badge>
             <Text size="xs" c="dimmed">
-              {row.points_earned}/{row.points_possible}
+              {formatNumber(row.points_earned)}/{formatNumber(row.points_possible)}
             </Text>
           </Group>
         </Group>
 
         <Text size="sm">
           <Text span c="dimmed" size="sm">
-            Your answer:{' '}
+            {t('quiz.result.your_answer', 'Your answer:')}{' '}
           </Text>
           {formatAnswer(row.your_answer_label)}
         </Text>
@@ -134,7 +158,7 @@ function ReviewCard({ row, number }: { row: ReviewRow; number: number }) {
         {row.correct_answer !== undefined && !row.is_correct ? (
           <Text size="sm">
             <Text span c="dimmed" size="sm">
-              Correct answer:{' '}
+              {t('quiz.result.correct_answer', 'Correct answer:')}{' '}
             </Text>
             {formatAnswer(row.correct_answer)}
           </Text>
@@ -147,13 +171,22 @@ function ReviewCard({ row, number }: { row: ReviewRow; number: number }) {
         ) : null}
 
         {row.feedback ? (
-          <Alert color="info" variant="light" title="Instructor feedback">
+          <Alert
+            color="info"
+            variant="light"
+            title={t('quiz.result.feedback', 'Instructor feedback')}
+          >
             {row.feedback}
           </Alert>
         ) : null}
       </Stack>
     </Card>
   );
+}
+
+/** Absent is not zero: a figure the server did not send reads as a dash. */
+function figure(value: number | undefined): string {
+  return value === undefined ? '—' : formatNumber(value);
 }
 
 function formatAnswer(answer: unknown): string {

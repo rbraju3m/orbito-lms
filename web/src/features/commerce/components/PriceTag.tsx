@@ -1,5 +1,6 @@
 import { Group, Text } from '@mantine/core';
 
+import { t } from '@/shared/i18n';
 import { formatMinor } from '@/shared/lib/money';
 
 /**
@@ -24,11 +25,11 @@ export function PriceTag({
   return (
     <Group gap="xs" align="baseline" wrap="nowrap">
       <Text fw={700} size={size}>
-        {amountMinor === 0 ? 'Free' : formatMinor(amountMinor, currency)}
+        {amountMinor === 0 ? t('commerce.price.free', 'Free') : formatMinor(amountMinor, currency)}
       </Text>
       {onSale && (
         <Text size="sm" c="dimmed" td="line-through">
-          <span className="sr-only">Usual price </span>
+          <span className="sr-only">{t('commerce.price.usual', 'Usual price ')}</span>
           {formatMinor(listAmountMinor, currency)}
         </Text>
       )}

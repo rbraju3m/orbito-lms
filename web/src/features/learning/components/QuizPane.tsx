@@ -2,6 +2,8 @@ import { Button, Group, Paper, Stack, Text, ThemeIcon, Title } from '@mantine/co
 import { IconArrowRight, IconChecklist } from '@tabler/icons-react';
 import { Link } from 'react-router';
 
+import { t } from '@/shared/i18n';
+
 import type { ItemPayload } from '../api/types';
 
 export interface QuizPaneProps {
@@ -21,7 +23,10 @@ export function QuizPane({ courseId, item, canAttempt }: QuizPaneProps) {
 
   return (
     <Stack gap="lg">
-      <Title order={2}>{item.title}</Title>
+      {/* The page's one h1: the player has no other heading above it. */}
+      <Title order={1} size="h2">
+        {item.title}
+      </Title>
 
       <Paper withBorder p="xl">
         <Stack align="center" gap="sm">
@@ -29,7 +34,7 @@ export function QuizPane({ courseId, item, canAttempt }: QuizPaneProps) {
             <IconChecklist size={26} />
           </ThemeIcon>
 
-          <Text fw={600}>Ready when you are</Text>
+          <Text fw={600}>{t('learning.quiz.ready', 'Ready when you are')}</Text>
 
           {quiz.instructions ? (
             <Text size="sm" c="dimmed" ta="center" maw={520}>
@@ -44,11 +49,11 @@ export function QuizPane({ courseId, item, canAttempt }: QuizPaneProps) {
                 to={`/learn/${courseId}/${item.id}/quiz`}
                 rightSection={<IconArrowRight size={16} />}
               >
-                Go to the quiz
+                {t('learning.quiz.go', 'Go to the quiz')}
               </Button>
             ) : (
               <Text size="sm" c="dimmed">
-                Enrol in this course to take the quiz.
+                {t('learning.quiz.enrol', 'Enrol in this course to take the quiz.')}
               </Text>
             )}
           </Group>

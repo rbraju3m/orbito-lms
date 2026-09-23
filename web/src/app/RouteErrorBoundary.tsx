@@ -1,6 +1,7 @@
 import { Container } from '@mantine/core';
 import { isRouteErrorResponse, useRouteError } from 'react-router';
 
+import { t } from '@/shared/i18n';
 import { ErrorState } from '@/shared/ui';
 
 /**
@@ -14,8 +15,15 @@ export function RouteErrorBoundary() {
     return (
       <Container size="md" py="xl">
         <ErrorState
-          title="Page not found"
-          error={new Error('That page does not exist, or you do not have access to it.')}
+          title={t('shell.not_found.title', 'Page not found')}
+          error={
+            new Error(
+              t(
+                'shell.not_found.body',
+                'That page does not exist, or you do not have access to it.',
+              ),
+            )
+          }
           onRetry={() => {
             window.location.href = '/';
           }}

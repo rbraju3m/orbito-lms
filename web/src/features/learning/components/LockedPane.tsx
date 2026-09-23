@@ -2,6 +2,7 @@ import { Button, Card, Center, Stack, Text, ThemeIcon, Title } from '@mantine/co
 import { IconCalendarClock, IconLock, IconPlayerPlay } from '@tabler/icons-react';
 
 import { ApiError } from '@/shared/api/errors';
+import { t } from '@/shared/i18n';
 import { formatDateTime } from '@/shared/lib/datetime';
 
 interface LockedPaneProps {
@@ -43,7 +44,9 @@ export function LockedPane({ error, onOpenBlocker, onEnrol }: LockedPaneProps) {
             {icon}
           </ThemeIcon>
 
-          <Title order={4}>{title}</Title>
+          <Title order={1} size="h4">
+            {title}
+          </Title>
 
           <Text c="dimmed" size="sm">
             {body}
@@ -79,18 +82,29 @@ function describe({
     if (blockedBy) {
       return {
         icon: <IconPlayerPlay size={26} />,
-        title: 'Finish the previous lesson first',
-        body: `This unlocks once you have completed “${blockedBy}”.`,
-        action: onOpenBlocker ? { label: `Go to “${blockedBy}”`, onClick: onOpenBlocker } : null,
+        title: t('learning.locked.finish_previous_title', 'Finish the previous lesson first'),
+        body: t(
+          'learning.locked.finish_previous_body',
+          'This unlocks once you have completed “{title}”.',
+          { title: blockedBy },
+        ),
+        action: onOpenBlocker
+          ? {
+              label: t('learning.locked.go_to', 'Go to “{title}”', { title: blockedBy }),
+              onClick: onOpenBlocker,
+            }
+          : null,
       };
     }
 
     return {
       icon: <IconCalendarClock size={26} />,
-      title: 'Not available yet',
+      title: t('learning.locked.not_yet_title', 'Not available yet'),
       body: unlocksAt
-        ? `This lesson unlocks on ${formatDateTime(unlocksAt)}.`
-        : 'This lesson has not been released yet.',
+        ? t('learning.locked.unlocks_on', 'This lesson unlocks on {date}.', {
+            date: formatDateTime(unlocksAt),
+          })
+        : t('learning.locked.not_released', 'This lesson has not been released yet.'),
       action: null,
     };
   }
@@ -98,17 +112,23 @@ function describe({
   if (reason === 'not_enrolled') {
     return {
       icon: <IconLock size={26} />,
-      title: 'Enrol to open this lesson',
-      body: 'You can preview parts of this course, but this lesson is for enrolled learners.',
-      action: onEnrol ? { label: 'Enrol', onClick: onEnrol } : null,
+      title: t('learning.locked.enrol_title', 'Enrol to open this lesson'),
+      body: t(
+        'learning.locked.enrol_body',
+        'You can preview parts of this course, but this lesson is for enrolled learners.',
+      ),
+      action: onEnrol ? { label: t('learning.locked.enrol', 'Enrol'), onClick: onEnrol } : null,
     };
   }
 
   if (reason === 'enrollment_expired') {
     return {
       icon: <IconCalendarClock size={26} />,
-      title: 'Your access has ended',
-      body: 'Your enrolment in this course has expired. Ask the course team to extend it.',
+      title: t('learning.locked.expired_title', 'Your access has ended'),
+      body: t(
+        'learning.locked.expired_body',
+        'Your enrolment in this course has expired. Ask the course team to extend it.',
+      ),
       action: null,
     };
   }
@@ -116,10 +136,12 @@ function describe({
   if (reason === 'enrollment_not_started') {
     return {
       icon: <IconCalendarClock size={26} />,
-      title: 'Your access has not started',
+      title: t('learning.locked.not_started_title', 'Your access has not started'),
       body: unlocksAt
-        ? `This course opens for you on ${formatDateTime(unlocksAt)}.`
-        : 'This course has not opened for you yet.',
+        ? t('learning.locked.opens_on', 'This course opens for you on {date}.', {
+            date: formatDateTime(unlocksAt),
+          })
+        : t('learning.locked.not_opened', 'This course has not opened for you yet.'),
       action: null,
     };
   }
@@ -127,16 +149,19 @@ function describe({
   if (reason === 'enrollment_suspended') {
     return {
       icon: <IconLock size={26} />,
-      title: 'Your access is suspended',
-      body: 'Your enrolment has been suspended. Contact the course team to reinstate it.',
+      title: t('learning.locked.suspended_title', 'Your access is suspended'),
+      body: t(
+        'learning.locked.suspended_body',
+        'Your enrolment has been suspended. Contact the course team to reinstate it.',
+      ),
       action: null,
     };
   }
 
   return {
     icon: <IconLock size={26} />,
-    title: 'Not available',
-    body: message ?? 'You do not have access to this content.',
+    title: t('learning.locked.not_available_title', 'Not available'),
+    body: message ?? t('learning.locked.no_access', 'You do not have access to this content.'),
     action: null,
   };
 }

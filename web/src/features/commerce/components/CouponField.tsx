@@ -3,6 +3,7 @@ import { IconAlertTriangle, IconTicket } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import { ApiError } from '@/shared/api/errors';
+import { t } from '@/shared/i18n';
 
 import { useApplyCoupon, useRemoveCoupon } from '../api/coupons';
 import type { Cart } from '../api/types';
@@ -44,13 +45,14 @@ export function CouponField({ cart }: { cart: Cart }) {
             loading={remove.isPending}
             onClick={() => remove.mutate()}
           >
-            Remove code
+            {t('commerce.coupon.remove', 'Remove code')}
           </Button>
         </Group>
 
         {!cart.coupon.applies && cart.coupon.message ? (
           <Alert color="yellow" icon={<IconAlertTriangle size={16} />} role="alert">
-            {cart.coupon.message} Remove it to check out at the full price.
+            {cart.coupon.message}{' '}
+            {t('commerce.coupon.remove_hint', 'Remove it to check out at the full price.')}
           </Alert>
         ) : null}
       </Stack>
@@ -67,7 +69,7 @@ export function CouponField({ cart }: { cart: Cart }) {
     >
       <Group align="flex-start" gap="xs" wrap="nowrap">
         <TextInput
-          label="Coupon code"
+          label={t('commerce.coupon.label', 'Coupon code')}
           placeholder="LAUNCH20"
           value={code}
           onChange={(event) => setCode(event.currentTarget.value)}
@@ -76,8 +78,14 @@ export function CouponField({ cart }: { cart: Cart }) {
           autoComplete="off"
           style={{ flex: 1 }}
         />
-        <Button type="submit" variant="light" mt={24} loading={apply.isPending} disabled={code.trim() === ''}>
-          Apply
+        <Button
+          type="submit"
+          variant="light"
+          mt={24}
+          loading={apply.isPending}
+          disabled={code.trim() === ''}
+        >
+          {t('commerce.coupon.apply', 'Apply')}
         </Button>
       </Group>
     </form>

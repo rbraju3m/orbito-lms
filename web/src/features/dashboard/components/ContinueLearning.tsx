@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 
 import { continueLearningQuery } from '@/features/learning/api/queries';
+import { plural, t } from '@/shared/i18n';
+import { formatNumber } from '@/shared/lib/number';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
 
 export function ContinueLearning() {
@@ -14,8 +16,11 @@ export function ContinueLearning() {
   if (data.length === 0) {
     return (
       <EmptyState
-        title="Nothing in progress"
-        description="Start a course and it will show up here so you can pick it back up."
+        title={t('dashboard.continue.empty_title', 'Nothing in progress')}
+        description={t(
+          'dashboard.continue.empty_body',
+          'Start a course and it will show up here so you can pick it back up.',
+        )}
       />
     );
   }
@@ -56,10 +61,17 @@ export function ContinueLearning() {
               <Progress
                 value={row.progress.percent}
                 size="sm"
-                aria-label={`${Math.round(row.progress.percent)} percent complete`}
+                aria-label={t('dashboard.progress.percent', '{percent} percent complete', {
+                  percent: formatNumber(Math.round(row.progress.percent)),
+                })}
               />
               <Text size="xs" c="dimmed">
-                {row.progress.completed_items} of {row.progress.total_items} lessons
+                {plural(
+                  'dashboard.progress.lessons',
+                  row.progress.total_items,
+                  { other: '{done} of {count} lessons' },
+                  { done: formatNumber(row.progress.completed_items) },
+                )}
               </Text>
             </Stack>
           </Group>

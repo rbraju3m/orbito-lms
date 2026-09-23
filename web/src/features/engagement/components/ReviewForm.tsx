@@ -5,6 +5,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { ApiError } from '@/shared/api/errors';
+import { t } from '@/shared/i18n';
 
 import { useSubmitReview } from '../api/queries';
 import type { Review } from '../api/types';
@@ -17,7 +18,13 @@ import type { Review } from '../api/types';
  * rating the API rejects with a validation error the learner cannot act on.
  */
 const schema = z.object({
-  rating: z.number().int().min(1, 'Choose a rating.').max(5),
+  // A function, so the message is read when validation runs — after the
+  // reader's catalogue has loaded — not when this module does.
+  rating: z
+    .number()
+    .int()
+    .min(1, { error: () => t('engagement.review_form.rating_required', 'Choose a rating.') })
+    .max(5),
   title: z.string().max(180).optional(),
   body: z.string().max(5000).optional(),
 });
@@ -84,7 +91,7 @@ export function ReviewForm({
                 onChange={field.onChange}
                 count={5}
                 size="lg"
-                aria-label="Your rating"
+                aria-label={t('engagement.review_form.rating', 'Your rating')}
               />
               {errors.rating ? (
                 <span role="alert" style={{ color: 'var(--mantine-color-danger-6)', fontSize: 12 }}>
@@ -96,15 +103,18 @@ export function ReviewForm({
         />
 
         <TextInput
-          label="Headline"
-          placeholder="Sum it up in a line"
+          label={t('engagement.review_form.headline', 'Headline')}
+          placeholder={t('engagement.review_form.headline_placeholder', 'Sum it up in a line')}
           error={errors.title?.message}
           {...register('title')}
         />
 
         <Textarea
-          label="Your review"
-          placeholder="What worked, what did not, who this course is for."
+          label={t('engagement.review_form.body', 'Your review')}
+          placeholder={t(
+            'engagement.review_form.body_placeholder',
+            'What worked, what did not, who this course is for.',
+          )}
           minRows={4}
           autosize
           error={errors.body?.message}
@@ -114,12 +124,14 @@ export function ReviewForm({
         <Group justify="flex-end" gap="xs">
           {onDone ? (
             <Button variant="subtle" onClick={onDone} type="button">
-              Cancel
+              {t('engagement.cancel', 'Cancel')}
             </Button>
           ) : null}
           <Button type="submit" loading={isSubmitting || submit.isPending}>
             {/* One review per learner: writing again replaces, never appends. */}
-            {existing ? 'Update review' : 'Post review'}
+            {existing
+              ? t('engagement.review_form.update', 'Update review')
+              : t('engagement.review_form.post', 'Post review')}
           </Button>
         </Group>
       </Stack>

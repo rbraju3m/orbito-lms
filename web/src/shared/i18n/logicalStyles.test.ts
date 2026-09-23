@@ -24,6 +24,9 @@ const PHYSICAL = {
     /(^|[\s{;,])(left|right)\s*:\s*[^/]/m,
   'text-align left/right — use start/end': /text-?align["']?\s*[:=]\s*\{?\s*["'](left|right)["']/i,
   'float — use flex or grid': /\bfloat\s*:/,
+  // `border` takes no per-side widths: the browser DROPS the whole rule. It
+  // is also the only way this shorthand could name a side.
+  'bd with four widths — invalid CSS; use borderBottom / borderInlineEnd': /\bbd="\S+ \S+ \S+ \S+ /,
 } satisfies Record<string, RegExp>;
 
 type Rule = keyof typeof PHYSICAL;
@@ -58,6 +61,7 @@ describe('logical styles', () => {
     ['.a {\n  left: 0;\n}'],
     ["style={{ textAlign: 'right' }}"],
     ['.a { float: left; }'],
+    ['<Box bd="0 1px 0 0 solid red">'],
   ])('catches %s', (sample) => {
     expect(violations('/sample.tsx', sample)).not.toEqual([]);
   });

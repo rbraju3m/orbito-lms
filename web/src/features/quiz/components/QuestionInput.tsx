@@ -12,6 +12,9 @@ import {
 } from '@mantine/core';
 import { IconArrowDown, IconArrowUp } from '@tabler/icons-react';
 
+import { t } from '@/shared/i18n';
+import { formatNumber } from '@/shared/lib/number';
+
 import type { AnswerPayload, AttemptQuestion } from '../api/types';
 
 export interface QuestionInputProps {
@@ -69,7 +72,7 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
       return (
         <Stack gap="xs" mt="xs">
           <Text size="xs" c="dimmed">
-            Choose every answer that applies.
+            {t('quiz.input.choose_all', 'Choose every answer that applies.')}
           </Text>
           {options.map((option) => (
             <Checkbox
@@ -98,7 +101,7 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
           onChange={(event) => onChange({ text: event.currentTarget.value })}
           disabled={disabled}
           aria-label={question.title}
-          placeholder="Your answer"
+          placeholder={t('quiz.input.your_answer', 'Your answer')}
         />
       );
 
@@ -113,10 +116,10 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
             autosize
             minRows={5}
             maxRows={16}
-            placeholder="Write your answer"
+            placeholder={t('quiz.input.write_answer', 'Write your answer')}
           />
           <Text size="xs" c="dimmed">
-            An instructor marks this one by hand.
+            {t('quiz.input.hand_marked', 'An instructor marks this one by hand.')}
           </Text>
         </Stack>
       );
@@ -131,7 +134,7 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
               key={index}
               value={blanks[index] ?? ''}
               disabled={disabled}
-              label={`Blank ${index + 1}`}
+              label={t('quiz.input.blank', 'Blank {number}', { number: formatNumber(index + 1) })}
               onChange={(event) => {
                 const next = [...blanks];
                 next[index] = event.currentTarget.value;
@@ -165,8 +168,10 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
                 onChange={(next) =>
                   onChange({ pairs: { ...pairs, [String(option.id)]: next ?? '' } })
                 }
-                placeholder="Match with…"
-                aria-label={`Match for ${option.label}`}
+                placeholder={t('quiz.input.match_placeholder', 'Match with…')}
+                aria-label={t('quiz.input.match_for', 'Match for {option}', {
+                  option: option.label,
+                })}
                 w={200}
               />
             </Group>
@@ -191,7 +196,7 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
       return (
         <Stack gap="xs" mt="xs">
           <Text size="xs" c="dimmed">
-            Put these in the right order.
+            {t('quiz.input.order', 'Put these in the right order.')}
           </Text>
           {current.map((id, index) => {
             const option = options.find((o) => o.id === id);
@@ -199,7 +204,7 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
             return (
               <Group key={id} wrap="nowrap" gap="xs">
                 <Text size="sm" c="dimmed" w={20}>
-                  {index + 1}.
+                  {formatNumber(index + 1)}.
                 </Text>
                 <Text size="sm" style={{ flex: 1 }}>
                   {option?.label}
@@ -208,7 +213,9 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
                   variant="subtle"
                   size="sm"
                   disabled={disabled || index === 0}
-                  aria-label={`Move ${option?.label} up`}
+                  aria-label={t('quiz.input.move_up', 'Move {option} up', {
+                    option: option?.label ?? '',
+                  })}
                   onClick={() => move(index, index - 1)}
                 >
                   <IconArrowUp size={15} />
@@ -217,7 +224,9 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
                   variant="subtle"
                   size="sm"
                   disabled={disabled || index === current.length - 1}
-                  aria-label={`Move ${option?.label} down`}
+                  aria-label={t('quiz.input.move_down', 'Move {option} down', {
+                    option: option?.label ?? '',
+                  })}
                   onClick={() => move(index, index + 1)}
                 >
                   <IconArrowDown size={15} />
@@ -232,7 +241,7 @@ export function QuestionInput({ question, value, onChange, disabled }: QuestionI
     default:
       return (
         <Text size="sm" c="dimmed" mt="xs">
-          This question type cannot be answered here yet.
+          {t('quiz.input.unsupported', 'This question type cannot be answered here yet.')}
         </Text>
       );
   }

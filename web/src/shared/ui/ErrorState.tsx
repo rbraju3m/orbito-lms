@@ -1,6 +1,7 @@
 import { Button, Center, Code, Group, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 
+import { rich, t } from '@/shared/i18n';
 import { ApiError } from '@/shared/api/errors';
 
 export interface ErrorStateProps {
@@ -16,10 +17,13 @@ export interface ErrorStateProps {
  * The request id is shown deliberately: it is the only thing that lets support
  * find the matching server log.
  */
-export function ErrorState({ error, onRetry, title = 'Something went wrong' }: ErrorStateProps) {
+export function ErrorState({ error, onRetry, title }: ErrorStateProps) {
   const apiError = error instanceof ApiError ? error : null;
   const message =
-    apiError?.message ?? (error instanceof Error ? error.message : 'An unexpected error occurred.');
+    apiError?.message ??
+    (error instanceof Error
+      ? error.message
+      : t('shell.error.unexpected', 'An unexpected error occurred.'));
 
   return (
     <Center py="xl">
@@ -28,7 +32,7 @@ export function ErrorState({ error, onRetry, title = 'Something went wrong' }: E
           <IconAlertTriangle size={28} stroke={1.5} />
         </ThemeIcon>
 
-        <Title order={3}>{title}</Title>
+        <Title order={3}>{title ?? t('shell.error.title', 'Something went wrong')}</Title>
 
         <Text c="dimmed" size="sm">
           {message}
@@ -37,14 +41,21 @@ export function ErrorState({ error, onRetry, title = 'Something went wrong' }: E
         <Group gap="xs" justify="center">
           {onRetry ? (
             <Button variant="light" onClick={onRetry}>
-              Try again
+              {t('shell.error.retry', 'Try again')}
             </Button>
           ) : null}
         </Group>
 
         {apiError?.requestId ? (
           <Text size="xs" c="dimmed">
-            Reference: <Code>{apiError.requestId}</Code>
+            {rich(
+              'shell.error.reference',
+              'Reference: <code>{id}</code>',
+              {
+                code: (id) => <Code>{id}</Code>,
+              },
+              { id: apiError.requestId },
+            )}
           </Text>
         ) : null}
       </Stack>

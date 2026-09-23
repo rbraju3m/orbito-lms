@@ -16,6 +16,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
+import { plural, t } from '@/shared/i18n';
+import { formatNumber } from '@/shared/lib/number';
 import { ApiError } from '@/shared/api/errors';
 import { ErrorState, LoadingState } from '@/shared/ui';
 
@@ -61,7 +63,11 @@ export function QuizRunnerRoute() {
             setSaveState('error');
             // A refused save usually means time ran out — say so rather than
             // letting the learner keep typing into a closed attempt.
-            setSaveError(err instanceof ApiError ? err.message : 'Could not save that answer.');
+            setSaveError(
+              err instanceof ApiError
+                ? err.message
+                : t('quiz.runner.save_failed', 'Could not save that answer.'),
+            );
           },
         },
       );
@@ -80,7 +86,11 @@ export function QuizRunnerRoute() {
   if (isError) {
     return (
       <Container size="md" py="lg">
-        <ErrorState error={error} onRetry={() => void refetch()} title="Quiz unavailable" />
+        <ErrorState
+          error={error}
+          onRetry={() => void refetch()}
+          title={t('quiz.unavailable', 'Quiz unavailable')}
+        />
       </Container>
     );
   }
@@ -93,15 +103,22 @@ export function QuizRunnerRoute() {
 
   const confirmSubmit = () =>
     modals.openConfirmModal({
-      title: 'Submit this attempt?',
+      title: t('quiz.runner.confirm_title', 'Submit this attempt?'),
       children: (
         <Text size="sm">
           {answeredCount < questions.length
-            ? `You have answered ${answeredCount} of ${questions.length}. Unanswered questions score nothing.`
-            : 'You have answered every question.'}
+            ? t(
+                'quiz.runner.confirm_partial',
+                'You have answered {answered} of {total}. Unanswered questions score nothing.',
+                { answered: formatNumber(answeredCount), total: formatNumber(questions.length) },
+              )
+            : t('quiz.runner.confirm_all', 'You have answered every question.')}
         </Text>
       ),
-      labels: { confirm: 'Submit', cancel: 'Keep working' },
+      labels: {
+        confirm: t('quiz.runner.confirm_submit', 'Submit'),
+        cancel: t('quiz.runner.confirm_cancel', 'Keep working'),
+      },
       onConfirm: () =>
         submit.mutate(undefined, {
           onSuccess: () =>
@@ -116,9 +133,16 @@ export function QuizRunnerRoute() {
       <Stack gap="lg">
         <Group justify="space-between" wrap="wrap">
           <Stack gap={2}>
-            <Title order={3}>Attempt {attempt.attempt_number}</Title>
+            <Title order={1} size="h3">
+              {t('quiz.runner.attempt', 'Attempt {number}', {
+                number: formatNumber(attempt.attempt_number),
+              })}
+            </Title>
             <Text size="sm" c="dimmed">
-              {answeredCount} of {questions.length} answered
+              {t('quiz.runner.answered', '{answered} of {total} answered', {
+                answered: formatNumber(answeredCount),
+                total: formatNumber(questions.length),
+              })}
             </Text>
           </Stack>
 
@@ -139,14 +163,14 @@ export function QuizRunnerRoute() {
             <Group gap={4} aria-live="polite">
               {saveState === 'saving' ? (
                 <Text size="xs" c="dimmed">
-                  Saving…
+                  {t('quiz.runner.saving', 'Saving…')}
                 </Text>
               ) : null}
               {saveState === 'saved' ? (
                 <Group gap={3}>
                   <IconDeviceFloppy size={13} />
                   <Text size="xs" c="dimmed">
-                    Saved
+                    {t('quiz.runner.saved', 'Saved')}
                   </Text>
                 </Group>
               ) : null}
@@ -157,12 +181,15 @@ export function QuizRunnerRoute() {
         <Progress
           value={(answeredCount / Math.max(1, questions.length)) * 100}
           size="sm"
-          aria-label={`${answeredCount} of ${questions.length} questions answered`}
+          aria-label={t('quiz.runner.progress', '{answered} of {total} questions answered', {
+            answered: formatNumber(answeredCount),
+            total: formatNumber(questions.length),
+          })}
         />
 
         {countdown.expired ? (
           <Alert color="warning" icon={<IconAlertTriangle size={16} />} role="alert">
-            Time is up. Submit now — the server decides what counts.
+            {t('quiz.runner.time_up', 'Time is up. Submit now — the server decides what counts.')}
           </Alert>
         ) : null}
 
@@ -180,11 +207,14 @@ export function QuizRunnerRoute() {
               <Stack gap="xs">
                 <Group justify="space-between" align="flex-start">
                   <Text fw={600}>
-                    {attempt.quiz?.hide_question_numbers ? '' : `${number}. `}
+                    {attempt.quiz?.hide_question_numbers ? '' : `${formatNumber(number)}. `}
                     {question.title}
                   </Text>
                   <Badge variant="light" size="sm">
-                    {question.points} {question.points === 1 ? 'point' : 'points'}
+                    {plural('quiz.runner.points', question.points, {
+                      one: '{count} point',
+                      other: '{count} points',
+                    })}
                   </Badge>
                 </Group>
 
@@ -214,14 +244,16 @@ export function QuizRunnerRoute() {
             disabled={page === 0 || attempt.quiz?.allow_previous_button === false}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
           >
-            Previous
+            {t('quiz.runner.previous', 'Previous')}
           </Button>
 
           {page < pageCount - 1 ? (
-            <Button onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}>Next</Button>
+            <Button onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}>
+              {t('quiz.runner.next', 'Next')}
+            </Button>
           ) : (
             <Button loading={submit.isPending} onClick={confirmSubmit}>
-              Submit attempt
+              {t('quiz.runner.submit', 'Submit attempt')}
             </Button>
           )}
         </Group>
@@ -229,7 +261,7 @@ export function QuizRunnerRoute() {
         {page < pageCount - 1 ? (
           <Group justify="center">
             <Button variant="subtle" size="xs" loading={submit.isPending} onClick={confirmSubmit}>
-              Submit now
+              {t('quiz.runner.submit_now', 'Submit now')}
             </Button>
           </Group>
         ) : null}

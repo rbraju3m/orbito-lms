@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
 import { ApiError } from '@/shared/api/errors';
+import { t } from '@/shared/i18n';
 import { formatDateTime } from '@/shared/lib/datetime';
 import { formatMinor } from '@/shared/lib/money';
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
@@ -30,8 +31,8 @@ import { orderQuery, usePayOrder } from '../api/queries';
  * declares more so the column never widens, but the rest are refused.
  */
 const GATEWAYS = [
-  { value: 'stripe', label: 'Card (Stripe)' },
-  { value: 'fake', label: 'Test gateway' },
+  { value: 'stripe', label: () => t('commerce.order.gateway_stripe', 'Card (Stripe)') },
+  { value: 'fake', label: () => t('commerce.order.gateway_test', 'Test gateway') },
 ];
 
 /**
@@ -73,8 +74,14 @@ export function OrderDetailRoute() {
   return (
     <Container size="md" py="lg">
       <PageHeader
-        title={`Order ${order.number}`}
-        description={order.placed_at ? `Placed ${formatDateTime(order.placed_at)}` : undefined}
+        title={t('commerce.order.title', 'Order {number}', { number: order.number })}
+        description={
+          order.placed_at
+            ? t('commerce.order.placed', 'Placed {date}', {
+                date: formatDateTime(order.placed_at),
+              })
+            : undefined
+        }
         actions={<OrderStatusBadge status={order.status} label={order.status_label} />}
       />
 
@@ -83,11 +90,14 @@ export function OrderDetailRoute() {
           <Alert color="green" icon={<IconCircleCheck size={16} />}>
             <Group justify="space-between" wrap="nowrap">
               <Text size="sm">
-                Paid{order.paid_at ? ` on ${formatDateTime(order.paid_at)}` : ''}. Your courses are
-                ready.
+                {order.paid_at
+                  ? t('commerce.order.paid_on', 'Paid on {date}. Your courses are ready.', {
+                      date: formatDateTime(order.paid_at),
+                    })
+                  : t('commerce.order.paid', 'Paid. Your courses are ready.')}
               </Text>
               <Button component={Link} to="/dashboard/courses" variant="light" size="compact-sm">
-                Start learning
+                {t('commerce.order.start_learning', 'Start learning')}
               </Button>
             </Group>
           </Alert>
@@ -95,8 +105,10 @@ export function OrderDetailRoute() {
 
         {order.status === 'awaiting_payment' && (
           <Alert color="blue" icon={<IconClock size={16} />}>
-            Waiting for your payment to be confirmed. This page will update on its own — you do not
-            need to refresh it.
+            {t(
+              'commerce.order.awaiting',
+              'Waiting for your payment to be confirmed. This page will update on its own — you do not need to refresh it.',
+            )}
           </Alert>
         )}
 
@@ -114,8 +126,13 @@ export function OrderDetailRoute() {
                     lists everything this reader owns.
                   */}
                   {item.purchasable_type === 'download' && order.status === 'paid' ? (
-                    <Anchor component={Link} to="/my-downloads" size="sm" style={{ whiteSpace: 'nowrap' }}>
-                      Download
+                    <Anchor
+                      component={Link}
+                      to="/my-downloads"
+                      size="sm"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      {t('commerce.order.download', 'Download')}
                     </Anchor>
                   ) : null}
                 </Group>
@@ -133,13 +150,17 @@ export function OrderDetailRoute() {
             <Stack gap={4} px="md" pt="md">
               <Group justify="space-between">
                 <Text size="sm" c="dimmed">
-                  Subtotal
+                  {t('commerce.summary.subtotal', 'Subtotal')}
                 </Text>
                 <Text size="sm">{formatMinor(order.subtotal_minor, order.currency)}</Text>
               </Group>
               <Group justify="space-between">
                 <Text size="sm" c="dimmed">
-                  Discount{order.coupon_code ? ` (${order.coupon_code})` : ''}
+                  {order.coupon_code
+                    ? t('commerce.summary.discount_code', 'Discount ({code})', {
+                        code: order.coupon_code,
+                      })
+                    : t('commerce.summary.discount', 'Discount')}
                 </Text>
                 <Text size="sm" c="green.7">
                   −{formatMinor(order.discount_minor, order.currency)}
@@ -149,14 +170,14 @@ export function OrderDetailRoute() {
           ) : null}
 
           <Group justify="space-between" p="md">
-            <Text c="dimmed">Total</Text>
+            <Text c="dimmed">{t('commerce.summary.total', 'Total')}</Text>
             <Title order={4}>{formatMinor(order.total_minor, order.currency)}</Title>
           </Group>
 
           {order.refunded_minor > 0 ? (
             <Group justify="space-between" px="md" pb="md">
               <Text size="sm" c="dimmed">
-                Refunded
+                {t('commerce.summary.refunded', 'Refunded')}
               </Text>
               <Text size="sm">−{formatMinor(order.refunded_minor, order.currency)}</Text>
             </Group>
@@ -178,8 +199,8 @@ export function OrderDetailRoute() {
           <Card withBorder>
             <Stack gap="sm">
               <Select
-                label="Pay with"
-                data={GATEWAYS}
+                label={t('commerce.order.pay_with', 'Pay with')}
+                data={GATEWAYS.map((option) => ({ value: option.value, label: option.label() }))}
                 value={gateway}
                 onChange={(value) => setGateway(value ?? 'stripe')}
                 allowDeselect={false}
@@ -206,12 +227,16 @@ export function OrderDetailRoute() {
                   })
                 }
               >
-                {order.status === 'awaiting_payment' ? 'Try paying again' : 'Pay now'}
+                {order.status === 'awaiting_payment'
+                  ? t('commerce.order.pay_again', 'Try paying again')
+                  : t('commerce.order.pay_now', 'Pay now')}
               </Button>
 
               <Text size="xs" c="dimmed">
-                You will be taken to the payment provider. Your access opens once they confirm the
-                payment, which can take a few seconds.
+                {t(
+                  'commerce.order.pay_note',
+                  'You will be taken to the payment provider. Your access opens once they confirm the payment, which can take a few seconds.',
+                )}
               </Text>
             </Stack>
           </Card>

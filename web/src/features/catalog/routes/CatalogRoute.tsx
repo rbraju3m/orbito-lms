@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
+import { plural, t } from '@/shared/i18n';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
 import { categoriesQuery, courseCatalogQuery } from '../api/queries';
@@ -52,8 +53,8 @@ export function CatalogRoute() {
   return (
     <Container size="xl" py="lg">
       <PageHeader
-        title="Courses"
-        description="Browse everything published on Orbito."
+        title={t('catalog.list.title', 'Courses')}
+        description={t('catalog.list.description', 'Browse everything published on Orbito.')}
         titleRef={heading}
       />
 
@@ -61,9 +62,9 @@ export function CatalogRoute() {
         <TextInput
           value={params.get('q') ?? ''}
           onChange={(event) => setFilter('q', event.currentTarget.value || null)}
-          placeholder="Search courses"
+          placeholder={t('catalog.list.search', 'Search courses')}
           leftSection={<IconSearch size={16} />}
-          aria-label="Search courses"
+          aria-label={t('catalog.list.search', 'Search courses')}
           maxLength={200}
           style={{ flex: '1 1 220px' }}
         />
@@ -71,65 +72,76 @@ export function CatalogRoute() {
           data={(categories ?? []).map((c) => ({ value: c.slug, label: c.name }))}
           value={filters.category ?? null}
           onChange={(value) => setFilter('category', value)}
-          placeholder="Any category"
+          placeholder={t('catalog.list.any_category', 'Any category')}
           clearable
-          aria-label="Category"
+          aria-label={t('catalog.list.category', 'Category')}
           w={{ base: '100%', xs: 180 }}
         />
         <Select
           data={LEVELS}
           value={filters.level ?? null}
           onChange={(value) => setFilter('level', value)}
-          placeholder="Any level"
+          placeholder={t('catalog.list.any_level', 'Any level')}
           clearable
-          aria-label="Level"
+          aria-label={t('catalog.list.level', 'Level')}
           w={{ base: '100%', xs: 150 }}
         />
         <Select
           data={PRICES}
           value={filters.price ?? null}
           onChange={(value) => setFilter('price', value)}
-          placeholder="Any price"
+          placeholder={t('catalog.list.any_price', 'Any price')}
           clearable
-          aria-label="Price"
+          aria-label={t('catalog.list.price', 'Price')}
           w={{ base: '100%', xs: 140 }}
         />
         <Select
           data={SORTS}
           value={filters.sort ?? 'popular'}
           onChange={(value) => setFilter('sort', value === 'popular' ? null : value)}
-          aria-label="Sort by"
+          aria-label={t('catalog.list.sort', 'Sort by')}
           allowDeselect={false}
           w={{ base: '100%', xs: 170 }}
         />
       </Group>
 
-      {isPending ? <LoadingState rows={3} height={220} label="Loading courses" /> : null}
+      {isPending ? (
+        <LoadingState rows={3} height={220} label={t('catalog.list.loading', 'Loading courses')} />
+      ) : null}
       {isError ? <ErrorState error={error} onRetry={() => void refetch()} /> : null}
 
       {/* A shared link to page 9 of a list that has since shrunk. */}
       {data && data.data.length === 0 && data.meta.total > 0 ? (
         <EmptyState
           icon={IconBook}
-          title="This page is past the end of the list"
-          description={`There are ${data.meta.total} courses, on fewer pages than that.`}
-          action={{ label: 'Go to the first page', onClick: () => setPage(1) }}
+          title={t('catalog.list.past_end_title', 'This page is past the end of the list')}
+          description={plural('catalog.list.past_end_body', data.meta.total, {
+            one: 'There is {count} course, on fewer pages than that.',
+            other: 'There are {count} courses, on fewer pages than that.',
+          })}
+          action={{
+            label: t('catalog.list.first_page', 'Go to the first page'),
+            onClick: () => setPage(1),
+          }}
         />
       ) : null}
 
       {data && data.meta.total === 0 && filtered ? (
         <EmptyState
-          title="No courses match these filters"
-          description="Try widening your search."
-          action={{ label: 'Clear filters', onClick: () => setParams({}, { replace: true }) }}
+          title={t('catalog.list.no_match_title', 'No courses match these filters')}
+          description={t('catalog.list.no_match_body', 'Try widening your search.')}
+          action={{
+            label: t('catalog.list.clear_filters', 'Clear filters'),
+            onClick: () => setParams({}, { replace: true }),
+          }}
         />
       ) : null}
 
       {data && data.meta.total === 0 && !filtered ? (
         <EmptyState
           icon={IconBook}
-          title="No courses yet"
-          description="Nothing has been published here so far."
+          title={t('catalog.list.empty_title', 'No courses yet')}
+          description={t('catalog.list.empty_body', 'Nothing has been published here so far.')}
         />
       ) : null}
 
@@ -137,7 +149,10 @@ export function CatalogRoute() {
         <Stack gap="md">
           {/* Announced, so a search that narrows the grid is not silent. */}
           <Text size="sm" c="dimmed" aria-live="polite">
-            {data.meta.total === 1 ? '1 course' : `${data.meta.total} courses`}
+            {plural('catalog.list.count', data.meta.total, {
+              one: '{count} course',
+              other: '{count} courses',
+            })}
           </Text>
 
           <SimpleGrid

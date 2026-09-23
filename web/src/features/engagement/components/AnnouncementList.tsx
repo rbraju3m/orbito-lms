@@ -2,6 +2,7 @@ import { Badge, Card, Group, Stack, Text } from '@mantine/core';
 import { IconSpeakerphone } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 
+import { t } from '@/shared/i18n';
 import { formatDateTime } from '@/shared/lib/datetime';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
 
@@ -24,8 +25,11 @@ export function AnnouncementList({ courseId, limit }: { courseId: string; limit?
     return (
       <EmptyState
         icon={IconSpeakerphone}
-        title="No announcements"
-        description="When the course team posts one, it appears here."
+        title={t('engagement.announcements.empty_title', 'No announcements')}
+        description={t(
+          'engagement.announcements.empty_body',
+          'When the course team posts one, it appears here.',
+        )}
       />
     );
   }
@@ -45,13 +49,13 @@ export function AnnouncementList({ courseId, limit }: { courseId: string; limit?
                */}
               {!announcement.is_published ? (
                 <Badge size="xs" color="warning" variant="light">
-                  Draft
+                  {t('engagement.announcements.draft', 'Draft')}
                 </Badge>
               ) : null}
             </Group>
 
             <Text size="xs" c="dimmed">
-              {announcement.author.name ?? 'Course team'}
+              {announcement.author.name ?? t('engagement.course_team', 'Course team')}
               {announcement.published_at ? ` · ${formatDateTime(announcement.published_at)}` : ''}
             </Text>
 

@@ -4,7 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router';
 
+import { t } from '@/shared/i18n';
 import { formatDate } from '@/shared/lib/datetime';
+import { formatNumber } from '@/shared/lib/number';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
 
 import { discussionsQuery } from '../api/queries';
@@ -41,7 +43,7 @@ export function DiscussionPanel({ courseId, itemId }: { courseId: string; itemId
             size="sm"
             checked={thisLessonOnly}
             onChange={(event) => setThisLessonOnly(event.currentTarget.checked)}
-            label="Only this lesson"
+            label={t('engagement.discussions.this_lesson_only', 'Only this lesson')}
           />
         ) : (
           <span />
@@ -49,7 +51,7 @@ export function DiscussionPanel({ courseId, itemId }: { courseId: string; itemId
 
         {data.meta.can_ask && !asking ? (
           <Button size="compact-sm" variant="light" onClick={() => setAsking(true)}>
-            Ask a question
+            {t('engagement.discussions.ask', 'Ask a question')}
           </Button>
         ) : null}
       </Group>
@@ -67,14 +69,26 @@ export function DiscussionPanel({ courseId, itemId }: { courseId: string; itemId
       {data.data.length === 0 ? (
         <EmptyState
           icon={IconMessageQuestion}
-          title={thisLessonOnly ? 'No questions on this lesson' : 'No questions yet'}
+          title={
+            thisLessonOnly
+              ? t('engagement.discussions.empty_lesson', 'No questions on this lesson')
+              : t('engagement.discussions.empty', 'No questions yet')
+          }
           description={
             data.meta.can_ask
-              ? 'If something is unclear, asking here reaches the people teaching it.'
-              : 'Questions from learners appear here.'
+              ? t(
+                  'engagement.discussions.empty_can',
+                  'If something is unclear, asking here reaches the people teaching it.',
+                )
+              : t('engagement.discussions.empty_cannot', 'Questions from learners appear here.')
           }
           {...(data.meta.can_ask && !asking
-            ? { action: { label: 'Ask a question', onClick: () => setAsking(true) } }
+            ? {
+                action: {
+                  label: t('engagement.discussions.ask', 'Ask a question'),
+                  onClick: () => setAsking(true),
+                },
+              }
             : {})}
         />
       ) : (
@@ -106,7 +120,8 @@ function ThreadRow({ courseId, discussion }: { courseId: string; discussion: Dis
           </Group>
 
           <Text size="xs" c="dimmed" lineClamp={1}>
-            {discussion.author.name ?? 'Former member'} · {formatDate(discussion.created_at)}
+            {discussion.author.name ?? t('engagement.former_member', 'Former member')} ·{' '}
+            {formatDate(discussion.created_at)}
             {discussion.item ? ` · ${discussion.item.title}` : ''}
           </Text>
         </Stack>
@@ -118,17 +133,17 @@ function ThreadRow({ courseId, discussion }: { courseId: string; discussion: Dis
            */}
           {discussion.is_resolved ? (
             <Badge size="xs" color="success" variant="light">
-              Resolved
+              {t('engagement.discussions.resolved', 'Resolved')}
             </Badge>
           ) : null}
           {discussion.status === 'hidden' ? (
             <Badge size="xs" color="danger" variant="light">
-              Hidden
+              {t('engagement.discussions.hidden', 'Hidden')}
             </Badge>
           ) : null}
           <Badge size="xs" variant="default">
             {/* The stored counter, never a subquery per row (§10). */}
-            {discussion.reply_count}
+            {formatNumber(discussion.reply_count)}
           </Badge>
         </Group>
       </Group>

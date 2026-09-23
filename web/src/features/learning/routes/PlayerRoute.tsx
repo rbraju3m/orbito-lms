@@ -24,6 +24,8 @@ import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 
 import { ApiError } from '@/shared/api/errors';
+import { t } from '@/shared/i18n';
+import { formatNumber } from '@/shared/lib/number';
 import { ErrorState, LoadingState, mainContentProps, SkipLink } from '@/shared/ui';
 
 import {
@@ -97,7 +99,7 @@ export function PlayerRoute() {
         <ErrorState
           error={player.error}
           onRetry={() => void player.refetch()}
-          title="Course unavailable"
+          title={t('learning.player.unavailable', 'Course unavailable')}
         />
       </Box>
     );
@@ -142,18 +144,20 @@ export function PlayerRoute() {
       <SkipLink />
 
       {/* A distraction-free shell: the player is not the dashboard. */}
+      {/* A <header>, so the course title and the leave button sit in a landmark. */}
       <Group
+        component="header"
         justify="space-between"
         px="md"
         h={56}
-        bd="0 0 1px 0 solid var(--mantine-color-default-border)"
+        style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
       >
         <Group gap="sm" style={{ minWidth: 0 }}>
           <ActionIcon
             variant="subtle"
             hiddenFrom="lg"
             onClick={openDrawer}
-            aria-label="Open curriculum"
+            aria-label={t('learning.player.open_curriculum', 'Open curriculum')}
           >
             <IconLayoutSidebar size={18} />
           </ActionIcon>
@@ -169,10 +173,12 @@ export function PlayerRoute() {
                 value={progress.percent}
                 w={110}
                 size="sm"
-                aria-label={`${Math.round(progress.percent)} percent complete`}
+                aria-label={t('learning.player.percent_complete', '{percent} percent complete', {
+                  percent: formatNumber(Math.round(progress.percent)),
+                })}
               />
               <Text size="xs" c="dimmed">
-                {Math.round(progress.percent)}%
+                {formatNumber(Math.round(progress.percent))}%
               </Text>
             </Group>
           ) : null}
@@ -181,7 +187,7 @@ export function PlayerRoute() {
             component={Link}
             to={`/courses/${course.slug}`}
             variant="subtle"
-            aria-label="Leave the player"
+            aria-label={t('learning.player.leave', 'Leave the player')}
           >
             <IconX size={18} />
           </ActionIcon>
@@ -191,9 +197,14 @@ export function PlayerRoute() {
       <Group align="stretch" gap={0} wrap="nowrap">
         {isDesktop ? (
           <Box
+            component="nav"
+            aria-label={t('learning.player.course_content', 'Course content')}
             w={320}
-            style={{ flexShrink: 0 }}
-            bd="0 1px 0 0 solid var(--mantine-color-default-border)"
+            // The side facing the lesson, whichever way the script runs.
+            style={{
+              flexShrink: 0,
+              borderInlineEnd: '1px solid var(--mantine-color-default-border)',
+            }}
             h="calc(100dvh - 56px)"
           >
             {sidebar}
@@ -206,13 +217,19 @@ export function PlayerRoute() {
               <Alert
                 color="warning"
                 icon={<IconLock size={16} />}
-                title="You don't have access yet"
+                title={t('learning.player.no_access_title', "You don't have access yet")}
               >
                 <Stack gap="sm" align="flex-start">
                   <Text size="sm">
                     {access.reason === 'enrollment_expired'
-                      ? 'Your access to this course has expired.'
-                      : 'Enrol to open the lessons in this course.'}
+                      ? t(
+                          'learning.player.access_expired',
+                          'Your access to this course has expired.',
+                        )
+                      : t(
+                          'learning.player.enrol_to_open',
+                          'Enrol to open the lessons in this course.',
+                        )}
                   </Text>
                   {access.reason === 'not_enrolled' ? (
                     <Button
@@ -220,7 +237,7 @@ export function PlayerRoute() {
                       loading={enroll.isPending}
                       onClick={() => enroll.mutate(course.id)}
                     >
-                      Enrol for free
+                      {t('learning.player.enrol_free', 'Enrol for free')}
                     </Button>
                   ) : null}
                 </Stack>
@@ -261,7 +278,7 @@ export function PlayerRoute() {
                     disabled={!item.data.previous_id}
                     onClick={() => void navigate(`/learn/${courseId}/${item.data.previous_id}`)}
                   >
-                    Previous
+                    {t('learning.player.previous', 'Previous')}
                   </Button>
 
                   <Group gap="xs">
@@ -281,7 +298,9 @@ export function PlayerRoute() {
                           })
                         }
                       >
-                        {current.status === 'completed' ? 'Completed' : 'Mark complete'}
+                        {current.status === 'completed'
+                          ? t('learning.player.completed', 'Completed')
+                          : t('learning.player.mark_complete', 'Mark complete')}
                       </Button>
                     ) : null}
 
@@ -290,7 +309,7 @@ export function PlayerRoute() {
                       disabled={!item.data.next_id}
                       onClick={() => void navigate(`/learn/${courseId}/${item.data.next_id}`)}
                     >
-                      Next
+                      {t('learning.player.next', 'Next')}
                     </Button>
                   </Group>
                 </Group>
@@ -302,24 +321,28 @@ export function PlayerRoute() {
                       loading={completeCourse.isPending}
                       onClick={() => completeCourse.mutate()}
                     >
-                      Mark the whole course complete
+                      {t('learning.player.complete_course', 'Mark the whole course complete')}
                     </Button>
                   </Group>
                 ) : null}
 
                 {progress?.is_complete ? (
                   <Alert color="success" icon={<IconCheck size={16} />}>
-                    You've completed this course.
+                    {t('learning.player.course_done', "You've completed this course.")}
                   </Alert>
                 ) : null}
 
                 <Tabs defaultValue="notes" keepMounted={false}>
                   <Tabs.List>
-                    <Tabs.Tab value="notes">Notes</Tabs.Tab>
-                    <Tabs.Tab value="qa">Q&amp;A</Tabs.Tab>
-                    <Tabs.Tab value="announcements">Announcements</Tabs.Tab>
-                    <Tabs.Tab value="live">Live</Tabs.Tab>
-                    <Tabs.Tab value="leaderboard">Leaderboard</Tabs.Tab>
+                    <Tabs.Tab value="notes">{t('learning.player.tab_notes', 'Notes')}</Tabs.Tab>
+                    <Tabs.Tab value="qa">{t('learning.player.tab_qa', 'Q&A')}</Tabs.Tab>
+                    <Tabs.Tab value="announcements">
+                      {t('learning.player.tab_announcements', 'Announcements')}
+                    </Tabs.Tab>
+                    <Tabs.Tab value="live">{t('learning.player.tab_live', 'Live')}</Tabs.Tab>
+                    <Tabs.Tab value="leaderboard">
+                      {t('learning.player.tab_leaderboard', 'Leaderboard')}
+                    </Tabs.Tab>
                   </Tabs.List>
 
                   <Tabs.Panel value="notes" pt="md">
@@ -362,7 +385,7 @@ export function PlayerRoute() {
                           component={Link}
                           to={`/learn/${courseId}/announcements`}
                         >
-                          See all announcements
+                          {t('learning.player.all_announcements', 'See all announcements')}
                         </Button>
                       </Group>
                     </Stack>
@@ -377,7 +400,7 @@ export function PlayerRoute() {
       <Drawer
         opened={drawerOpen && !isDesktop}
         onClose={closeDrawer}
-        title="Course content"
+        title={t('learning.player.course_content', 'Course content')}
         size="sm"
         padding={0}
       >

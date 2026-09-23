@@ -5,12 +5,25 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { ApiError } from '@/shared/api/errors';
+import { t } from '@/shared/i18n';
 
 import { useAskQuestion } from '../api/queries';
 
+// Messages are functions, read when validation runs — after the reader's
+// catalogue has loaded — not when this module does.
 const schema = z.object({
-  title: z.string().trim().min(5, 'Say what you are asking in a line.').max(200),
-  body: z.string().trim().min(1, 'Add some detail.').max(5000),
+  title: z
+    .string()
+    .trim()
+    .min(5, {
+      error: () => t('engagement.ask.title_required', 'Say what you are asking in a line.'),
+    })
+    .max(200),
+  body: z
+    .string()
+    .trim()
+    .min(1, { error: () => t('engagement.ask.body_required', 'Add some detail.') })
+    .max(5000),
 });
 
 type AskFormValues = z.infer<typeof schema>;
@@ -60,15 +73,18 @@ export function AskQuestionForm({
         ) : null}
 
         <TextInput
-          label="Question"
-          placeholder="What are you stuck on?"
+          label={t('engagement.ask.question', 'Question')}
+          placeholder={t('engagement.ask.question_placeholder', 'What are you stuck on?')}
           error={errors.title?.message}
           {...register('title')}
         />
 
         <Textarea
-          label="Details"
-          placeholder="What have you tried, and what happened?"
+          label={t('engagement.ask.details', 'Details')}
+          placeholder={t(
+            'engagement.ask.details_placeholder',
+            'What have you tried, and what happened?',
+          )}
           minRows={3}
           autosize
           error={errors.body?.message}
@@ -78,11 +94,11 @@ export function AskQuestionForm({
         <Group justify="flex-end" gap="xs">
           {onDone ? (
             <Button variant="subtle" type="button" onClick={onDone}>
-              Cancel
+              {t('engagement.cancel', 'Cancel')}
             </Button>
           ) : null}
           <Button type="submit" loading={isSubmitting || ask.isPending}>
-            Ask
+            {t('engagement.ask.submit', 'Ask')}
           </Button>
         </Group>
       </Stack>

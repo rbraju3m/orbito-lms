@@ -15,6 +15,8 @@ import { IconCircleCheck, IconStarFilled, IconUsers } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router';
 
+import { plural, t } from '@/shared/i18n';
+import { formatNumber } from '@/shared/lib/number';
 import { ErrorState, LoadingState } from '@/shared/ui';
 
 import { useTrackView } from '@/features/analytics/hooks/useTrackView';
@@ -52,7 +54,11 @@ export function CourseDetailRoute() {
   if (isError) {
     return (
       <Container size="lg" py="lg">
-        <ErrorState error={error} onRetry={() => void refetch()} title="Course not found" />
+        <ErrorState
+          error={error}
+          onRetry={() => void refetch()}
+          title={t('catalog.detail.not_found', 'Course not found')}
+        />
       </Container>
     );
   }
@@ -94,20 +100,34 @@ export function CourseDetailRoute() {
                 <Group gap={4}>
                   <IconStarFilled size={15} color="var(--mantine-color-warning-6)" />
                   <Text size="sm">
-                    {data.rating_avg.toFixed(1)} ({data.rating_count} reviews)
+                    {plural(
+                      'catalog.detail.rating',
+                      data.rating_count,
+                      { one: '{rating} ({count} review)', other: '{rating} ({count} reviews)' },
+                      {
+                        rating: formatNumber(data.rating_avg, {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        }),
+                      },
+                    )}
                   </Text>
                 </Group>
               ) : null}
               <Group gap={4}>
                 <IconUsers size={15} />
-                <Text size="sm">{data.enrollment_count} enrolled</Text>
+                <Text size="sm">
+                  {t('catalog.detail.enrolled', '{count} enrolled', {
+                    count: formatNumber(data.enrollment_count),
+                  })}
+                </Text>
               </Group>
             </Group>
 
             {data.detail && data.detail.objectives.length > 0 ? (
               <Card>
-                <Title order={3} mb="sm">
-                  What you'll learn
+                <Title order={2} size="h3" mb="sm">
+                  {t('catalog.detail.objectives', "What you'll learn")}
                 </Title>
                 <List spacing="xs" icon={<IconCircleCheck size={16} />}>
                   {data.detail.objectives.map((objective) => (
@@ -119,7 +139,9 @@ export function CourseDetailRoute() {
 
             {data.description ? (
               <Stack gap="sm">
-                <Title order={3}>About this course</Title>
+                <Title order={2} size="h3">
+                  {t('catalog.detail.about', 'About this course')}
+                </Title>
                 <Text className="orbito-prose" style={{ whiteSpace: 'pre-wrap' }}>
                   {data.description}
                 </Text>
@@ -128,7 +150,9 @@ export function CourseDetailRoute() {
 
             {data.detail && data.detail.requirements.length > 0 ? (
               <Stack gap="sm">
-                <Title order={3}>Requirements</Title>
+                <Title order={2} size="h3">
+                  {t('catalog.detail.requirements', 'Requirements')}
+                </Title>
                 <List spacing={4}>
                   {data.detail.requirements.map((requirement) => (
                     <List.Item key={requirement}>{requirement}</List.Item>
@@ -170,7 +194,7 @@ export function CourseDetailRoute() {
 
               <Stack gap={4}>
                 <Text size="sm" fw={600}>
-                  Instructors
+                  {t('catalog.detail.instructors', 'Instructors')}
                 </Text>
                 {data.instructors?.map((instructor) => (
                   <Group key={instructor.id} gap="xs" justify="space-between">

@@ -12,7 +12,9 @@ import {
 import { IconCircle, IconCircleCheckFilled, IconLock, IconPlayerPlay } from '@tabler/icons-react';
 
 import { formatDuration } from '@/features/curriculum/hooks/useCurriculumTree';
+import { t } from '@/shared/i18n';
 import { formatDate } from '@/shared/lib/datetime';
+import { formatNumber } from '@/shared/lib/number';
 
 import type { CourseProgress, LearnerItem, LearnerSection } from '../api/types';
 
@@ -41,16 +43,21 @@ export function CurriculumPanel({
         <Stack gap={4} px="sm" pt="sm">
           <Group justify="space-between">
             <Text size="xs" fw={600}>
-              {progress.completed_items} of {progress.total_items} complete
+              {t('learning.outline.progress', '{completed} of {total} complete', {
+                completed: formatNumber(progress.completed_items),
+                total: formatNumber(progress.total_items),
+              })}
             </Text>
             <Text size="xs" c="dimmed">
-              {Math.round(progress.percent)}%
+              {formatNumber(Math.round(progress.percent))}%
             </Text>
           </Group>
           <Progress
             value={progress.percent}
             size="sm"
-            aria-label={`Course progress: ${Math.round(progress.percent)} percent`}
+            aria-label={t('learning.outline.progress_label', 'Course progress: {percent} percent', {
+              percent: formatNumber(Math.round(progress.percent)),
+            })}
           />
         </Stack>
       ) : null}
@@ -73,7 +80,7 @@ export function CurriculumPanel({
                     {section.title}
                   </Text>
                   <Text size="xs" c="dimmed">
-                    {section.items.length}
+                    {formatNumber(section.items.length)}
                   </Text>
                 </Group>
               </Accordion.Control>
@@ -121,7 +128,10 @@ function ItemRow({
    */
   const dripped = item.is_locked;
   const hint = dripped
-    ? (item.blocked_by ?? (item.unlocks_at ? `Unlocks ${formatDate(item.unlocks_at)}` : null))
+    ? (item.blocked_by ??
+      (item.unlocks_at
+        ? t('learning.outline.unlocks', 'Unlocks {date}', { date: formatDate(item.unlocks_at) })
+        : null))
     : null;
 
   return (
@@ -158,14 +168,16 @@ function ItemRow({
           </Text>
           {hint ? (
             <Text size="xs" c="dimmed" lineClamp={1}>
-              {item.blocked_by ? `After “${item.blocked_by}”` : hint}
+              {item.blocked_by
+                ? t('learning.outline.after', 'After “{title}”', { title: item.blocked_by })
+                : hint}
             </Text>
           ) : null}
         </Stack>
 
         {item.is_preview && locked ? (
           <Badge size="xs" variant="light" color="success">
-            Free
+            {t('learning.outline.free', 'Free')}
           </Badge>
         ) : null}
 

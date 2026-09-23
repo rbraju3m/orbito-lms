@@ -2,6 +2,9 @@ import { Badge, Card, Group, Image, Stack, Text, Title } from '@mantine/core';
 import { IconStarFilled, IconUsers } from '@tabler/icons-react';
 import { Link } from 'react-router';
 
+import { t } from '@/shared/i18n';
+import { formatNumber } from '@/shared/lib/number';
+
 import type { CourseListItem } from '../api/types';
 
 export interface CourseCardProps {
@@ -65,7 +68,11 @@ export function CourseCard({ course, to, headingOrder = 2 }: CourseCardProps) {
             <Group gap={4}>
               <IconStarFilled size={13} color="var(--mantine-color-warning-6)" />
               <Text size="xs" c="dimmed">
-                {course.rating_avg.toFixed(1)} ({course.rating_count})
+                {formatNumber(course.rating_avg, {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}{' '}
+                ({formatNumber(course.rating_count)})
               </Text>
             </Group>
           ) : null}
@@ -73,13 +80,13 @@ export function CourseCard({ course, to, headingOrder = 2 }: CourseCardProps) {
           <Group gap={4}>
             <IconUsers size={13} />
             <Text size="xs" c="dimmed">
-              {course.enrollment_count}
+              {formatNumber(course.enrollment_count)}
             </Text>
           </Group>
 
           {course.pricing_model === 'free' ? (
             <Text size="xs" fw={600} c="success">
-              Free
+              {t('catalog.card.free', 'Free')}
             </Text>
           ) : null}
         </Group>

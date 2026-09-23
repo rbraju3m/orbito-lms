@@ -26,6 +26,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
+import { plural, t } from '@/shared/i18n';
 import { formatDateTime } from '@/shared/lib/datetime';
 import { ErrorState, LoadingState } from '@/shared/ui';
 
@@ -60,7 +61,11 @@ export function DiscussionRoute() {
   if (isError) {
     return (
       <Container size="md" py="lg">
-        <ErrorState error={error} onRetry={() => void refetch()} title="Thread unavailable" />
+        <ErrorState
+          error={error}
+          onRetry={() => void refetch()}
+          title={t('engagement.thread.unavailable', 'Thread unavailable')}
+        />
       </Container>
     );
   }
@@ -78,19 +83,22 @@ export function DiscussionRoute() {
             component={Link}
             to={`/learn/${courseId}`}
             variant="subtle"
-            aria-label="Back to the course"
+            aria-label={t('engagement.back_to_course', 'Back to the course')}
           >
             <IconArrowLeft size={18} />
           </ActionIcon>
           <Text size="sm" c="dimmed">
-            Back to the course
+            {t('engagement.back_to_course', 'Back to the course')}
           </Text>
         </Group>
 
         <Stack gap="xs">
           <Group gap="xs" wrap="wrap">
             {data.is_pinned ? <IconPin size={16} /> : null}
-            <Title order={2}>{data.title}</Title>
+            {/* The page's h1: nothing above it on this route. */}
+            <Title order={1} size="h2">
+              {data.title}
+            </Title>
           </Group>
 
           <Group gap="xs">
@@ -105,15 +113,23 @@ export function DiscussionRoute() {
               {data.status_label}
             </Badge>
             <Text size="xs" c="dimmed">
-              {data.author.name ?? 'Former member'} · {formatDateTime(data.created_at)}
+              {data.author.name ?? t('engagement.former_member', 'Former member')} ·{' '}
+              {formatDateTime(data.created_at)}
               {data.item ? ` · ${data.item.title}` : ''}
             </Text>
           </Group>
         </Stack>
 
         {data.status === 'hidden' ? (
-          <Alert color="danger" icon={<IconEyeOff size={16} />} title="Hidden">
-            A moderator has hidden this thread. Only moderators can see it — its author cannot.
+          <Alert
+            color="danger"
+            icon={<IconEyeOff size={16} />}
+            title={t('engagement.discussions.hidden', 'Hidden')}
+          >
+            {t(
+              'engagement.thread.hidden_body',
+              'A moderator has hidden this thread. Only moderators can see it — its author cannot.',
+            )}
           </Alert>
         ) : null}
 
@@ -124,13 +140,16 @@ export function DiscussionRoute() {
         <ModerationBar courseId={courseId} discussion={data} />
 
         <Stack gap="sm">
-          <Title order={4}>
-            {data.reply_count} {data.reply_count === 1 ? 'reply' : 'replies'}
+          <Title order={2} size="h4">
+            {plural('engagement.thread.replies', data.reply_count, {
+              one: '{count} reply',
+              other: '{count} replies',
+            })}
           </Title>
 
           {topLevel.length === 0 ? (
             <Text size="sm" c="dimmed">
-              Nobody has answered yet.
+              {t('engagement.thread.no_answers', 'Nobody has answered yet.')}
             </Text>
           ) : (
             topLevel.map((reply) => (
@@ -146,7 +165,11 @@ export function DiscussionRoute() {
         </Stack>
 
         {data.viewer?.can_reply ? (
-          <ReplyBox courseId={courseId} discussionId={data.id} label="Add a reply" />
+          <ReplyBox
+            courseId={courseId}
+            discussionId={data.id}
+            label={t('engagement.thread.add_reply', 'Add a reply')}
+          />
         ) : null}
       </Stack>
     </Container>
@@ -167,7 +190,9 @@ function ModerationBar({ courseId, discussion }: { courseId: string; discussion:
         loading={moderate.isPending}
         onClick={() => moderate.mutate({ id: discussion.id, is_pinned: !discussion.is_pinned })}
       >
-        {discussion.is_pinned ? 'Unpin' : 'Pin'}
+        {discussion.is_pinned
+          ? t('engagement.thread.unpin', 'Unpin')
+          : t('engagement.thread.pin', 'Pin')}
       </Button>
 
       <Button
@@ -183,7 +208,9 @@ function ModerationBar({ courseId, discussion }: { courseId: string; discussion:
           })
         }
       >
-        {discussion.status === 'hidden' ? 'Unhide' : 'Hide'}
+        {discussion.status === 'hidden'
+          ? t('engagement.thread.unhide', 'Unhide')
+          : t('engagement.thread.hide', 'Hide')}
       </Button>
     </Group>
   );
@@ -215,7 +242,7 @@ function ReplyCard({
         <Group justify="space-between" wrap="nowrap" align="flex-start">
           <Group gap="xs" wrap="wrap">
             <Text size="sm" fw={600}>
-              {reply.author.name ?? 'Former member'}
+              {reply.author.name ?? t('engagement.former_member', 'Former member')}
             </Text>
             {/*
              * Read off a stored flag, not recomputed: somebody who answered as
@@ -223,12 +250,12 @@ function ReplyCard({
              */}
             {reply.is_instructor_reply ? (
               <Badge size="xs" variant="light">
-                Course team
+                {t('engagement.course_team', 'Course team')}
               </Badge>
             ) : null}
             {isAccepted ? (
               <Badge size="xs" color="success" leftSection={<IconCircleCheck size={11} />}>
-                Accepted answer
+                {t('engagement.thread.accepted', 'Accepted answer')}
               </Badge>
             ) : null}
             <Text size="xs" c="dimmed">
@@ -238,12 +265,18 @@ function ReplyCard({
 
           <Menu position="bottom-end" withinPortal>
             <Menu.Target>
-              <ActionIcon variant="subtle" size="sm" aria-label="Reply actions">
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                aria-label={t('engagement.thread.reply_actions', 'Reply actions')}
+              >
                 <IconDotsVertical size={15} />
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item onClick={() => setReplying(true)}>Reply</Menu.Item>
+              <Menu.Item onClick={() => setReplying(true)}>
+                {t('engagement.thread.reply', 'Reply')}
+              </Menu.Item>
 
               {canAccept ? (
                 <Menu.Item
@@ -256,7 +289,9 @@ function ReplyCard({
                     })
                   }
                 >
-                  {isAccepted ? 'Un-accept' : 'Accept as answer'}
+                  {isAccepted
+                    ? t('engagement.thread.unaccept', 'Un-accept')
+                    : t('engagement.thread.accept', 'Accept as answer')}
                 </Menu.Item>
               ) : null}
 
@@ -266,7 +301,7 @@ function ReplyCard({
                   leftSection={<IconTrash size={14} />}
                   onClick={() => remove.mutate(reply.id)}
                 >
-                  Delete
+                  {t('engagement.thread.delete', 'Delete')}
                 </Menu.Item>
               ) : null}
             </Menu.Dropdown>
@@ -285,11 +320,11 @@ function ReplyCard({
               <Box key={child.id}>
                 <Group gap="xs">
                   <Text size="sm" fw={600}>
-                    {child.author.name ?? 'Former member'}
+                    {child.author.name ?? t('engagement.former_member', 'Former member')}
                   </Text>
                   {child.is_instructor_reply ? (
                     <Badge size="xs" variant="light">
-                      Course team
+                      {t('engagement.course_team', 'Course team')}
                     </Badge>
                   ) : null}
                   <Text size="xs" c="dimmed">
@@ -307,7 +342,11 @@ function ReplyCard({
             courseId={courseId}
             discussionId={discussion.id}
             parentId={reply.id}
-            label={`Reply to ${reply.author.name ?? 'this'}`}
+            label={
+              reply.author.name
+                ? t('engagement.thread.reply_to', 'Reply to {name}', { name: reply.author.name })
+                : t('engagement.thread.reply_to_this', 'Reply to this')
+            }
             onDone={() => setReplying(false)}
           />
         ) : null}
@@ -340,12 +379,12 @@ function ReplyBox({
         onChange={(event) => setBody(event.currentTarget.value)}
         minRows={3}
         autosize
-        placeholder="Write your reply"
+        placeholder={t('engagement.thread.reply_placeholder', 'Write your reply')}
       />
       <Group justify="flex-end" gap="xs">
         {onDone ? (
           <Button size="compact-sm" variant="subtle" onClick={onDone}>
-            Cancel
+            {t('engagement.cancel', 'Cancel')}
           </Button>
         ) : null}
         <Button
@@ -364,7 +403,7 @@ function ReplyBox({
             )
           }
         >
-          Reply
+          {t('engagement.thread.reply', 'Reply')}
         </Button>
       </Group>
     </Stack>

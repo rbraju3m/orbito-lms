@@ -18,6 +18,8 @@ import { learnKeys } from '@/features/learning/api/queries';
 import type { CourseProgress } from '@/features/learning/api/types';
 import { apiGetRaw } from '@/shared/api/client';
 import type { Paginated } from '@/shared/api/types';
+import { plural, t } from '@/shared/i18n';
+import { formatNumber } from '@/shared/lib/number';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
 interface EnrolledRow {
@@ -26,10 +28,11 @@ interface EnrolledRow {
   enrollment_status: string | null;
 }
 
-const FILTERS = [
-  { value: 'all', label: 'All' },
-  { value: 'in_progress', label: 'In progress' },
-  { value: 'completed', label: 'Completed' },
+// A function: built during render, after the reader's catalogue has arrived.
+const filters = () => [
+  { value: 'all', label: t('dashboard.my.filter_all', 'All') },
+  { value: 'in_progress', label: t('dashboard.my.filter_in_progress', 'In progress') },
+  { value: 'completed', label: t('dashboard.my.filter_completed', 'Completed') },
 ];
 
 /**
@@ -37,11 +40,18 @@ const FILTERS = [
  * finished course stays open, which is the point of `grantsAccess()` on the
  * server including it.
  */
-const CLOSED_STATES: Record<string, string | undefined> = {
-  expired: 'Access expired',
-  suspended: 'Access suspended',
-  cancelled: 'Access revoked',
-};
+function closedState(status: string | null): string | undefined {
+  switch (status) {
+    case 'expired':
+      return t('dashboard.my.access_expired', 'Access expired');
+    case 'suspended':
+      return t('dashboard.my.access_suspended', 'Access suspended');
+    case 'cancelled':
+      return t('dashboard.my.access_revoked', 'Access revoked');
+    default:
+      return undefined;
+  }
+}
 
 export function MyCoursesRoute() {
   const [filter, setFilter] = useState('all');
@@ -55,20 +65,30 @@ export function MyCoursesRoute() {
 
   return (
     <Container size="lg" py="lg">
-      <PageHeader title="My learning" description="Courses you are enrolled in." />
+      <PageHeader
+        title={t('dashboard.my.title', 'My learning')}
+        description={t('dashboard.my.description', 'Courses you are enrolled in.')}
+      />
 
-      <SegmentedControl data={FILTERS} value={filter} onChange={setFilter} size="sm" mb="lg" />
+      <SegmentedControl data={filters()} value={filter} onChange={setFilter} size="sm" mb="lg" />
 
       {isPending ? <LoadingState rows={3} height={90} /> : null}
       {isError ? <ErrorState error={error} onRetry={() => void refetch()} /> : null}
 
       {data && data.data.length === 0 ? (
         <EmptyState
-          title={filter === 'all' ? "You're not enrolled in anything yet" : 'Nothing here'}
+          title={
+            filter === 'all'
+              ? t('dashboard.my.empty_all_title', "You're not enrolled in anything yet")
+              : t('dashboard.my.empty_filtered_title', 'Nothing here')
+          }
           description={
             filter === 'all'
-              ? 'Browse the catalogue and enrol in something that looks useful.'
-              : 'Try a different filter.'
+              ? t(
+                  'dashboard.my.empty_all_body',
+                  'Browse the catalogue and enrol in something that looks useful.',
+                )
+              : t('dashboard.my.empty_filtered_body', 'Try a different filter.')
           }
         />
       ) : null}
@@ -85,16 +105,25 @@ export function MyCoursesRoute() {
                   value={row.progress.percent}
                   size="sm"
                   color={row.progress.is_complete ? 'success' : undefined}
-                  aria-label={`${Math.round(row.progress.percent)} percent complete`}
+                  aria-label={t('dashboard.progress.percent', '{percent} percent complete', {
+                    percent: formatNumber(Math.round(row.progress.percent)),
+                  })}
                 />
                 <Group justify="space-between">
                   <Text size="xs" c="dimmed">
-                    {row.progress.completed_items} of {row.progress.total_items} lessons
+                    {plural(
+                      'dashboard.progress.lessons',
+                      row.progress.total_items,
+                      { other: '{done} of {count} lessons' },
+                      { done: formatNumber(row.progress.completed_items) },
+                    )}
                   </Text>
                   <Text size="xs" c={row.progress.is_complete ? 'success' : 'dimmed'}>
                     {row.progress.is_complete
-                      ? 'Completed'
-                      : `${Math.round(row.progress.percent)}%`}
+                      ? t('dashboard.my.completed', 'Completed')
+                      : t('dashboard.progress.percent_short', '{percent}%', {
+                          percent: formatNumber(Math.round(row.progress.percent)),
+                        })}
                   </Text>
                 </Group>
 
@@ -103,9 +132,9 @@ export function MyCoursesRoute() {
                   card. Letting them click through to a 423 they cannot act on
                   is the "row that 403s when clicked" failure in a new place.
                 */}
-                {CLOSED_STATES[row.enrollment_status ?? ''] ? (
+                {closedState(row.enrollment_status) ? (
                   <Badge color="gray" variant="light" size="sm">
-                    {CLOSED_STATES[row.enrollment_status ?? '']}
+                    {closedState(row.enrollment_status)}
                   </Badge>
                 ) : null}
               </Stack>

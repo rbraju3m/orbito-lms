@@ -25,7 +25,8 @@ function usedKeys(): { messages: Set<string>; plurals: Set<string> } {
   const plurals = new Set<string>();
 
   for (const source of Object.values(sources)) {
-    for (const [, key] of source.matchAll(/\bt\(\s*'([a-z][\w.-]*)'/g)) if (key) messages.add(key);
+    for (const [, key] of source.matchAll(/\b(?:t|rich)\(\s*'([a-z][\w.-]*)'/g))
+      if (key) messages.add(key);
     for (const [, key] of source.matchAll(/\bplural\(\s*'([a-z][\w.-]*)'/g))
       if (key) plurals.add(key);
   }
@@ -70,6 +71,19 @@ describe('catalogues', () => {
   }
 
   it('finds the keys the source uses', () => {
-    expect(messages.size + plurals.size).toBeGreaterThanOrEqual(0);
+    expect(messages.size + plurals.size).toBeGreaterThan(0);
+  });
+
+  /*
+   * A key built at runtime — t(`catalog.level.${x}`) — is invisible to the
+   * checks above, so it could be missing from every catalogue and nothing
+   * would say. Map the cases to literal calls instead.
+   */
+  it('uses no key the checks cannot see', () => {
+    const dynamic = Object.entries(sources)
+      .filter(([, source]) => /\b(?:t|rich|plural)\(\s*[`"]/.test(source))
+      .map(([path]) => path);
+
+    expect(dynamic).toEqual([]);
   });
 });

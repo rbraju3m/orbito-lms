@@ -1,11 +1,16 @@
 import { Group, Pagination, useMatches } from '@mantine/core';
 
-const CONTROL_LABELS = {
-  first: 'First page',
-  previous: 'Previous page',
-  next: 'Next page',
-  last: 'Last page',
-} as const;
+import { t } from '@/shared/i18n';
+import { formatNumber } from '@/shared/lib/number';
+
+// A function: called during render, after the reader's catalogue has arrived.
+const controlLabels = () =>
+  ({
+    first: t('catalog.pager.first', 'First page'),
+    previous: t('catalog.pager.previous', 'Previous page'),
+    next: t('catalog.pager.next', 'Next page'),
+    last: t('catalog.pager.last', 'Last page'),
+  }) as const;
 
 export interface CoursePagerProps {
   /** The page ASKED for — while the next one loads, the data still holds the last. */
@@ -22,6 +27,8 @@ export function CoursePager({ page, total, onChange }: CoursePagerProps) {
 
   if (total <= 1) return null;
 
+  const labels = controlLabels();
+
   return (
     <Group justify="center">
       <Pagination
@@ -29,8 +36,10 @@ export function CoursePager({ page, total, onChange }: CoursePagerProps) {
         onChange={onChange}
         total={total}
         siblings={siblings}
-        getControlProps={(control) => ({ 'aria-label': CONTROL_LABELS[control] })}
-        getItemProps={(item) => ({ 'aria-label': `Page ${item}` })}
+        getControlProps={(control) => ({ 'aria-label': labels[control] })}
+        getItemProps={(item) => ({
+          'aria-label': t('catalog.pager.page', 'Page {page}', { page: formatNumber(item) }),
+        })}
       />
     </Group>
   );

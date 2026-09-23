@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 
 import { ApiError } from '@/shared/api/errors';
+import { plural, t } from '@/shared/i18n';
 import { formatMinor } from '@/shared/lib/money';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
@@ -36,12 +37,18 @@ export function CartRoute() {
   if (cart.items.length === 0) {
     return (
       <Container size="md" py="lg">
-        <PageHeader title="Your basket" />
+        <PageHeader title={t('commerce.cart.title', 'Your basket')} />
         <EmptyState
           icon={IconShoppingCart}
-          title="Your basket is empty"
-          description="Courses you add will appear here until you check out."
-          action={{ label: 'Browse courses', onClick: () => void navigate('/courses') }}
+          title={t('commerce.cart.empty_title', 'Your basket is empty')}
+          description={t(
+            'commerce.cart.empty_body',
+            'Courses you add will appear here until you check out.',
+          )}
+          action={{
+            label: t('commerce.cart.browse', 'Browse courses'),
+            onClick: () => void navigate('/courses'),
+          }}
         />
       </Container>
     );
@@ -52,8 +59,11 @@ export function CartRoute() {
   return (
     <Container size="md" py="lg">
       <PageHeader
-        title="Your basket"
-        description={`${cart.item_count} ${cart.item_count === 1 ? 'course' : 'courses'}`}
+        title={t('commerce.cart.title', 'Your basket')}
+        description={plural('commerce.cart.count', cart.item_count, {
+          one: '{count} course',
+          other: '{count} courses',
+        })}
         actions={
           <Button
             variant="subtle"
@@ -61,7 +71,7 @@ export function CartRoute() {
             loading={clearCart.isPending}
             onClick={() => clearCart.mutate()}
           >
-            Empty basket
+            {t('commerce.cart.clear', 'Empty basket')}
           </Button>
         }
       />
@@ -89,8 +99,14 @@ export function CartRoute() {
         {unavailable.length > 0 && (
           <Alert color="yellow" icon={<IconAlertTriangle size={16} />}>
             {unavailable.length === 1
-              ? `“${unavailable[0]?.title}” is no longer for sale. Remove it to continue.`
-              : `${unavailable.length} courses are no longer for sale. Remove them to continue.`}
+              ? t(
+                  'commerce.cart.unavailable_one',
+                  '“{title}” is no longer for sale. Remove it to continue.',
+                  { title: unavailable[0]?.title ?? '' },
+                )
+              : plural('commerce.cart.unavailable_many', unavailable.length, {
+                  other: '{count} courses are no longer for sale. Remove them to continue.',
+                })}
           </Alert>
         )}
 
@@ -111,13 +127,17 @@ export function CartRoute() {
             <Stack gap={4} mt="sm">
               <Group justify="space-between">
                 <Text size="sm" c="dimmed">
-                  Subtotal
+                  {t('commerce.summary.subtotal', 'Subtotal')}
                 </Text>
                 <Text size="sm">{formatMinor(cart.estimated_subtotal_minor, cart.currency)}</Text>
               </Group>
               <Group justify="space-between">
                 <Text size="sm" c="dimmed">
-                  Discount{cart.coupon ? ` (${cart.coupon.code})` : ''}
+                  {cart.coupon
+                    ? t('commerce.summary.discount_code', 'Discount ({code})', {
+                        code: cart.coupon.code,
+                      })
+                    : t('commerce.summary.discount', 'Discount')}
                 </Text>
                 <Text size="sm" c="green.7">
                   −{formatMinor(cart.estimated_discount_minor, cart.currency)}
@@ -129,12 +149,12 @@ export function CartRoute() {
           <Divider my="sm" />
 
           <Group justify="space-between" align="baseline">
-            <Text c="dimmed">Estimated total</Text>
+            <Text c="dimmed">{t('commerce.cart.estimated_total', 'Estimated total')}</Text>
             <Title order={3}>{formatMinor(cart.estimated_total_minor, cart.currency)}</Title>
           </Group>
 
           <Text size="xs" c="dimmed" mt={4}>
-            Prices are confirmed when you check out.
+            {t('commerce.cart.estimate_note', 'Prices are confirmed when you check out.')}
           </Text>
 
           <Button
@@ -150,7 +170,7 @@ export function CartRoute() {
               })
             }
           >
-            Check out
+            {t('commerce.cart.checkout', 'Check out')}
           </Button>
         </Card>
       </Stack>
@@ -177,7 +197,7 @@ function CartLineRow({
         </Text>
         {!line.is_available && (
           <Text size="xs" c="yellow.7">
-            No longer for sale
+            {t('commerce.cart.line_unavailable', 'No longer for sale')}
           </Text>
         )}
       </Stack>
@@ -193,7 +213,9 @@ function CartLineRow({
           size="compact-sm"
           loading={removing}
           onClick={onRemove}
-          aria-label={`Remove ${line.title} from your basket`}
+          aria-label={t('commerce.cart.remove_line', 'Remove {title} from your basket', {
+            title: line.title,
+          })}
         >
           <IconTrash size={16} />
         </Button>

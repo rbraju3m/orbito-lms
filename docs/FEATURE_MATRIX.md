@@ -355,10 +355,10 @@ still agree to the minor unit. `CouponRevenueTest` asserts it.
 | O2 | Page builder (block-based) | Via WP builders | Yes | **P16 · partial** | Pages of blocks at `/a/:academy/p/:slug` from a closed set — heading, text, image, button, chosen courses, upcoming events, latest posts, lead form — saved as one whole list, resolved with the public scopes at render. One page may be the site's front page; pages can be linked from the header (`PAGES.md`). No custom HTML, columns or revisions |
 | O3 | Landing / course sales page templates | Themes | Yes | **P16 · partial** | The academy's public site at `/a/:academy` — its own header, a course grid, a course sales page and an event page, readable with no account (`/api/v1/public/{academy}`, the first anonymous surface). The standard front page is fixed, and a page built with the page builder (O2) can replace it |
 | O4 | Lead capture forms | — | Yes | **P16** | A form on the public front page and every course sales page; `/admin/leads` to work them, a formula-safe CSV export and a `lead.captured` webhook. The first anonymous WRITE, so it ships with its own abuse story (`LEADS.md` §2): encrypted form token, honeypot, three limits, one row per address, one answer for every outcome. No CAPTCHA, no double opt-in, no staff digest yet |
-| O5 | Multilingual UI | Core (i18n) | Upcoming | **P4 · M** (foundation) | i18n from day one |
+| O5 | **Multilingual UI** | Core (i18n) | Upcoming | **P16 · I1–I2** | **One server-resolved locale; English in the source, lazy Bengali catalogues; learner area translated (`I18N.md`)** |
 | O6 | Multilingual content (course translations) | Requires plugin | Upcoming | P16 | Model designed in P1 |
 | O7 | Light / dark / system theme | Core | — | **P2 · M** | |
-| O8 | RTL | Core | — | P16 | |
+| O8 | RTL | Core | — | P16 | **Foundation only: logical styles enforced by a test, `dir` from the locale; no RTL language yet (`I18N.md`)** |
 
 ## P. AI
 

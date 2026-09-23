@@ -1,3 +1,4 @@
+import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { formatDate } from '@/shared/lib/datetime';
@@ -5,6 +6,7 @@ import { formatMinor } from '@/shared/lib/money';
 import { formatNumber } from '@/shared/lib/number';
 
 import { applyLocale, ENGLISH, useLocaleStore } from './locale';
+import { rich } from './rich';
 import { plural, t } from './t';
 import type { ResolvedLocale } from './types';
 
@@ -88,5 +90,28 @@ describe('applyLocale', () => {
     await Promise.all([first, second]);
 
     expect(useLocaleStore.getState().active.code).toBe('en');
+  });
+});
+
+describe('rich', () => {
+  it('lets a translation move the markup to where its word order needs it', () => {
+    speak(BENGALI, { 'x.signin': '<link>সাইন ইন</link> করে চালিয়ে যান।' });
+
+    render(
+      <p>
+        {rich('x.signin', 'Please <link>sign in</link> to continue.', {
+          link: (c) => <a href="/login">{c}</a>,
+        })}
+      </p>,
+    );
+
+    expect(screen.getByRole('link', { name: 'সাইন ইন' })).toBeInTheDocument();
+    expect(screen.getByText(/করে চালিয়ে যান/)).toBeInTheDocument();
+  });
+
+  it('draws an unknown tag as plain text rather than losing the words', () => {
+    render(<p>{rich('x.odd', 'Read <b>this</b> now.', {})}</p>);
+
+    expect(screen.getByText('Read this now.')).toBeInTheDocument();
   });
 });

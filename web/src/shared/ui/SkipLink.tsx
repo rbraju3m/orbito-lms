@@ -1,5 +1,7 @@
 import type { MouseEvent } from 'react';
 
+import { t } from '@/shared/i18n';
+
 import { MAIN_CONTENT_ID } from './mainContent';
 
 /**
@@ -22,7 +24,7 @@ export function SkipLink() {
 
   return (
     <a href={`#${MAIN_CONTENT_ID}`} className="orbito-skip-link" onClick={skip}>
-      Skip to content
+      {t('shell.skip', 'Skip to content')}
     </a>
   );
 }

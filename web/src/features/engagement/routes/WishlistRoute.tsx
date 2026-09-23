@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { CourseCard } from '@/features/catalog/components/CourseCard';
+import { t } from '@/shared/i18n';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
 import { wishlistQuery } from '../api/queries';
@@ -28,12 +29,18 @@ export function WishlistRoute() {
   if (data.data.length === 0) {
     return (
       <>
-        <PageHeader title="Saved courses" />
+        <PageHeader title={t('engagement.wishlist.title', 'Saved courses')} />
         <EmptyState
           icon={IconBookmark}
-          title="Nothing saved yet"
-          description="Save a course from its page and it waits for you here until you enrol."
-          action={{ label: 'Browse courses', onClick: () => void navigate('/courses') }}
+          title={t('engagement.wishlist.empty_title', 'Nothing saved yet')}
+          description={t(
+            'engagement.wishlist.empty_body',
+            'Save a course from its page and it waits for you here until you enrol.',
+          )}
+          action={{
+            label: t('engagement.wishlist.browse', 'Browse courses'),
+            onClick: () => void navigate('/courses'),
+          }}
         />
       </>
     );
@@ -41,7 +48,10 @@ export function WishlistRoute() {
 
   return (
     <>
-      <PageHeader title="Saved courses" description="Waiting for you to come back." />
+      <PageHeader
+        title={t('engagement.wishlist.title', 'Saved courses')}
+        description={t('engagement.wishlist.description', 'Waiting for you to come back.')}
+      />
 
       <Stack gap="md">
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">

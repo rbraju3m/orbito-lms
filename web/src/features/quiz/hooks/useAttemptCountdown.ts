@@ -1,5 +1,7 @@
 import { useState, useSyncExternalStore } from 'react';
 
+import { formatNumber } from '@/shared/lib/number';
+
 /** One shared 1s heartbeat: the number of whole seconds since page load. */
 const monotonicSeconds = {
   subscribe(onChange: () => void) {
@@ -53,7 +55,8 @@ export function useAttemptCountdown(secondsRemaining: number | null): {
   const label =
     seconds === null
       ? null
-      : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+      : // In the reader's digits; the colon is the same in every language this speaks.
+        `${formatNumber(Math.floor(seconds / 60))}:${formatNumber(seconds % 60, { minimumIntegerDigits: 2 })}`;
 
   return { seconds, expired: seconds !== null && seconds <= 0, label };
 }

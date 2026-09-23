@@ -2,6 +2,8 @@ import { ActionIcon, Container, Group, Stack, Text, Title } from '@mantine/core'
 import { IconArrowLeft } from '@tabler/icons-react';
 import { Link, useParams } from 'react-router';
 
+import { t } from '@/shared/i18n';
+
 import { AnnouncementList } from '../components/AnnouncementList';
 
 /**
@@ -22,16 +24,19 @@ export function CourseAnnouncementsRoute() {
             component={Link}
             to={`/learn/${courseId}`}
             variant="subtle"
-            aria-label="Back to the course"
+            aria-label={t('engagement.back_to_course', 'Back to the course')}
           >
             <IconArrowLeft size={18} />
           </ActionIcon>
           <Text size="sm" c="dimmed">
-            Back to the course
+            {t('engagement.back_to_course', 'Back to the course')}
           </Text>
         </Group>
 
-        <Title order={2}>Announcements</Title>
+        {/* The page's only heading, so an h1 — drawn at the size it always was. */}
+        <Title order={1} size="h2">
+          {t('engagement.announcements.title', 'Announcements')}
+        </Title>
 
         <AnnouncementList courseId={courseId} />
       </Stack>

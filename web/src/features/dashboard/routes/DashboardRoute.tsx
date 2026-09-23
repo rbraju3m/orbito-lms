@@ -16,6 +16,7 @@ import { Link } from 'react-router';
 
 import { resendVerification } from '@/features/auth/api/requests';
 import { useSession } from '@/features/auth/hooks/useSession';
+import { plural, t } from '@/shared/i18n';
 import { PageHeader } from '@/shared/ui';
 
 import { ContinueLearning } from '../components/ContinueLearning';
@@ -29,8 +30,10 @@ export function DashboardRoute() {
   return (
     <Container size="lg" py="lg">
       <PageHeader
-        title={`Welcome, ${session.user.name.split(' ')[0]}`}
-        description="Your learning and teaching, in one place."
+        title={t('dashboard.welcome', 'Welcome, {name}', {
+          name: session.user.name.split(' ')[0] ?? '',
+        })}
+        description={t('dashboard.description', 'Your learning and teaching, in one place.')}
       />
 
       <Stack gap="lg">
@@ -38,11 +41,15 @@ export function DashboardRoute() {
           <Alert
             color="warning"
             icon={<IconMailExclamation size={16} />}
-            title="Verify your email address"
+            title={t('dashboard.verify.title', 'Verify your email address')}
           >
             <Stack gap="sm" align="flex-start">
               <Text size="sm">
-                We sent a link to {session.user.email}. Verifying keeps your account recoverable.
+                {t(
+                  'dashboard.verify.body',
+                  'We sent a link to {email}. Verifying keeps your account recoverable.',
+                  { email: session.user.email ?? '' },
+                )}
               </Text>
               <Button
                 size="xs"
@@ -52,7 +59,9 @@ export function DashboardRoute() {
                   void resendVerification().then(() => setResent(true));
                 }}
               >
-                {resent ? 'Link sent' : 'Resend link'}
+                {resent
+                  ? t('dashboard.verify.sent', 'Link sent')
+                  : t('dashboard.verify.resend', 'Resend link')}
               </Button>
             </Stack>
           </Alert>
@@ -61,8 +70,15 @@ export function DashboardRoute() {
         <Card>
           <Stack gap="sm">
             <Group justify="space-between">
-              <Title order={2} size="h3">Your access</Title>
-              <Badge variant="light">{session.permissions.length} permissions</Badge>
+              <Title order={2} size="h3">
+                {t('dashboard.access.title', 'Your access')}
+              </Title>
+              <Badge variant="light">
+                {plural('dashboard.access.permissions', session.permissions.length, {
+                  one: '{count} permission',
+                  other: '{count} permissions',
+                })}
+              </Badge>
             </Group>
 
             <Group gap="xs">
@@ -75,10 +91,16 @@ export function DashboardRoute() {
 
             <Text size="sm" c="dimmed">
               {can('course.create')
-                ? 'You can create and publish courses from Studio.'
+                ? t(
+                    'dashboard.access.can_create',
+                    'You can create and publish courses from Studio.',
+                  )
                 : session.is_instructor
-                  ? 'Your instructor account is active.'
-                  : 'Apply to teach from your profile to start creating courses.'}
+                  ? t('dashboard.access.instructor', 'Your instructor account is active.')
+                  : t(
+                      'dashboard.access.apply',
+                      'Apply to teach from your profile to start creating courses.',
+                    )}
             </Text>
           </Stack>
         </Card>
@@ -86,23 +108,27 @@ export function DashboardRoute() {
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <Card>
             <Stack gap="xs">
-              <Title order={2} size="h4">Continue learning</Title>
+              <Title order={2} size="h4">
+                {t('dashboard.continue.title', 'Continue learning')}
+              </Title>
               <ContinueLearning />
             </Stack>
           </Card>
 
           <Card>
             <Stack gap="xs">
-              <Title order={2} size="h4">Account</Title>
+              <Title order={2} size="h4">
+                {t('dashboard.account.title', 'Account')}
+              </Title>
               <Text size="sm" c="dimmed">
-                Update your details, or apply to teach.
+                {t('dashboard.account.body', 'Update your details, or apply to teach.')}
               </Text>
               <Group gap="xs">
                 <Button component={Link} to="/account/profile" variant="light" size="xs">
-                  Edit profile
+                  {t('dashboard.account.edit_profile', 'Edit profile')}
                 </Button>
                 <Button component={Link} to="/account/security" variant="subtle" size="xs">
-                  Security
+                  {t('dashboard.account.security', 'Security')}
                 </Button>
               </Group>
             </Stack>

@@ -16,6 +16,7 @@ import { IconMessage2, IconPencil, IconStar, IconTrash } from '@tabler/icons-rea
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { t } from '@/shared/i18n';
 import { formatDate } from '@/shared/lib/datetime';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
 
@@ -51,7 +52,9 @@ export function ReviewList({
   return (
     <Stack gap="md">
       <Group justify="space-between" align="center">
-        <Title order={3}>Reviews</Title>
+        <Title order={2} size="h3">
+          {t('engagement.reviews.title', 'Reviews')}
+        </Title>
         {canReview && !writing ? (
           <Button
             size="compact-sm"
@@ -59,7 +62,9 @@ export function ReviewList({
             leftSection={<IconPencil size={14} />}
             onClick={() => setWriting(true)}
           >
-            {mine ? 'Edit your review' : 'Write a review'}
+            {mine
+              ? t('engagement.reviews.edit_yours', 'Edit your review')
+              : t('engagement.reviews.write', 'Write a review')}
           </Button>
         ) : null}
       </Group>
@@ -73,14 +78,25 @@ export function ReviewList({
       {data.data.length === 0 ? (
         <EmptyState
           icon={IconStar}
-          title="No reviews yet"
+          title={t('engagement.reviews.empty_title', 'No reviews yet')}
           description={
             canReview
-              ? 'You took this course — be the first to say what it was like.'
-              : 'Reviews appear here once learners who took the course write them.'
+              ? t(
+                  'engagement.reviews.empty_can',
+                  'You took this course — be the first to say what it was like.',
+                )
+              : t(
+                  'engagement.reviews.empty_cannot',
+                  'Reviews appear here once learners who took the course write them.',
+                )
           }
           {...(canReview && !writing
-            ? { action: { label: 'Write a review', onClick: () => setWriting(true) } }
+            ? {
+                action: {
+                  label: t('engagement.reviews.write', 'Write a review'),
+                  onClick: () => setWriting(true),
+                },
+              }
             : {})}
         />
       ) : (
@@ -131,7 +147,7 @@ function ReviewCard({
               <Rating value={review.rating} count={5} readOnly size="xs" />
               {review.author.is_you ? (
                 <Badge size="xs" variant="light">
-                  You
+                  {t('engagement.reviews.you', 'You')}
                 </Badge>
               ) : null}
               {/*
@@ -153,20 +169,24 @@ function ReviewCard({
             {review.title ? <Text fw={600}>{review.title}</Text> : null}
 
             <Text size="xs" c="dimmed">
-              {review.author.name ?? 'Former member'} ·{' '}
+              {review.author.name ?? t('engagement.former_member', 'Former member')} ·{' '}
               {formatDate(review.published_at ?? review.created_at)}
             </Text>
           </Stack>
 
           {review.author.is_you ? (
             <Group gap={4} wrap="nowrap">
-              <ActionIcon variant="subtle" aria-label="Edit review" onClick={onEdit}>
+              <ActionIcon
+                variant="subtle"
+                aria-label={t('engagement.reviews.edit', 'Edit review')}
+                onClick={onEdit}
+              >
                 <IconPencil size={16} />
               </ActionIcon>
               <ActionIcon
                 variant="subtle"
                 color="danger"
-                aria-label="Delete review"
+                aria-label={t('engagement.reviews.delete', 'Delete review')}
                 loading={remove.isPending}
                 onClick={() => remove.mutate(review.id)}
               >
@@ -185,7 +205,7 @@ function ReviewCard({
             color="gray"
             variant="light"
             icon={<IconMessage2 size={16} />}
-            title="Response from the course team"
+            title={t('engagement.reviews.team_response', 'Response from the course team')}
           >
             <Text size="sm">{review.instructor_reply}</Text>
             {review.replied_at ? (
@@ -200,7 +220,7 @@ function ReviewCard({
           replying ? (
             <Stack gap="xs">
               <Textarea
-                label="Your response"
+                label={t('engagement.reviews.your_response', 'Your response')}
                 value={reply}
                 onChange={(event) => setReply(event.currentTarget.value)}
                 minRows={2}
@@ -208,7 +228,7 @@ function ReviewCard({
               />
               <Group gap="xs" justify="flex-end">
                 <Button size="compact-sm" variant="subtle" onClick={() => setReplying(false)}>
-                  Cancel
+                  {t('engagement.cancel', 'Cancel')}
                 </Button>
                 <Button
                   size="compact-sm"
@@ -220,7 +240,7 @@ function ReviewCard({
                     )
                   }
                 >
-                  Respond
+                  {t('engagement.reviews.respond', 'Respond')}
                 </Button>
               </Group>
             </Stack>
@@ -232,7 +252,9 @@ function ReviewCard({
                 leftSection={<IconMessage2 size={14} />}
                 onClick={() => setReplying(true)}
               >
-                {review.instructor_reply ? 'Edit response' : 'Respond'}
+                {review.instructor_reply
+                  ? t('engagement.reviews.edit_response', 'Edit response')
+                  : t('engagement.reviews.respond', 'Respond')}
               </Button>
             </Group>
           )

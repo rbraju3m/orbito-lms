@@ -1,15 +1,53 @@
 import type { CatalogFilters, CourseLevel } from '@/features/catalog/api/types';
+import { t } from '@/shared/i18n';
+
+/*
+ * Labels are GETTERS: these lists are built when the module loads, before the
+ * reader's catalogue has arrived, and a plain string would stay English for
+ * ever. A getter is read when the Select draws (docs/I18N.md §3a), and the
+ * lists keep their shape for the public site that shares them.
+ */
 
 export const LEVELS: { value: CourseLevel; label: string }[] = [
-  { value: 'beginner', label: 'Beginner' },
-  { value: 'intermediate', label: 'Intermediate' },
-  { value: 'advanced', label: 'Advanced' },
-  { value: 'all', label: 'All levels' },
+  {
+    value: 'beginner',
+    get label() {
+      return t('catalog.level.beginner', 'Beginner');
+    },
+  },
+  {
+    value: 'intermediate',
+    get label() {
+      return t('catalog.level.intermediate', 'Intermediate');
+    },
+  },
+  {
+    value: 'advanced',
+    get label() {
+      return t('catalog.level.advanced', 'Advanced');
+    },
+  },
+  {
+    value: 'all',
+    get label() {
+      return t('catalog.level.all', 'All levels');
+    },
+  },
 ];
 
 export const PRICES: { value: NonNullable<CatalogFilters['price']>; label: string }[] = [
-  { value: 'free', label: 'Free' },
-  { value: 'paid', label: 'Paid' },
+  {
+    value: 'free',
+    get label() {
+      return t('catalog.price.free', 'Free');
+    },
+  },
+  {
+    value: 'paid',
+    get label() {
+      return t('catalog.price.paid', 'Paid');
+    },
+  },
 ];
 
 /*
@@ -18,9 +56,24 @@ export const PRICES: { value: NonNullable<CatalogFilters['price']>; label: strin
  * Offering it here would be a control that does nothing.
  */
 export const SORTS: { value: NonNullable<CatalogFilters['sort']>; label: string }[] = [
-  { value: 'popular', label: 'Most popular' },
-  { value: 'newest', label: 'Newest' },
-  { value: 'rating', label: 'Highest rated' },
+  {
+    value: 'popular',
+    get label() {
+      return t('catalog.sort.popular', 'Most popular');
+    },
+  },
+  {
+    value: 'newest',
+    get label() {
+      return t('catalog.sort.newest', 'Newest');
+    },
+  },
+  {
+    value: 'rating',
+    get label() {
+      return t('catalog.sort.rating', 'Highest rated');
+    },
+  },
 ];
 
 const pick = <T extends string>(value: string | null, allowed: { value: T }[]): T | undefined =>

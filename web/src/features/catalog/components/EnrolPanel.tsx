@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router';
 import { BuyPanel } from '@/features/commerce/components/BuyPanel';
 import { apiPost } from '@/shared/api/client';
 import { ApiError } from '@/shared/api/errors';
+import { plural, t } from '@/shared/i18n';
 
 import { catalogKeys } from '../api/keys';
 import type { Course } from '../api/types';
@@ -49,23 +50,27 @@ export function EnrolPanel({ course }: { course: Course }) {
    */
   const gateBlocked = unmet.length > 0 || full;
   const gateReason = full
-    ? 'Ask the course team whether more places will open.'
-    : unmet.length > 0
-      ? `Finish ${unmet.length === 1 ? `“${unmet[0]?.title}”` : `${unmet.length} courses`} first.`
-      : undefined;
+    ? t('catalog.enrol.full_reason', 'Ask the course team whether more places will open.')
+    : unmet.length === 1
+      ? t('catalog.enrol.finish_one', 'Finish “{title}” first.', { title: unmet[0]?.title ?? '' })
+      : unmet.length > 1
+        ? plural('catalog.enrol.finish_many', unmet.length, {
+            other: 'Finish {count} courses first.',
+          })
+        : undefined;
 
   return (
     <Stack gap="sm">
       {!paid && (
         <Text fw={700} size="xl">
-          Free
+          {t('catalog.enrol.free', 'Free')}
         </Text>
       )}
 
       {course.prerequisites.length > 0 && (
         <Stack gap={4}>
           <Text size="sm" fw={600}>
-            Complete first
+            {t('catalog.enrol.complete_first', 'Complete first')}
           </Text>
           <List spacing={4} size="sm" center>
             {course.prerequisites.map((prerequisite) => (
@@ -99,8 +104,11 @@ export function EnrolPanel({ course }: { course: Course }) {
       {course.seats_remaining !== null && course.seats_remaining <= 10 && (
         <Text size="sm" c={full ? 'red' : 'dimmed'}>
           {full
-            ? 'This course is full.'
-            : `${course.seats_remaining} place${course.seats_remaining === 1 ? '' : 's'} left`}
+            ? t('catalog.enrol.full', 'This course is full.')
+            : plural('catalog.enrol.places_left', course.seats_remaining, {
+                one: '{count} place left',
+                other: '{count} places left',
+              })}
         </Text>
       )}
 
@@ -114,10 +122,10 @@ export function EnrolPanel({ course }: { course: Course }) {
       )}
 
       {/*
-        * A paid course goes through the basket, never through this button:
-        * `POST /courses/{id}/enroll` refuses anything but a free course, and
-        * access is granted only by a verified webhook (ADR-05).
-        */}
+       * A paid course goes through the basket, never through this button:
+       * `POST /courses/{id}/enroll` refuses anything but a free course, and
+       * access is granted only by a verified webhook (ADR-05).
+       */}
       {paid ? (
         <BuyPanel
           price={course.price}
@@ -134,7 +142,7 @@ export function EnrolPanel({ course }: { course: Course }) {
             leftSection={gateBlocked ? <IconLock size={16} /> : undefined}
             onClick={() => enrol.mutate()}
           >
-            Enrol for free
+            {t('catalog.enrol.enrol_free', 'Enrol for free')}
           </Button>
 
           {/* The reason lives under the button, not inside a tooltip nobody opens. */}
