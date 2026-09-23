@@ -9,6 +9,8 @@
  * is a string concatenation bug; `formatMinor(a + b)` is the intent.
  */
 
+import { intlLocale } from '@/shared/i18n/locale';
+
 /** Currencies with no minor unit at all, where 500 means 500, not 5.00. */
 const ZERO_DECIMAL = new Set(['BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA', 'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF']);
 
@@ -19,16 +21,16 @@ function fractionDigits(currency: string): number {
 /**
  * Formats minor units for display.
  *
- * The locale is deliberately the browser's rather than the academy's: the
- * CURRENCY is a fact about the price and comes from the server, but how a
- * reader expects thousands and decimals to be punctuated is a fact about the
- * reader.
+ * The CURRENCY is a fact about the price and comes from the server; how the
+ * figure is written — digits, grouping, where the symbol goes — is a fact
+ * about the reader, so it follows their resolved language (docs/I18N.md).
+ * Not the browser's: that is a guess the server has already improved on.
  */
 export function formatMinor(amountMinor: number, currency: string): string {
   const digits = fractionDigits(currency);
 
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(intlLocale(), {
       style: 'currency',
       currency,
       minimumFractionDigits: digits,

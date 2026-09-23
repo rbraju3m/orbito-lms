@@ -2,6 +2,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   CopyButton,
   FileInput,
   Group,
@@ -68,6 +69,7 @@ function AcademySettings({ academy }: { academy: Academy }) {
 
       <Stack gap="md" maw={720}>
         <LogoCard academy={academy} />
+        <LanguagesCard academy={academy} />
 
         <Card withBorder>
           <Stack gap="sm">
@@ -211,6 +213,84 @@ function LogoCard({ academy }: { academy: Academy }) {
               Remove logo
             </Button>
           ) : null}
+        </Group>
+      </Stack>
+    </Card>
+  );
+}
+
+/**
+ * Which languages the academy's pages speak, and which one a reader gets when
+ * they have not chosen (docs/I18N.md).
+ *
+ * The default must be one of those offered; the server refuses anything else,
+ * judged on the merged result, and this form keeps the two in step so the
+ * refusal is never reached by accident.
+ */
+function LanguagesCard({ academy }: { academy: Academy }) {
+  const update = useUpdateAcademy();
+  const [enabled, setEnabled] = useState<string[]>(academy.enabled_locales);
+  const [fallback, setFallback] = useState(academy.default_locale);
+
+  const apiError = update.error instanceof ApiError ? update.error : null;
+  const dirty =
+    fallback !== academy.default_locale ||
+    [...enabled].sort().join() !== [...academy.enabled_locales].sort().join();
+
+  const onEnabledChange = (next: string[]) => {
+    if (next.length === 0) return; // An academy has to speak something.
+    setEnabled(next);
+    if (!next.includes(fallback)) setFallback(next[0] ?? fallback);
+  };
+
+  return (
+    <Card withBorder>
+      <Stack gap="sm">
+        <Text fw={600}>Languages</Text>
+        <Text size="sm" c="dimmed">
+          The language your pages, emails and menus are written in. Each member can pick one of the
+          languages you offer on their profile; everyone else gets the default. Courses stay in the
+          language their author wrote them in.
+        </Text>
+
+        <Checkbox.Group label="Offered" value={enabled} onChange={onEnabledChange}>
+          <Group gap="lg" mt="xs">
+            {academy.locales.map((locale) => (
+              <Checkbox
+                key={locale.code}
+                value={locale.code}
+                label={locale.native_name}
+                // The last one cannot be taken away; say so rather than ignore the click.
+                disabled={enabled.length === 1 && enabled.includes(locale.code)}
+              />
+            ))}
+          </Group>
+        </Checkbox.Group>
+
+        <Radio.Group label="Default" value={fallback} onChange={setFallback}>
+          <Group gap="lg" mt="xs">
+            {academy.locales
+              .filter((locale) => enabled.includes(locale.code))
+              .map((locale) => (
+                <Radio key={locale.code} value={locale.code} label={locale.native_name} />
+              ))}
+          </Group>
+        </Radio.Group>
+
+        {apiError ? (
+          <Alert color="danger" icon={<IconAlertTriangle size={16} />} role="alert">
+            {apiError.message}
+          </Alert>
+        ) : null}
+
+        <Group justify="flex-end">
+          <Button
+            loading={update.isPending}
+            disabled={!dirty}
+            onClick={() => update.mutate({ enabled_locales: enabled, default_locale: fallback })}
+          >
+            Save languages
+          </Button>
         </Group>
       </Stack>
     </Card>

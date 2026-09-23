@@ -68,7 +68,7 @@ export function CurriculumPanel({
           {sections.map((section) => (
             <Accordion.Item key={section.id} value={String(section.id)}>
               <Accordion.Control>
-                <Group justify="space-between" pr="sm">
+                <Group justify="space-between" pe="sm">
                   <Text size="sm" fw={600} lineClamp={1}>
                     {section.title}
                   </Text>

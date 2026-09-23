@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { formatDateTime } from '@/shared/lib/datetime';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
+import { formatNumber } from '@/shared/lib/number';
 
 import { leaderboardQuery } from '../api/queries';
 import type { LeaderboardPeriod } from '../api/types';
@@ -81,7 +82,7 @@ export function LeaderboardTable({ courseId }: { courseId?: string }) {
                       ) : null}
                     </Group>
                   </Table.Td>
-                  <Table.Td>{entry.points.toLocaleString()}</Table.Td>
+                  <Table.Td>{formatNumber(entry.points)}</Table.Td>
                 </Table.Tr>
               ))}
             </Table.Tbody>
@@ -96,7 +97,7 @@ export function LeaderboardTable({ courseId }: { courseId?: string }) {
        */}
       {data?.me && !data.entries.some((entry) => entry.is_you) ? (
         <Alert color="gray" variant="light">
-          You are {ordinal(data.me.rank)} with {data.me.points.toLocaleString()} points.
+          You are {ordinal(data.me.rank)} with {formatNumber(data.me.points)} points.
         </Alert>
       ) : null}
     </Stack>

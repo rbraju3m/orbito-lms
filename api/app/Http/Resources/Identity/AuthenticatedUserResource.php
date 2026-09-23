@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Resources\Identity;
 
 use App\Domain\Identity\Models\User;
+use App\Domain\Platform\Models\Tenant;
+use App\Domain\Platform\Support\LocaleResolver;
 use App\Support\Http\Resources\BaseResource;
 use Illuminate\Http\Request;
 
@@ -28,6 +30,17 @@ final class AuthenticatedUserResource extends BaseResource
             'permissions' => $this->globalPermissionKeys(),
             'is_instructor' => $this->isApprovedInstructor(),
             'must_verify_email' => ! $this->hasVerifiedEmail(),
+
+            /*
+             * Resolved HERE rather than read off the app locale: login builds
+             * this payload before any academy was open for the middleware to
+             * ask, and the answer must be the one every later request gets.
+             */
+            'locale' => app(LocaleResolver::class)->describe(
+                $request,
+                $this->resource,
+                $this->resource->tenant instanceof Tenant ? $this->resource->tenant : null,
+            ),
 
             /*
              * The two super-admin answers, which are unrelated (see

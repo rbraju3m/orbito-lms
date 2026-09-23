@@ -7,7 +7,8 @@ import type { ComponentPropsWithRef, CSSProperties } from 'react';
  */
 const HIDDEN: CSSProperties = {
   position: 'absolute',
-  left: '-10000px',
+  // Inline-start, so a right-to-left page does not grow a scrollbar for it.
+  insetInlineStart: '-10000px',
   top: 'auto',
   width: 1,
   height: 1,

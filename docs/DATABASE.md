@@ -47,7 +47,8 @@ tenants(id VARCHAR PK, slug UNIQUE, name, status ENUM(pending,active,suspended,r
       is_active BOOL, support_email, approved_at, approved_by,
       data JSON)                        -- stancl virtual columns: registration_mode,
                                         -- logo_media_id (a row in the ACADEMY's
-                                        -- media table — Tenant::logoUrl())
+                                        -- media table — Tenant::logoUrl()),
+                                        -- default_locale, enabled_locales
       INDEX (status, created_at), INDEX (is_active)
 
 plans(id, slug UNIQUE, name, description,
@@ -68,8 +69,10 @@ period must not retroactively re-open academies that already lapsed.
 
 **`tenants.data` is where an academy's settings live** unless something filters
 or sorts on them — the rule the model states for its own columns. Today it
-holds `suspended_reason`, `rejected_reason` and **`registration_mode`**
-(`open` | `invite` | `closed`; see `RegistrationMode` — invitations work in all three). A key that is absent
+holds `suspended_reason`, `rejected_reason`, **`registration_mode`**
+(`open` | `invite` | `closed`; see `RegistrationMode` — invitations work in all three),
+and the academy's languages, **`default_locale`** and **`enabled_locales`**
+(`docs/I18N.md`; absent means every supported language, and no default chosen). A key that is absent
 means the DEFAULT rather than a state, so a setting added later reaches every
 academy that never touched the switch without a backfill — the same shape as
 notification preferences. Promote one to a real column the day something needs
@@ -98,7 +101,8 @@ those rows duplicate silently.
 -- academy it was writing into.
 users(id, uuid, tenant_id NULL, is_super_admin BOOL, name, email UNIQUE, email_verified_at, password, phone,
       avatar_media_id, cover_media_id, headline, bio, timezone DEFAULT 'UTC',
-      locale DEFAULT 'en', status ENUM(active,pending,suspended,deleted),
+      locale NULL,                      -- the person's CHOICE; null = the academy decides (I18N.md)
+      status ENUM(active,pending,suspended,deleted),
       last_login_at, last_seen_at, remember_token, deleted_at)
       INDEX (status), INDEX (last_seen_at)
 
@@ -914,6 +918,14 @@ translations(id, translatable_type, translatable_id, locale CHAR(5),
 
 locales(code CHAR(5) PK, name, native_name, direction ENUM(ltr,rtl), is_active, is_default)
 ```
+
+**Built differently: there is no `locales` table.** The languages the product
+speaks are the `Locale` enum — each case carries its native name and
+direction — narrowed by `orbito.locales.supported` and then by an academy's
+`enabled_locales` in `tenants.data`. A language is code (a font, a direction,
+a catalogue of translations), not a row somebody can insert. `translations`
+is still the sketch: content translation is I4, deliberately later
+(`docs/I18N.md` §6).
 
 ---
 

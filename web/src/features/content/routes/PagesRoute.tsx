@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import { adminPagesQuery, useCreatePage } from '../api/pages';
 
@@ -69,7 +70,7 @@ export function PagesRoute() {
                   </Text>
                   <Text size="sm" c="dimmed">
                     {item.block_count === 1 ? '1 block' : `${item.block_count} blocks`} · edited{' '}
-                    {new Date(item.updated_at).toLocaleString()}
+                    {formatDateTime(item.updated_at)}
                   </Text>
                 </Stack>
                 <Group gap={6} wrap="nowrap">

@@ -63,7 +63,8 @@ export const profileSchema = z.object({
   headline: z.string().max(160).nullable().optional(),
   bio: z.string().max(2000).nullable().optional(),
   timezone: z.string().min(1),
-  locale: z.string().min(2).max(5),
+  /** '' is "the academy's default" — sent as null. */
+  locale: z.string().max(5),
 });
 export type ProfileValues = z.infer<typeof profileSchema>;
 

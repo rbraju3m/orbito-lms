@@ -77,7 +77,8 @@ describe('AnalyticsOverviewRoute', () => {
     serve(overview());
     renderWithRouter(<AnalyticsOverviewRoute />);
 
-    expect(await screen.findByText(/2026-08-11 to 2026-09-09 · UTC/)).toBeInTheDocument();
+    // Formatted in UTC, the zone the days are keyed on — never shifted a day west.
+    expect(await screen.findByText('Aug 11, 2026 to Sep 9, 2026 · UTC')).toBeInTheDocument();
   });
 
   it('compares against the same window before it', async () => {

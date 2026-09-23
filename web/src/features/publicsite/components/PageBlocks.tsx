@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 
 import { CourseCard } from '@/features/catalog/components/CourseCard';
 import type { PageBlock } from '@/features/content/api/pageTypes';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import { LeadCaptureForm } from './LeadCaptureForm';
 
@@ -108,8 +109,7 @@ function BlockView({ academy, block }: { academy: string; block: PageBlock }) {
                   </Anchor>
                   {webinar.session ? (
                     <Text size="sm" c="dimmed">
-                      {new Date(webinar.session.starts_at).toLocaleString()} (
-                      {webinar.session.timezone})
+                      {formatDateTime(webinar.session.starts_at)} ({webinar.session.timezone})
                     </Text>
                   ) : null}
                 </Stack>

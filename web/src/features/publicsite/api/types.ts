@@ -7,6 +7,8 @@
  * sends.
  */
 
+import type { ResolvedLocale } from '@/shared/i18n';
+
 export interface PublicAcademy {
   slug: string;
   name: string;
@@ -14,4 +16,6 @@ export interface PublicAcademy {
   support_email: string | null;
   /** Whether the site may offer a Sign up button at all. */
   registration_open: boolean;
+  /** The academy's language unless the visitor's browser or `?locale=` says otherwise. */
+  locale: ResolvedLocale;
 }

@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router';
 
 import { CourseCard } from '@/features/catalog/components/CourseCard';
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import { publicHomePageQuery } from '../api/pages';
 import { publicAcademyQuery, publicCoursesQuery, publicWebinarsQuery } from '../api/queries';
@@ -148,7 +149,7 @@ export function AcademyHomeRoute() {
                   {webinar.session ? (
                     <Group gap="xs">
                       <Text size="sm" c="dimmed">
-                        {new Date(webinar.session.starts_at).toLocaleString()}
+                        {formatDateTime(webinar.session.starts_at)}
                       </Text>
                       <Text size="sm" c="dimmed">
                         ({webinar.session.timezone})

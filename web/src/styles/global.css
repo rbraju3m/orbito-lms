@@ -42,12 +42,13 @@ body {
   border: 0;
 }
 
-/* Off-screen until Tab reaches it, then over the header's top-left corner.
+/* Off-screen until Tab reaches it, then over the header's top corner at the
+   start of the line — top-left in English, top-right in a right-to-left script.
    Above Mantine's header and navbar, which sit at z-index 100–200. */
 .orbito-skip-link {
   position: fixed;
   top: var(--mantine-spacing-xs);
-  left: var(--mantine-spacing-xs);
+  inset-inline-start: var(--mantine-spacing-xs);
   z-index: 1000;
   padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
   border: 1px solid var(--mantine-color-default-border);

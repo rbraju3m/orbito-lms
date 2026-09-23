@@ -41,7 +41,7 @@ final class AcademyController
 
         Gate::authorize('update', $academy);
 
-        /** @var array{registration_mode?: string, support_email?: string|null, logo_media_id?: int|null} $changes */
+        /** @var array{registration_mode?: string, support_email?: string|null, logo_media_id?: int|null, default_locale?: string, enabled_locales?: list<string>} $changes */
         $changes = $request->validated();
 
         return ApiResponse::ok(

@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router';
 
 import { ErrorState, LoadingState } from '@/shared/ui';
 import { formatMinor } from '@/shared/lib/money';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import { publicAcademyQuery, publicWebinarQuery } from '../api/queries';
 import { GuestRegistrationForm } from '../components/GuestRegistrationForm';
@@ -50,7 +51,7 @@ export function PublicWebinarRoute() {
 
         {session ? (
           <Group gap="xs">
-            <Text c="dimmed">{new Date(session.starts_at).toLocaleString()}</Text>
+            <Text c="dimmed">{formatDateTime(session.starts_at)}</Text>
             <Text c="dimmed">({session.timezone})</Text>
           </Group>
         ) : null}

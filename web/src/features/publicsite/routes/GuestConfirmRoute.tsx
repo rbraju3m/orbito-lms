@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 
 import { ErrorState, LoadingState } from '@/shared/ui';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import { useConfirmGuestPlace } from '../api/guest';
 import { guestProblem } from '../lib/guest';
@@ -66,8 +67,7 @@ export function GuestConfirmRoute() {
         </Title>
         <Text>
           Your place at <strong>{data.webinar.title}</strong> is confirmed
-          {session ? `, ${new Date(session.starts_at).toLocaleString()} (${session.timezone})` : ''}
-          .
+          {session ? `, ${formatDateTime(session.starts_at)} (${session.timezone})` : ''}.
         </Text>
         <Text size="sm" c="dimmed">
           We have emailed you the link below as well. Use it to join when it starts, or to give your

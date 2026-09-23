@@ -992,6 +992,27 @@ Gate::authorize('publish', $course);                   // in a controller
   grew a `download_id`, so every `groupBy('course_id')` over them gained a
   NULL group that PHP casts to course 0. Say `whereNotNull` where the column
   can be empty, and assert the phantom's absence.
+- **`LocaleResolver` is the ONLY answer to "which language does this reader
+  get?"** (`docs/I18N.md`) — the `CourseAccess` shape again. The SPA reads the
+  answer off `/auth/me` or the public academy and never resolves one itself,
+  so a page and the mail its reader is sent cannot disagree.
+- **A column default that looks like a choice is not one.** `users.locale`
+  defaulted to `'en'`, so every account appeared to have picked English and
+  an academy's Bengali default would have reached nobody. "Not chosen" is
+  NULL; a default only the academy decided must not outrank the reader's
+  browser either (`chosenDefaultLocale()`).
+- **A group middleware that needs the academy goes in the PRIORITY LIST.**
+  `SetLocale` sits in the `api` group, which runs before a route's `tenant`;
+  placed after the tenancy middlewares, it sees the academy. The harness
+  hides the order — `LocaleTenancyTest` ends tenancy, the fourth test to.
+- **A formatter with no locale argument follows the BROWSER.**
+  `toLocaleString()` and `Intl.*(undefined)` ignore the reader's choice; every
+  figure goes through `shared/lib/{datetime,number,bytes,money}`. And a
+  `YYYY-MM-DD` day is formatted in UTC (`formatDay`): as local time it is
+  the day before for everybody west of Greenwich.
+- **Left and right are not directions.** Styles say start and end;
+  `logicalStyles.test.ts` fails on a physical side, and an exception names
+  its reason in the test.
 
 ---
 
@@ -1108,8 +1129,11 @@ paid webinars, the webinar cancellation notice, the academy's PUBLIC SITE
 GUEST WEBINAR REGISTRATION, its second, the BLOG, the PAGE BUILDER, the
 public COURSE INDEX, the members catalogue's PAGER, SCHEDULED-POST
 ANNOUNCEMENTS, the ACADEMY LOGO, the lead form on the WEBINAR PAGE and
-INVITATIONS and BUNDLES THAT HOLD DOWNLOADS**, plus a skip link on every shell.
-1,608 backend tests · 473 frontend tests.
+INVITATIONS and BUNDLES THAT HOLD DOWNLOADS**, plus a skip link on every shell,
+and the **MULTILINGUAL FOUNDATION** (`docs/I18N.md` I1): a resolved locale,
+Bengali digits, the academy's languages, and RTL-safe styles.
+1,626 backend tests · 798 frontend tests (about 300 of those are the per-file
+`logicalStyles` guard, one per source file).
 
 Per-phase retros — what each delivered, decided, and deliberately left — are in
 `docs/ROADMAP.md`. This section is only what a new session needs before
@@ -1202,6 +1226,13 @@ The obvious next pieces, in the order they unblock each other:
 
 Code that needs no credentials, smallest first:
 
+- **Multilingual, I2** (`docs/I18N.md` §3) — translate the interface area by
+  area, learner shell first, with a Bengali catalogue drafted in the slice
+  and reviewed by a native speaker in its browser pass. I1 laid the
+  foundation; no screen reads Bengali words yet, only Bengali digits. Then
+  I3: server text, mail in the recipient's language, and Bengali
+  certificates, which dompdf cannot shape.
+
 - ~~Bundles that hold downloads~~ — DONE (`docs/BUNDLES.md` §9). A bundle
   holds courses, downloads or both; a download's share of the price is
   download revenue. It found a real bug on the way: buying a download again
@@ -1265,7 +1296,11 @@ Every one of these has already cost time at least once.
   academies, so earlier slices' keys had never arrived either.
 - **`src/app/router.test.tsx` "discovers /admin/webhooks/42" can fail under
   the full parallel run** and pass alone. A timing flake, seen twice; re-run
-  before chasing it.
+  before chasing it. `PageBuilderRoute` "adds a heading…" did the same while
+  the backend suite loaded the machine.
+- **`web/src` is not prettier-clean — 56 files on `main` are not.** Never
+  run `prettier --write src`: it rewrites all of them and buries the change
+  in noise. Format the files you touched, by name.
 - **Two Laravel SPAs on `localhost` share the `XSRF-TOKEN` cookie.** Cookies
   are per host, not per port, so another local Laravel app breaks Orbito's
   login with "CSRF token mismatch" while Orbito's own config is correct. Run

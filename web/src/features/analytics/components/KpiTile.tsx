@@ -1,6 +1,8 @@
 import { Card, Group, Stack, Text } from '@mantine/core';
 import { IconArrowDownRight, IconArrowUpRight, IconMinus } from '@tabler/icons-react';
 
+import { formatNumber } from '@/shared/lib/number';
+
 /**
  * One number, and how it moved.
  *
@@ -16,7 +18,7 @@ export function KpiTile({
   label,
   value,
   previous,
-  format = (n: number) => n.toLocaleString(),
+  format = (n: number) => formatNumber(n),
   goodDirection = 'up',
   hint,
 }: {

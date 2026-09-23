@@ -2,6 +2,7 @@ import { Badge, Card, Container, Group, SimpleGrid, Stack, Text } from '@mantine
 import { useQuery } from '@tanstack/react-query';
 
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import { healthQuery } from '../api/queries';
 
@@ -55,7 +56,7 @@ export function SystemStatusRoute() {
           </SimpleGrid>
 
           <Text size="xs" c="dimmed">
-            Checked at {new Date(data.time).toLocaleString()}
+            Checked at {formatDateTime(data.time)}
           </Text>
         </Stack>
       ) : null}

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
+import { intlLocale } from '@/shared/i18n';
 
 import { calendarQuery } from '../api/queries';
 import type { LiveSession } from '../api/types';
@@ -96,7 +97,7 @@ function groupByDay(sessions: LiveSession[]): [string, LiveSession[]][] {
 }
 
 function formatDay(day: string): string {
-  return new Date(`${day}T12:00:00`).toLocaleDateString(undefined, {
+  return new Date(`${day}T12:00:00`).toLocaleDateString(intlLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

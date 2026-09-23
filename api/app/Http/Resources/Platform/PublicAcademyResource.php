@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\Platform;
 
 use App\Domain\Platform\Models\Tenant;
+use App\Domain\Platform\Support\LocaleResolver;
 use App\Support\Http\Resources\BaseResource;
 use Illuminate\Http\Request;
 
@@ -42,6 +43,9 @@ final class PublicAcademyResource extends BaseResource
             // A support address IS public — it is on the page for a reason.
             'support_email' => $this->support_email,
             'registration_open' => $this->registrationMode()->allowsSelfSignup(),
+            // A stranger has no account to hold a choice, so this is the
+            // academy's default unless `?locale=` or their browser says otherwise.
+            'locale' => app(LocaleResolver::class)->describe($request, null, $this->resource),
         ];
     }
 }

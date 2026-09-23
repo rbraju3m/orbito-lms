@@ -2,6 +2,7 @@ import { Badge, Card, SimpleGrid, Stack, Text, ThemeIcon, Tooltip } from '@manti
 import { IconAward, IconLock } from '@tabler/icons-react';
 
 import { formatDate } from '@/shared/lib/datetime';
+import { formatNumber } from '@/shared/lib/number';
 
 import type { BadgeSummary, BadgeTier } from '../api/types';
 
@@ -79,7 +80,7 @@ function requirement(badge: BadgeSummary): string {
 
   switch (badge.criteria.type) {
     case 'points_total':
-      return `Earn ${n.toLocaleString()} points.`;
+      return `Earn ${formatNumber(n)} points.`;
     case 'streak_days':
       return `Learn on ${n} consecutive days.`;
     case 'lessons_completed':

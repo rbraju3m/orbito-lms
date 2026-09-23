@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 
 import { ErrorState, LoadingState } from '@/shared/ui';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import { guestPlaceQuery, useCancelGuestPlace, useJoinGuestPlace } from '../api/guest';
 import { guestProblem } from '../lib/guest';
@@ -79,7 +80,7 @@ export function GuestPlaceRoute() {
             </Title>
             {session ? (
               <Text c="dimmed">
-                {new Date(session.starts_at).toLocaleString()} ({session.timezone})
+                {formatDateTime(session.starts_at)} ({session.timezone})
               </Text>
             ) : null}
             <Group gap="xs">

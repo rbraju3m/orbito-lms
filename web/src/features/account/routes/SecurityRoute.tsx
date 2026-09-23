@@ -57,7 +57,9 @@ export function SecurityRoute() {
       <Card>
         <form onSubmit={onSubmit} noValidate>
           <Stack gap="md">
-            <Title order={3}>Change password</Title>
+            <Title order={2} size="h3">
+              Change password
+            </Title>
             <Text size="sm" c="dimmed">
               Changing your password signs you out of every other device.
             </Text>

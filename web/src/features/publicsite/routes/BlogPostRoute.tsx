@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
 
 import { ErrorState, LoadingState } from '@/shared/ui';
+import { formatDate } from '@/shared/lib/datetime';
 
 import { publicPostQuery } from '../api/blog';
 import { publicAcademyQuery } from '../api/queries';
@@ -52,9 +53,7 @@ export function BlogPostRoute() {
       <Stack gap="xs">
         <Title order={1}>{data.title}</Title>
         <Group gap="xs">
-          {data.published_at ? (
-            <Text c="dimmed">{new Date(data.published_at).toLocaleDateString()}</Text>
-          ) : null}
+          {data.published_at ? <Text c="dimmed">{formatDate(data.published_at)}</Text> : null}
           <Text c="dimmed">· {data.reading_minutes} min read</Text>
           {data.author ? <Text c="dimmed">· {data.author.name}</Text> : null}
         </Group>

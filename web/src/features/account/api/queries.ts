@@ -33,7 +33,8 @@ export interface UpdateProfilePayload {
   headline?: string | null;
   bio?: string | null;
   timezone?: string;
-  locale?: string;
+  /** Null hands the choice back to the academy. */
+  locale?: string | null;
   social_links?: Record<string, string>;
 }
 

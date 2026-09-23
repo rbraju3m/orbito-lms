@@ -276,7 +276,11 @@ function ReplyCard({
         <div className="orbito-prose" dangerouslySetInnerHTML={{ __html: reply.body }} />
 
         {nested.length > 0 ? (
-          <Stack gap="xs" pl="md" bd="0 0 0 2px solid var(--mantine-color-default-border)">
+          <Stack
+            gap="xs"
+            ps="md"
+            style={{ borderInlineStart: '2px solid var(--mantine-color-default-border)' }}
+          >
             {nested.map((child) => (
               <Box key={child.id}>
                 <Group gap="xs">

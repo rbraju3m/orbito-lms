@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router';
 
+import { formatDay } from '@/shared/lib/datetime';
 import { formatMinor } from '@/shared/lib/money';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
 
@@ -29,7 +30,7 @@ export function AnalyticsOverviewRoute() {
   if (isPending) return <LoadingState rows={4} height={90} />;
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} />;
 
-  const labels = data.series.map((point) => point.date);
+  const labels = data.series.map((point) => formatDay(point.date));
   const hasActivity = data.series.some(
     (point) => point.new_enrollments > 0 || point.completions > 0 || point.revenue_minor > 0,
   );
@@ -38,7 +39,7 @@ export function AnalyticsOverviewRoute() {
     <>
       <PageHeader
         title="Analytics"
-        description={`${data.range.from} to ${data.range.to} · ${data.range.timezone}`}
+        description={`${formatDay(data.range.from)} to ${formatDay(data.range.to)} · ${data.range.timezone}`}
         actions={
           <Group gap="xs">
             <RangePicker value={preset} onChange={setPreset} />

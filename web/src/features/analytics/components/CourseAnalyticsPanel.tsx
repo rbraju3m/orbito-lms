@@ -3,6 +3,7 @@ import { IconDownload } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { formatDay } from '@/shared/lib/datetime';
 import { formatMinor } from '@/shared/lib/money';
 import { ErrorState, LoadingState } from '@/shared/ui';
 
@@ -67,7 +68,7 @@ export function CourseAnalyticsPanel({ courseId }: { courseId: string }) {
         <Stack gap="sm">
           <Title order={4}>Activity</Title>
           <TrendChart
-            labels={data.series.map((point) => point.date)}
+            labels={data.series.map((point) => formatDay(point.date))}
             series={[
               {
                 label: 'Views',

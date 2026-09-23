@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { formatBytes } from '@/shared/lib/bytes';
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
+import { formatNumber } from '@/shared/lib/number';
 
 import { academyUsageQuery, type AcademyUsage, type LimitRow } from '../api/usage';
 
@@ -78,8 +79,9 @@ function PlanUsage({ usage }: { usage: AcademyUsage }) {
 }
 
 function LimitMeter({ row }: { row: LimitRow }) {
-  const used = row.is_bytes ? formatBytes(row.used) : row.used.toLocaleString();
-  const cap = row.limit === null ? null : row.is_bytes ? formatBytes(row.limit) : row.limit.toLocaleString();
+  const used = row.is_bytes ? formatBytes(row.used) : formatNumber(row.used);
+  const cap =
+    row.limit === null ? null : row.is_bytes ? formatBytes(row.limit) : formatNumber(row.limit);
 
   // Over > at > near. Only an ENFORCED cap is coloured as a stop; an
   // unenforced one that is full is information, not an obstacle.

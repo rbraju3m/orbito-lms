@@ -1,6 +1,8 @@
 import { Box, Group, Text } from '@mantine/core';
 import { useId } from 'react';
 
+import { formatNumber } from '@/shared/lib/number';
+
 export interface TrendSeries {
   label: string;
   /** One number per point, aligned with `labels`. */
@@ -30,7 +32,7 @@ export function TrendChart({
   labels,
   series,
   height = 180,
-  formatValue = (value: number) => String(value),
+  formatValue = (value: number) => formatNumber(value),
 }: {
   labels: string[];
   series: TrendSeries[];

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { EmptyState, LoadingState } from '@/shared/ui';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import { notesQuery, useAddNote, useDeleteNote } from '../api/queries';
 
@@ -67,7 +68,7 @@ export function NotesPanel({ itemId, canWrite }: NotesPanelProps) {
                 {note.body}
               </Text>
               <Text size="xs" c="dimmed">
-                {new Date(note.created_at).toLocaleString()}
+                {formatDateTime(note.created_at)}
               </Text>
             </Stack>
             <ActionIcon

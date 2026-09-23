@@ -30,7 +30,7 @@ final class AcceptInvitationRequest extends FormRequest
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'timezone' => ['sometimes', 'string', 'timezone'],
-            'locale' => ['sometimes', 'string', Rule::in(config('orbito.locales.supported'))],
+            'locale' => ['sometimes', 'nullable', 'string', Rule::in(config('orbito.locales.supported'))],
             // See RegisterRequest: a non-SPA client must name its device.
             'device_name' => [$this->hasSession() ? 'sometimes' : 'required', 'string', 'max:120'],
         ];
@@ -49,7 +49,8 @@ final class AcceptInvitationRequest extends FormRequest
             email: '',
             password: $this->string('password')->value(),
             timezone: $this->string('timezone', 'UTC')->value(),
-            locale: $this->string('locale', (string) config('orbito.locales.default'))->value(),
+            // Absent is "not chosen": the academy's default applies (docs/I18N.md).
+            locale: $this->filled('locale') ? $this->string('locale')->value() : null,
         );
     }
 }

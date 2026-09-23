@@ -10,6 +10,7 @@ use App\Http\Middleware\InitializeTenancyByAcademySlug;
 use App\Http\Middleware\InitializeTenancyByAuthenticatedUser;
 use App\Http\Middleware\InitializeTenancyByPathTenant;
 use App\Http\Middleware\InitializeTenancyBySignedRoute;
+use App\Http\Middleware\SetLocale;
 use App\Support\Exceptions\ApiExceptionRenderer;
 use App\Support\Http\RequestId;
 use Illuminate\Foundation\Application;
@@ -38,6 +39,9 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureFrontendRequestsAreStateful::class,
             ForceJsonResponse::class,
         ]);
+
+        // Placed by the priority list below, not by being appended here.
+        $middleware->api(append: [SetLocale::class]);
 
         /*
          * `tenant` is applied per route group, never globally, and always
@@ -96,6 +100,14 @@ return Application::configure(basePath: dirname(__DIR__))
         ] as $tenancy) {
             $middleware->prependToPriorityList(SubstituteBindings::class, $tenancy);
         }
+
+        /*
+         * The locale AFTER every academy has resolved — its default is one of
+         * the answers — and after authentication, whose user's choice is
+         * another. A group middleware otherwise runs before a route's
+         * `tenant`, and every academy's default would silently be ignored.
+         */
+        $middleware->prependToPriorityList(SubstituteBindings::class, SetLocale::class);
 
         $middleware->throttleApi('api');
     })

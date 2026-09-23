@@ -107,7 +107,10 @@ function ProviderCard({
               {provider.setup_url && (
                 <Anchor href={provider.setup_url} target="_blank" rel="noreferrer" size="sm">
                   Create the credentials
-                  <IconExternalLink size={12} style={{ verticalAlign: 'middle', marginLeft: 2 }} />
+                  <IconExternalLink
+                    size={12}
+                    style={{ verticalAlign: 'middle', marginInlineStart: 2 }}
+                  />
                 </Anchor>
               )}
             </Text>

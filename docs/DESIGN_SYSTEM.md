@@ -259,8 +259,11 @@ Colour scheme: `light | dark | auto`, defaulting to `auto`. Stored per user on t
 (`users.preferences`) so it follows them across devices, with `localStorage` as the
 pre-hydration hint. `<ColorSchemeScript>` prevents the flash.
 
-RTL (P16) via `dir="rtl"` and logical CSS properties — use `margin-inline-start`, not
-`margin-left`, from the start.
+RTL via `dir="rtl"`, set from the resolved locale, and logical CSS properties —
+`margin-inline-start`, not `margin-left`; Mantine's `ps`/`pe`, not `pl`/`pr`;
+`textAlign: 'end'`, not `'right'`. `src/shared/i18n/logicalStyles.test.ts`
+fails on a physical side, and an exception is named in it with its reason
+(`docs/I18N.md`).
 
 ---
 

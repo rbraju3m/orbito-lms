@@ -4,6 +4,7 @@ import {
   Card,
   Container,
   Group,
+  Select,
   Stack,
   Textarea,
   TextInput,
@@ -13,8 +14,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
+import { sessionQuery } from '@/features/auth/api/queries';
 import { profileSchema, type ProfileValues } from '@/features/auth/schemas';
 import { applyServerErrors } from '@/shared/lib/form';
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
@@ -26,19 +28,21 @@ const FIELDS = ['name', 'headline', 'bio', 'timezone', 'locale'] as const;
 
 export function ProfileRoute() {
   const { data, isPending, isError, error, refetch } = useQuery(profileQuery());
+  const { data: session } = useQuery(sessionQuery());
   const { mutateAsync, isPending: isSaving } = useUpdateProfile();
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
     formState: { errors, isDirty },
   } = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: '', headline: '', bio: '', timezone: 'UTC', locale: 'en' },
+    defaultValues: { name: '', headline: '', bio: '', timezone: 'UTC', locale: '' },
   });
 
   useEffect(() => {
@@ -48,7 +52,7 @@ export function ProfileRoute() {
       headline: data.headline ?? '',
       bio: data.bio ?? '',
       timezone: data.timezone,
-      locale: data.locale,
+      locale: data.locale ?? '',
     });
   }, [data, reset]);
 
@@ -56,7 +60,7 @@ export function ProfileRoute() {
     setFormError(null);
     setSaved(false);
     try {
-      await mutateAsync(values);
+      await mutateAsync({ ...values, locale: values.locale === '' ? null : values.locale });
       setSaved(true);
     } catch (err) {
       setFormError(applyServerErrors(err, setError, FIELDS));
@@ -75,7 +79,9 @@ export function ProfileRoute() {
           <Card>
             <form onSubmit={onSubmit} noValidate>
               <Stack gap="md">
-                <Title order={3}>Details</Title>
+                <Title order={2} size="h3">
+                  Details
+                </Title>
 
                 {formError ? (
                   <Alert color="danger" icon={<IconAlertCircle size={16} />} role="alert">
@@ -115,10 +121,28 @@ export function ProfileRoute() {
                     label="Timezone"
                     error={errors.timezone?.message}
                   />
-                  <TextInput
-                    {...register('locale')}
-                    label="Language"
-                    error={errors.locale?.message}
+                  <Controller
+                    control={control}
+                    name="locale"
+                    render={({ field }) => (
+                      <Select
+                        label="Language"
+                        // Only what this academy offers: the server refuses
+                        // anything else (`locale.available` on the session).
+                        data={[
+                          { value: '', label: "The academy's language" },
+                          ...(session?.locale.available ?? []).map((locale) => ({
+                            value: locale.code,
+                            label: locale.native_name,
+                          })),
+                        ]}
+                        value={field.value}
+                        onChange={(value) => field.onChange(value ?? '')}
+                        onBlur={field.onBlur}
+                        allowDeselect={false}
+                        error={errors.locale?.message}
+                      />
+                    )}
                   />
                 </Group>
 

@@ -128,7 +128,7 @@ function FunnelRow({ item, isWorst }: { item: FunnelItem; isWorst: boolean }) {
               }}
             />
           </Box>
-          <Text size="sm" style={{ minWidth: 38, textAlign: 'right' }}>
+          <Text size="sm" style={{ minWidth: 38, textAlign: 'end' }}>
             {percent}%
           </Text>
         </Group>

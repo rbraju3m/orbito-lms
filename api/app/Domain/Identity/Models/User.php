@@ -37,7 +37,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $headline
  * @property string|null $bio
  * @property string $timezone
- * @property string $locale
+ * @property string|null $locale null: never chosen, the academy's default applies
  * @property UserStatus $status
  * @property CarbonInterface|null $last_login_at
  * @property CarbonInterface|null $last_seen_at

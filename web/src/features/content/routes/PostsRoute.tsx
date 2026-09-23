@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import { adminPostsQuery, useCreatePost, type PostFilters } from '../api/posts';
 import { postState } from '../lib/posts';
@@ -109,8 +110,8 @@ export function PostsRoute() {
                       </Text>
                       <Text size="sm" c="dimmed">
                         {post.published_at
-                          ? `${post.is_scheduled ? 'Goes out' : 'Out since'} ${new Date(post.published_at).toLocaleString()}`
-                          : `Edited ${new Date(post.updated_at).toLocaleString()}`}
+                          ? `${post.is_scheduled ? 'Goes out' : 'Out since'} ${formatDateTime(post.published_at)}`
+                          : `Edited ${formatDateTime(post.updated_at)}`}
                       </Text>
                     </Stack>
                     <Badge color={state.color} variant="light">

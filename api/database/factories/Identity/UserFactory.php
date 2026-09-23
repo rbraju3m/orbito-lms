@@ -39,7 +39,7 @@ final class UserFactory extends Factory
             'last_login_at' => null,
             'last_seen_at' => null,
             'timezone' => 'UTC',
-            'locale' => 'en',
+            'locale' => null,
             'status' => UserStatus::Active,
             'remember_token' => Str::random(10),
 

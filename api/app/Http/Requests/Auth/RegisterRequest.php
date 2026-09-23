@@ -41,7 +41,7 @@ final class RegisterRequest extends FormRequest
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'wants_to_teach' => ['sometimes', 'boolean'],
             'timezone' => ['sometimes', 'string', 'timezone'],
-            'locale' => ['sometimes', 'string', Rule::in(config('orbito.locales.supported'))],
+            'locale' => ['sometimes', 'nullable', 'string', Rule::in(config('orbito.locales.supported'))],
             // A stateful first-party request (SPA origin) gets a cookie session.
             // Any other client MUST name its device so we can issue — and later
             // revoke — a token for it. Silently returning neither would leave the
@@ -58,7 +58,8 @@ final class RegisterRequest extends FormRequest
             password: $this->string('password')->value(),
             wantsToTeach: $this->boolean('wants_to_teach'),
             timezone: $this->string('timezone', 'UTC')->value(),
-            locale: $this->string('locale', (string) config('orbito.locales.default'))->value(),
+            // Absent is "not chosen": the academy's default applies (docs/I18N.md).
+            locale: $this->filled('locale') ? $this->string('locale')->value() : null,
         );
     }
 }

@@ -23,7 +23,7 @@ The web SPA, the future mobile app, and third-party integrators use the **same**
 | Dates | ISO-8601 UTC with offset: `2026-09-07T10:35:00Z`. |
 | Money | `{"amount_minor": 249900, "currency": "BDT", "formatted": "৳2,499.00"}`. |
 | Empty | `null` for absent scalars; `[]` for absent collections. Never omit a documented key. |
-| Locale | `Accept-Language` header selects translations; `?locale=` overrides. |
+| Locale | Resolved per request by `LocaleResolver`: `?locale=` → the user's own `locale` → the academy's chosen default → `Accept-Language` → `en`, taking the first the academy offers. Echoed as `Content-Language`. An unknown or disabled code is skipped, never an error. `docs/I18N.md`. |
 
 ---
 
@@ -192,6 +192,21 @@ super-admin answers they hold:
   "academy": { "id": "…", "slug": "demo-academy", "name": "Demo Academy" }
 }
 ```
+
+It carries the language the server resolved for the reader, and what they may
+switch to (`docs/I18N.md`). The SPA draws itself in this answer and never
+resolves one of its own:
+
+```jsonc
+"locale": {
+  "code": "bn", "native_name": "বাংলা", "direction": "ltr",
+  "available": [{ "code": "en", "native_name": "English", "direction": "ltr" }, { "code": "bn", … }]
+}
+```
+
+`GET /public/{academy}` carries the same block for a stranger, resolved with
+no user. `user.locale` is the person's own CHOICE, and `null` means they never
+made one.
 
 `academy` is null only for an operator who has entered none; a member always has
 one. See `ROLES_PERMISSIONS.md` §7 for why the two flags are different things.
@@ -685,7 +700,7 @@ GET    /admin/users/{user}/roles · POST · DELETE /…/roles/{role:key}
 GET    /admin/instructors?status=pending
 POST   /admin/instructors/{instructorProfile}/review   {decision, reason?}
 GET    /admin/roles · GET /admin/permissions
-GET    /admin/academy · PATCH                    {registration_mode?, support_email?, logo_media_id?}
+GET    /admin/academy · PATCH                    {registration_mode?, support_email?, logo_media_id?, default_locale?, enabled_locales?}
 GET    /admin/academy/usage                      usage against the plan's limits
 GET    /health
 ```
@@ -709,6 +724,13 @@ removing a logo DELETES the old file. The id must be a logo the caller uploaded
 — except the one already set, so a colleague can re-save the form. The
 response carries `logo_media_id` and `logo_url`; `GET /public/{academy}`
 carries `logo_url` only.
+
+**Languages.** `enabled_locales` narrows what the installation supports
+(`locales` in the response lists it); `default_locale` is what a reader gets
+when they have not chosen, and must be one of the enabled — judged on the
+MERGED result, so switching off the language that is the default is a 422 on
+`enabled_locales`. `PATCH /account/profile {locale}` accepts only an enabled
+code, or `null` to hand the choice back to the academy.
 
 **`/admin/academy/usage` is that academy's meter**, built from `PlanLimits` —
 the same class the write path consults, so a screen cannot promise room the

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
+import { formatDate } from '@/shared/lib/datetime';
 
 import { publicPostsQuery } from '../api/blog';
 import { publicAcademyQuery } from '../api/queries';
@@ -71,7 +72,7 @@ export function BlogIndexRoute() {
                 <Group gap="xs">
                   {post.published_at ? (
                     <Text size="sm" c="dimmed">
-                      {new Date(post.published_at).toLocaleDateString()}
+                      {formatDate(post.published_at)}
                     </Text>
                   ) : null}
                   <Text size="sm" c="dimmed">

@@ -32,7 +32,9 @@ export function InstructorApplicationCard() {
     <Card>
       <Stack gap="md">
         <Group justify="space-between">
-          <Title order={3}>Teaching</Title>
+          <Title order={2} size="h3">
+            Teaching
+          </Title>
           {profile ? (
             <Badge color={STATUS_COLOR[profile.status] ?? 'gray'} variant="light">
               {profile.status_label}

@@ -7,6 +7,7 @@ namespace App\Domain\Platform\Models;
 use App\Domain\Identity\Models\User;
 use App\Domain\Media\Enums\MediaCollection;
 use App\Domain\Media\Models\Media;
+use App\Domain\Platform\Enums\Locale;
 use App\Domain\Platform\Enums\RegistrationMode;
 use App\Domain\Platform\Enums\TenantStatus;
 use Carbon\CarbonInterface;
@@ -37,6 +38,8 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string|null $rejected_reason
  * @property string|null $registration_mode read through registrationMode()
  * @property int|null $logo_media_id read through logoUrl()
+ * @property string|null $default_locale read through defaultLocale()
+ * @property array<int, string>|null $enabled_locales read through enabledLocales()
  */
 final class Tenant extends BaseTenant implements TenantWithDatabase
 {
@@ -160,5 +163,54 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
         return is_string($stored)
             ? RegistrationMode::tryFrom($stored) ?? RegistrationMode::default()
             : RegistrationMode::default();
+    }
+
+    /**
+     * The languages this academy's interface may speak — what the
+     * installation supports, narrowed by what the academy chose, and never
+     * without its own default. In the `data` blob: nothing filters on it.
+     *
+     * Never chosen means everything supported, so a language added to the
+     * installation reaches an academy that never touched the setting.
+     *
+     * @return list<Locale>
+     */
+    public function enabledLocales(): array
+    {
+        $supported = Locale::supported();
+        $stored = $this->enabled_locales;
+
+        if (! is_array($stored) || $stored === []) {
+            return $supported;
+        }
+
+        $chosen = array_map(Locale::fromTag(...), $stored);
+        $enabled = array_values(array_filter($supported, fn (Locale $locale): bool => in_array($locale, $chosen, true)));
+
+        $default = $this->chosenDefaultLocale();
+
+        if ($default !== null && ! in_array($default, $enabled, true)) {
+            $enabled[] = $default;
+        }
+
+        return $enabled === [] ? $supported : $enabled;
+    }
+
+    /** The language a reader gets when they have not chosen one. */
+    public function defaultLocale(): Locale
+    {
+        return $this->chosenDefaultLocale() ?? Locale::supported()[0];
+    }
+
+    /**
+     * The default the academy actually PICKED, or null. The resolver asks
+     * this one: an academy that never chose should not outrank a reader's
+     * browser with a default nobody decided on.
+     */
+    public function chosenDefaultLocale(): ?Locale
+    {
+        $stored = Locale::fromTag(is_string($this->default_locale) ? $this->default_locale : null);
+
+        return $stored !== null && in_array($stored, Locale::supported(), true) ? $stored : null;
     }
 }

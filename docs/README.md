@@ -78,6 +78,7 @@ is worth less than one that says "this came out differently, and here is why".
 | `INVITATIONS.md` | **built** — inviting a student or an instructor by email: the hashed token, one open invitation per address as a constraint, the seat an instructor invitation holds, and why an invitation works in every signup mode |
 | `BLOG.md` | **built** — the academy's blog: drafts, scheduling by the clock, the locked address, sanitised HTML, and why the public site stays client-rendered |
 | `PAGES.md` | the page builder: a closed set of blocks saved as one list, resolved with the public scopes, one front page as a constraint |
+| `I18N.md` | **I1 built** — the interface in the reader's language: one resolver, English in the source, Bengali catalogues, formatting by locale, RTL foundations; I2–I3 are the plan |
 | `RUNNING.md` | current — run it locally and sign in, on one page |
 | `TESTING.md` | current, including the Playwright gap and why the suite has its own tenant prefix |
 | `ROLES_PERMISSIONS.md` | current — the policy table, the two unrelated "super admins", and §7 on the permanent owner |
@@ -111,7 +112,7 @@ is worth less than one that says "this came out differently, and here is why".
     [`COUPONS.md`](COUPONS.md) · [`REFUNDS.md`](REFUNDS.md) ·
     [`LEADS.md`](LEADS.md) · [`GUEST_REGISTRATION.md`](GUEST_REGISTRATION.md) ·
     [`INVITATIONS.md`](INVITATIONS.md) ·
-    [`BLOG.md`](BLOG.md) · [`PAGES.md`](PAGES.md)
+    [`BLOG.md`](BLOG.md) · [`PAGES.md`](PAGES.md) · [`I18N.md`](I18N.md)
 
 **Before writing any code** → [`../CLAUDE.md`](../CLAUDE.md)
 

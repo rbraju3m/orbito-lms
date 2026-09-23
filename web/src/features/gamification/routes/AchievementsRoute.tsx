@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { formatDate } from '@/shared/lib/datetime';
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
+import { formatNumber } from '@/shared/lib/number';
 
 import { achievementsQuery, useUpdateRanking } from '../api/queries';
 import { BadgeWall } from '../components/BadgeWall';
@@ -38,7 +39,7 @@ export function AchievementsRoute() {
           <StatCard
             icon={<IconTrophy size={22} />}
             label="Points"
-            value={profile.points_total.toLocaleString()}
+            value={formatNumber(profile.points_total)}
           />
           <StatCard
             icon={<IconFlame size={22} />}

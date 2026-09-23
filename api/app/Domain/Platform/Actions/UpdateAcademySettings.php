@@ -22,7 +22,7 @@ final class UpdateAcademySettings
 {
     public function __construct(private readonly DeleteMedia $deleteMedia) {}
 
-    /** @param array{registration_mode?: string, support_email?: string|null, logo_media_id?: int|null} $changes */
+    /** @param array{registration_mode?: string, support_email?: string|null, logo_media_id?: int|null, default_locale?: string, enabled_locales?: list<string>} $changes */
     public function handle(Tenant $academy, array $changes): Tenant
     {
         $replacedLogo = null;
@@ -36,6 +36,16 @@ final class UpdateAcademySettings
 
         if (array_key_exists('support_email', $changes)) {
             $academy->support_email = $changes['support_email'];
+        }
+
+        // Validated against each other in the request; stored as codes in
+        // the `data` blob and read back through Tenant::enabledLocales().
+        if (array_key_exists('enabled_locales', $changes)) {
+            $academy->enabled_locales = array_values(array_unique($changes['enabled_locales']));
+        }
+
+        if (array_key_exists('default_locale', $changes)) {
+            $academy->default_locale = $changes['default_locale'];
         }
 
         if (array_key_exists('logo_media_id', $changes)) {

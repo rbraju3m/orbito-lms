@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Platform;
 
+use App\Domain\Platform\Enums\Locale;
 use App\Domain\Platform\Enums\RegistrationMode;
 use App\Domain\Platform\Models\Tenant;
 use App\Support\Http\Resources\BaseResource;
@@ -34,6 +35,11 @@ final class AcademyResource extends BaseResource
             // The id is what a save speaks; the URL is what the screen draws.
             'logo_media_id' => $this->resource->logoMediaId(),
             'logo_url' => $this->resource->logoUrl(),
+
+            'default_locale' => $this->resource->defaultLocale()->value,
+            'enabled_locales' => array_map(fn (Locale $locale): string => $locale->value, $this->resource->enabledLocales()),
+            // What the installation offers — the boxes the settings screen draws.
+            'locales' => array_map(fn (Locale $locale): array => $locale->toArray(), Locale::supported()),
 
             'registration_mode' => $mode->value,
             'registration_mode_label' => $mode->label(),

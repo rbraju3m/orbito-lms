@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/shared/ui';
+import { formatDate } from '@/shared/lib/datetime';
 
 import { instructorsQuery, useReviewInstructor } from '../api/queries';
 
@@ -81,7 +82,7 @@ export function InstructorsRoute() {
                     </Table.Td>
                     <Table.Td>
                       <Text size="sm" c="dimmed">
-                        {row.applied_at ? new Date(row.applied_at).toLocaleDateString() : '—'}
+                        {row.applied_at ? formatDate(row.applied_at) : '—'}
                       </Text>
                     </Table.Td>
                     <Table.Td>

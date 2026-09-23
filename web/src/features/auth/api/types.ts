@@ -1,3 +1,5 @@
+import type { ResolvedLocale } from '@/shared/i18n';
+
 export type UserStatus = 'active' | 'pending' | 'suspended';
 
 export interface InstructorProfile {
@@ -22,7 +24,8 @@ export interface User {
   headline: string | null;
   bio: string | null;
   timezone: string;
-  locale: string;
+  /** Null: never chosen — the academy's default applies. */
+  locale: string | null;
   status: UserStatus;
   email_verified: boolean;
   created_at: string | null;
@@ -51,6 +54,8 @@ export interface Session {
    * behind them.
    */
   academy: SessionAcademy | null;
+  /** The language the server resolved for this reader, and what they may switch to. */
+  locale: ResolvedLocale;
   /** Present only for token clients (mobile), never for the cookie SPA. */
   token?: string;
 }

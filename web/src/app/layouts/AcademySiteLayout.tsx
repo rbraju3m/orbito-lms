@@ -1,9 +1,12 @@
 import { AppShell, Burger, Button, Group, Image, Stack, Text } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Link, Outlet, useParams } from 'react-router';
 
+import { authKeys } from '@/features/auth/api/keys';
 import { publicNavigationQuery } from '@/features/publicsite/api/pages';
 import { publicAcademyQuery } from '@/features/publicsite/api/queries';
+import { applyLocale } from '@/shared/i18n';
 import { mainContentProps, SkipLink, ThemeToggle } from '@/shared/ui';
 
 import { useNavMenu } from './useNavMenu';
@@ -27,6 +30,18 @@ import { useNavMenu } from './useNavMenu';
 export function AcademySiteLayout() {
   const { academy = '' } = useParams();
   const { data } = useQuery(publicAcademyQuery(academy));
+  const queryClient = useQueryClient();
+
+  /*
+   * A stranger has no session to carry a language, so the academy's answer
+   * applies. A member's own choice still wins: `LocaleSync` applies theirs,
+   * and this steps aside when a session is cached.
+   */
+  useEffect(() => {
+    if (data?.locale && !queryClient.getQueryData(authKeys.session())) {
+      void applyLocale(data.locale);
+    }
+  }, [data?.locale, queryClient]);
   // The pages the academy linked from its header (docs/PAGES.md).
   const navigation = useQuery(publicNavigationQuery(academy));
   const { opened, close, navbarInert, burgerProps } = useNavMenu({ onDesktop: 'header' });

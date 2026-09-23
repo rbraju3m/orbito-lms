@@ -6,6 +6,7 @@ import { useState, type ReactNode } from 'react';
 
 import { createQueryClient } from '@/shared/api/queryClient';
 
+import { LocaleSync } from './LocaleSync';
 import { cssVariablesResolver, theme } from './theme';
 
 export function AppProviders({ children }: { children: ReactNode }) {
@@ -20,8 +21,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
         cssVariablesResolver={cssVariablesResolver}
         defaultColorScheme="auto"
       >
-        <Notifications position="top-right" limit={3} />
-        <ModalsProvider>{children}</ModalsProvider>
+        <LocaleSync>
+          <Notifications position="top-right" limit={3} />
+          <ModalsProvider>{children}</ModalsProvider>
+        </LocaleSync>
       </MantineProvider>
     </QueryClientProvider>
   );

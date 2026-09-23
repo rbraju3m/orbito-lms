@@ -33,7 +33,7 @@ export function sessionFixture(overrides: Record<string, unknown> = {}) {
       headline: null,
       bio: null,
       timezone: 'UTC',
-      locale: 'en',
+      locale: null,
       status: 'active',
       email_verified: true,
       created_at: '2026-01-01T00:00:00Z',
@@ -45,6 +45,15 @@ export function sessionFixture(overrides: Record<string, unknown> = {}) {
     is_platform_operator: false,
     is_platform_owner: false,
     academy: { id: 'academy-1', slug: 'test-academy', name: 'Test Academy', currency: 'USD' },
+    locale: {
+      code: 'en',
+      native_name: 'English',
+      direction: 'ltr',
+      available: [
+        { code: 'en', native_name: 'English', direction: 'ltr' },
+        { code: 'bn', native_name: 'বাংলা', direction: 'ltr' },
+      ],
+    },
     ...overrides,
   };
 }

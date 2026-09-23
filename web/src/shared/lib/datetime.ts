@@ -1,3 +1,5 @@
+import { intlLocale } from '@/shared/i18n/locale';
+
 /**
  * The edge where UTC becomes local time and back.
  *
@@ -32,7 +34,7 @@ export function fromLocalInputValue(value: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-/** A short, readable rendering in the viewer's own zone. */
+/** A short, readable rendering in the viewer's own zone and language. */
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
 
@@ -40,7 +42,7 @@ export function formatDateTime(iso: string | null | undefined): string {
 
   if (Number.isNaN(date.getTime())) return '—';
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(intlLocale(), {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
@@ -54,5 +56,33 @@ export function formatDate(iso: string | null | undefined): string {
 
   if (Number.isNaN(date.getTime())) return '—';
 
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
+  return new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium' }).format(date);
+}
+
+/** Time of day only, in the viewer's zone and language. */
+export function formatTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+
+  const date = new Date(iso);
+
+  if (Number.isNaN(date.getTime())) return '—';
+
+  return new Intl.DateTimeFormat(intlLocale(), { timeStyle: 'short' }).format(date);
+}
+
+/**
+ * A CALENDAR DAY the server names as `YYYY-MM-DD` — an analytics range, a
+ * rollup's day. Formatted in UTC, because that is the day it is: read as
+ * local time it would be the day before for everybody west of Greenwich.
+ */
+export function formatDay(day: string | null | undefined): string {
+  if (!day) return '—';
+
+  const date = new Date(`${day}T00:00:00Z`);
+
+  if (Number.isNaN(date.getTime())) return '—';
+
+  return new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(
+    date,
+  );
 }

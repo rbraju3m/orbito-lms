@@ -27,6 +27,7 @@ import { useUploadMedia } from '@/features/media/api/queries';
 import { ApiError } from '@/shared/api/errors';
 import { applyServerErrors } from '@/shared/lib/form';
 import { ErrorState, LoadingState, PageHeader } from '@/shared/ui';
+import { formatDateTime } from '@/shared/lib/datetime';
 
 import {
   adminPostQuery,
@@ -151,7 +152,7 @@ function PostEditor({ post }: { post: AdminPost }) {
         title={post.title}
         description={
           post.published_at
-            ? `${state.label} · ${post.is_scheduled ? 'goes out' : 'out since'} ${new Date(post.published_at).toLocaleString()}`
+            ? `${state.label} · ${post.is_scheduled ? 'goes out' : 'out since'} ${formatDateTime(post.published_at)}`
             : state.label
         }
         actions={

@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
@@ -24,6 +24,12 @@ function academy(overrides: Partial<Academy> = {}): Academy {
       { value: 'open', label: 'Anyone with the link', available: true },
       { value: 'invite', label: 'Invitation only', available: true },
       { value: 'closed', label: 'Nobody — admins create accounts', available: true },
+    ],
+    default_locale: 'en',
+    enabled_locales: ['en', 'bn'],
+    locales: [
+      { code: 'en', native_name: 'English', direction: 'ltr' },
+      { code: 'bn', native_name: 'বাংলা', direction: 'ltr' },
     ],
     ...overrides,
   };
@@ -183,5 +189,61 @@ describe('AcademySettingsRoute', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'That file type is not accepted here.',
     );
+  });
+
+  describe('languages', () => {
+    function capturePatch() {
+      const patched = vi.fn();
+      server.use(
+        http.patch(apiUrl('/admin/academy'), async ({ request }) => {
+          const body = (await request.json()) as Partial<Academy>;
+          patched(body);
+          return HttpResponse.json({ data: academy(body) });
+        }),
+      );
+      return patched;
+    }
+
+    it('makes Bengali the default', async () => {
+      serve(academy());
+      const patched = capturePatch();
+      renderWithRouter(<AcademySettingsRoute />);
+
+      const defaults = await screen.findByRole('radiogroup', { name: 'Default' });
+      await userEvent.click(within(defaults).getByLabelText('বাংলা'));
+      await userEvent.click(screen.getByRole('button', { name: 'Save languages' }));
+
+      await waitFor(() =>
+        expect(patched).toHaveBeenCalledWith({
+          enabled_locales: ['en', 'bn'],
+          default_locale: 'bn',
+        }),
+      );
+    });
+
+    // The server refuses a default the academy does not offer; the form never asks.
+    it('moves the default when its language is switched off', async () => {
+      serve(academy());
+      const patched = capturePatch();
+      renderWithRouter(<AcademySettingsRoute />);
+
+      const offered = await screen.findByRole('group', { name: 'Offered' });
+      await userEvent.click(within(offered).getByLabelText('English'));
+      await userEvent.click(screen.getByRole('button', { name: 'Save languages' }));
+
+      await waitFor(() =>
+        expect(patched).toHaveBeenCalledWith({ enabled_locales: ['bn'], default_locale: 'bn' }),
+      );
+    });
+
+    it('will not switch off the last language', async () => {
+      serve(academy({ enabled_locales: ['bn'], default_locale: 'bn' }));
+      renderWithRouter(<AcademySettingsRoute />);
+
+      const offered = await screen.findByRole('group', { name: 'Offered' });
+
+      expect(within(offered).getByLabelText('বাংলা')).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Save languages' })).toBeDisabled();
+    });
   });
 });
