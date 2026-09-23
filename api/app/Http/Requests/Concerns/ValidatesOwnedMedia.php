@@ -13,9 +13,9 @@ use Illuminate\Validation\Validator;
  *
  * The media must be the caller's own, and of the collection the field expects
  * — otherwise anyone could point their cover at somebody else's private file.
- * `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of this
- * from before it was shared; the bundle requests shipped WITHOUT it, checking
- * `exists` alone, which this trait was written to fix.
+ * The bundle requests shipped WITHOUT it, checking `exists` alone, which this
+ * trait was written to fix. Every request that takes a media id uses it; a
+ * private copy is one edit away from disagreeing with this one.
  */
 trait ValidatesOwnedMedia
 {

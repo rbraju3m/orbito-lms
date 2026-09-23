@@ -7,13 +7,15 @@ namespace App\Http\Requests\Curriculum;
 use App\Domain\Curriculum\Enums\ContentFormat;
 use App\Domain\Curriculum\Enums\VideoProvider;
 use App\Domain\Media\Enums\MediaCollection;
-use App\Domain\Media\Models\Media;
+use App\Http\Requests\Concerns\ValidatesOwnedMedia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 final class UpsertLessonRequest extends FormRequest
 {
+    use ValidatesOwnedMedia;
+
     public function authorize(): bool
     {
         return true;
@@ -72,22 +74,5 @@ final class UpsertLessonRequest extends FormRequest
     public function itemAttributes(): array
     {
         return $this->safe()->only(['title', 'is_preview', 'is_published', 'duration_seconds']);
-    }
-
-    private function assertOwnedMedia(Validator $validator, string $field, MediaCollection $collection): void
-    {
-        $id = $this->input($field);
-
-        if (! is_numeric($id)) {
-            return;
-        }
-
-        $media = Media::find((int) $id);
-
-        if ($media === null
-            || $media->owner_id !== $this->user()?->id
-            || $media->collection !== $collection->value) {
-            $validator->errors()->add($field, 'That file is not available for this field.');
-        }
     }
 }

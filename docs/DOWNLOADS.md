@@ -195,8 +195,8 @@ every collection now names who may write into it — `ROLES_PERMISSIONS.md`.)*
 - **The bundle requests checked `thumbnail_media_id` with `exists` alone** —
   exactly what §10 forbids. `ValidatesOwnedMedia` is now a shared trait: the
   cover must be the caller's own image. `UpdateCourseRequest` and
-  `UpsertLessonRequest` still carry their private copies from before it was
-  shared.
+  `UpsertLessonRequest` carried private copies from before it was shared;
+  they use the trait now too.
 
 **Smaller:** the fetch hook uses `location.assign`, not `window.open` — a popup
 opened after an `await` is exactly what browsers block, and the response is an

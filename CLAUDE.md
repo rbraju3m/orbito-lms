@@ -1389,8 +1389,6 @@ Every one of these has already cost time at least once.
   direct-to-storage flow `MediaStatus::Pending` was declared for was never
   built. Downloads cap at 500 MB and allow no executables; that allowlist is
   the whole defence.
-- `UpdateCourseRequest` and `UpsertLessonRequest` carry private copies of the
-  owned-media check that `ValidatesOwnedMedia` now shares.
 - **The first-paint budget is 255 KB, raised from 250 in Phase 16 on
   purpose**, and first paint is 251.06 (the skip link cost 0.16, the members catalogue's pager 0.21, the Invitations nav entry 0.26). It had crept to 250.91 — nav icons
   for webhooks, coupons and refund reports — after small cuts had been shown
